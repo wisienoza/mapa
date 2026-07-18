@@ -720,6 +720,51 @@
                 accent: _SPLASH_ACCENT_RANK
             }]);
         };
+        // --- KONFETTI PRZY SPLASHU ---
+        // DOM + Web Animations API zamiast <canvas>: okno zyje ~2 s, wiec nie oplaca sie utrzymywac
+        // petli rysowania - kazdy skrawek dostaje JEDNA animacje i znika razem z kontenerem.
+        // pointer-events:none jest KONIECZNE: klik gdziekolwiek ma i sc do overlaya (nastepna pozycja
+        // z kolejki albo zamkniecie), a konfetti przykrywa caly ekran i inaczej polykaloby klikniecia.
+        // Kolory biora sie z akcentu okna, wiec awans rangi sypie cyjanem, a odznaka zoltem.
+        window._achConfetti = function(accent){
+            var host = document.getElementById("ach-splash-overlay");
+            if (!host) return;
+            // Szanuj systemowe ograniczenie animacji - wtedy nie sypiemy niczym.
+            try { if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return; }
+            catch (e) { /* stara przegladarka - lecimy dalej */ }
+            var old = document.getElementById("ach-confetti");
+            if (old && old.parentNode) old.parentNode.removeChild(old);
+            var wrap = document.createElement("div");
+            wrap.id = "ach-confetti";
+            wrap.style.cssText = "position:absolute; inset:0; overflow:hidden; pointer-events:none;";
+            host.appendChild(wrap);
+            var acc = "rgb(" + ((accent && accent.rgb) || "250,204,21") + ")";
+            var cols = [acc, acc, "#ffffff", "#facc15", "#4ade80", "#00ccff"];
+            var H = window.innerHeight || 800;
+            for (var i = 0; i < 70; i++) {
+                var p = document.createElement("i");
+                var w = 5 + Math.random() * 6, h = 7 + Math.random() * 9;
+                p.style.cssText = "position:absolute; top:-8%; left:" + (Math.random() * 100).toFixed(2) + "%;"
+                    + " width:" + w.toFixed(1) + "px; height:" + h.toFixed(1) + "px;"
+                    + " background:" + cols[i % cols.length] + ";"
+                    + " border-radius:" + (Math.random() < 0.3 ? "50%" : "1px") + ";";
+                wrap.appendChild(p);
+                if (!p.animate) continue;   // brak WAAPI - skrawki po prostu nie lataja
+                p.animate([
+                    { transform: "translate3d(0,0,0) rotate(0deg)", opacity: 1 },
+                    { transform: "translate3d(" + (Math.random() * 170 - 85).toFixed(0) + "px," + (H * 1.2).toFixed(0) + "px,0)"
+                                 + " rotate(" + (360 + Math.random() * 720).toFixed(0) + "deg)", opacity: 0.85 }
+                ], {
+                    duration: 1500 + Math.random() * 1300,
+                    delay: Math.random() * 260,
+                    easing: "cubic-bezier(0.25,0.6,0.35,1)",
+                    fill: "forwards"
+                });
+            }
+            // Sprzatanie po najdluzszej mozliwej animacji (2800 + zapas). Bez tego kolejne okna
+            // z kolejki dokladalyby po 70 wezlow, ktore juz nic nie robia.
+            window.setTimeout(function(){ if (wrap.parentNode) wrap.parentNode.removeChild(wrap); }, 3100);
+        };
         window._achSplashNext = function(){
             var el = document.getElementById("ach-splash-overlay");
             if (!window._achSplashQueue.length) {
@@ -765,6 +810,9 @@
             el.style.display = "flex";
             window._achSplashOpen = true;
             if (box && box.animate) box.animate([{ opacity: 0, transform: "scale(0.86)" }, { opacity: 1, transform: "scale(1)" }], { duration: 220, easing: "ease-out" });
+            // Konfetti leci przy KAZDEJ pozycji z kolejki (5 odznak pod rzad = 5 salw), bo kazda jest
+            // osobnym zdobyciem. Musi byc PO el.style.display="flex" - kontener liczy wymiary z overlaya.
+            if (window._achConfetti) window._achConfetti(ac);
         };
         // --- POZIOM TRUDNOSCI ODZNAKI (dane: achievements-tiers-data.js) ---
         // Zwraca wpis z ACH_TIER_DEFS albo null. NULL = brak pliku danych -> panel renderuje sie
@@ -844,9 +892,11 @@
                  + (t.glow ? ' box-shadow:0 0 15px rgba(' + t.rgb + ',0.5);' : '');
         };
         // Znaczek poziomu w prawym gornym rogu kafelka (17 px). Kafelek MUSI miec position:relative.
+        // t.markRgb nadpisuje kolor znaczka. Potrzebne, gdy tlo kafelka ma wysokie krycie i jest
+        // praktycznie tym samym kolorem co t.rgb - znaczek rysowany domyslnie znika (kontrast 1.0).
         window._achTierMark = function(t, on){
             if (!t) return '';
-            return '<svg viewBox="0 0 24 24" fill="rgb(' + t.rgb + ')" style="position:absolute;'
+            return '<svg viewBox="0 0 24 24" fill="rgb(' + (t.markRgb || t.rgb) + ')" style="position:absolute;'
                  + ' top:8px; right:8px; width:17px; height:17px; pointer-events:none;'
                  + (on ? '' : ' filter:grayscale(1); opacity:0.5;') + '">' + t.mark + '</svg>';
         };
