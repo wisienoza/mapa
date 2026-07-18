@@ -637,7 +637,7 @@
             // Pierwszy przebieg po wczytaniu strony leci CICHO i tylko uzbraja mechanizm, bo "nowe" liczy sie
             // wzgledem achievements-data.js: gdy ten plik jest pusty albo zostal w tyle za katalogiem, na
             // starcie wpada nawet ~100 pozycji naraz i splash zablokowalby strone na kilkadziesiat klikniec.
-            // Dodatkowo na GitHub Pages nie ma admin.php, wiec zapis cicho pada i BEZ tego strazniku ta sama
+            // Dodatkowo na GitHub Pages nie ma admin.php, wiec zapis cicho pada i BEZ tego straznika ta sama
             // lawina wracalaby przy KAZDEJ wizycie.
             //
             // !!! UZBRAJAMY BEZWARUNKOWO I PRZED WYJSCIEM PRZY PUSTYM newIds (naprawione 2026-07-19).
@@ -646,7 +646,7 @@
             // znajduje wtedy nic nowego) mechanizm nie uzbrajal sie wcale. Straznik czekal na PIERWSZE
             // realne zdobycie usera, zjadal je jako "przebieg uzbrajajacy", a splash pokazywal sie dopiero
             // za drugim razem. Zgloszone jako "nie wyskakuja splashe po cudach" - w rzeczywistosci
-            // dotyczylo KAZDEJ sciezki (kraje, miasta, cuda), bo strazniks jest dla nich wspolny.
+            // dotyczylo KAZDEJ sciezki (kraje, miasta, cuda), bo straznik jest dla nich wspolny.
             var _wasArmed = window._achSplashArmed;
             window._achSplashArmed = true;
             if (newIds.length === 0) return ctx;   // nic nowego - nie ma czego pokazywac ani zapisywac
@@ -723,7 +723,7 @@
         // --- KONFETTI PRZY SPLASHU ---
         // DOM + Web Animations API zamiast <canvas>: okno zyje ~2 s, wiec nie oplaca sie utrzymywac
         // petli rysowania - kazdy skrawek dostaje JEDNA animacje i znika razem z kontenerem.
-        // pointer-events:none jest KONIECZNE: klik gdziekolwiek ma i sc do overlaya (nastepna pozycja
+        // pointer-events:none jest KONIECZNE: klik gdziekolwiek ma isc do overlaya (nastepna pozycja
         // z kolejki albo zamkniecie), a konfetti przykrywa caly ekran i inaczej polykaloby klikniecia.
         // Kolory biora sie z akcentu okna, wiec awans rangi sypie cyjanem, a odznaka zoltem.
         window._achConfetti = function(accent){
