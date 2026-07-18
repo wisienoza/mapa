@@ -611,6 +611,13 @@
             var txt = document.getElementById("ach-text-val");
             if (fill) fill.style.width = (unlocked / window.ACHIEVEMENTS.length * 100) + "%";
             if (txt) txt.innerText = unlocked + " / " + window.ACHIEVEMENTS.length;
+            // UDZIAL W SWIECIE (#world-share-row w left-hud): ctx ma juz policzone popPct/areaPct,
+            // wiec jedziemy na tym samym obiekcie - zero dodatkowego przejscia po FACTBOOK i zero
+            // wlasnego cache do inwalidacji (ctx zeruja markVisitedCity / _markVisitedGeneric).
+            var wsPop = document.getElementById("ws-pop");
+            var wsArea = document.getElementById("ws-area");
+            if (wsPop) wsPop.innerText = (ctx.popPct || 0).toLocaleString('pl-PL', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + "%";
+            if (wsArea) wsArea.innerText = (ctx.areaPct || 0).toLocaleString('pl-PL', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + "%";
         };
         // Zwraca policzony ctx (computeAchievementContext()), zeby wolajacy mogl go ponownie uzyc
         // (np. showAchievementsPanel) zamiast liczyc od nowa - patrz komentarz przy _computeCityStats
