@@ -16,14 +16,35 @@
 // To ta sama pulapka co w achievements-data.js - przy zmianie opisu odznaki popraw tez ten plik.
 
 // Kolejnosc MA ZNACZENIE (rosnaco) - app.js indeksuje po niej kwintyle.
-// Zero emoji w etykietach: na Windows renderuja sie niechlujnie w drobnym tekscie
-// (ta sama rodzina problemow co flagi - patrz notka przy FLAGS w db-schema.md).
+//
+// KOLORY: paleta rang z Overwatch (wybor uzytkownika). rgb trzymamy jako trojke skladowych,
+// bo kazdy kolor jest uzywany z rozna alfa (gradient tla 0.30/0.05, ramka 0.55, glow 0.45).
+//
+// GLOW tylko na dwoch najwyzszych poziomach - i to nie estetyka, tylko wydajnosc: panel renderuje
+// 528 kafelkow, a box-shadow na kazdym potrafi szarpac przy przewijaniu. Platyna + diament to
+// 177 pozycji. Jesli kiedys i to bedzie za duzo, zdejmij glow z platyny (zostanie 80).
+//
+// MARK: wlasne ksztalty SVG (viewBox 24x24), NIE ikony z Overwatch - te sa Blizzarda, a strona
+// leci publicznie na GitHub Pages. Sylwetka rosnie razem z ranga (szewron -> podwojny szewron ->
+// skrzydla -> tarcza -> krysztal), zeby poziom dalo sie rozpoznac takze bez koloru: srebro,
+// platyna i diament to trzy chlodne, jasne tony i na samym kolorze myla sie ze soba.
+// Zero emoji - na Windows renderuja sie w drobnym tekscie niechlujnie (patrz notka przy FLAGS).
 const ACH_TIER_DEFS = [
-    { key: "bronze",   label: "BRĄZ",     color: "#cd7f32", glow: "rgba(205,127,50,0.45)" },
-    { key: "silver",   label: "SREBRO",   color: "#cbd5e1", glow: "rgba(203,213,225,0.45)" },
-    { key: "gold",     label: "ZŁOTO",    color: "#facc15", glow: "rgba(250,204,21,0.45)" },
-    { key: "platinum", label: "PLATYNA",  color: "#67e8f9", glow: "rgba(103,232,249,0.45)" },
-    { key: "diamond",  label: "DIAMENT",  color: "#c084fc", glow: "rgba(192,132,252,0.5)" }
+    { key: "bronze",   label: "BRĄZ",    rgb: "192,112,60",  glow: false,
+      mark: '<path d="M3 7 L12 15 L21 7 L21 12 L12 20 L3 12 Z"/>' },
+    { key: "silver",   label: "SREBRO",  rgb: "169,178,186", glow: false,
+      mark: '<path d="M3 4 L12 11 L21 4 L21 8 L12 15 L3 8 Z"/>'
+          + '<path d="M6 14 L12 18.5 L18 14 L18 17.5 L12 22 L6 17.5 Z"/>' },
+    { key: "gold",     label: "ZŁOTO",   rgb: "229,185,60",  glow: false,
+      mark: '<path d="M5 7 L12 14 L19 7 L19 12 L12 19 L5 12 Z"/>'
+          + '<path d="M1.5 4 L4 4 L4 13 L1.5 10.5 Z"/><path d="M22.5 4 L20 4 L20 13 L22.5 10.5 Z"/>' },
+    { key: "platinum", label: "PLATYNA", rgb: "207,218,228", glow: true,
+      mark: '<path d="M12 2.5 L19 5.5 V11 C19 15.5 12 20 12 20 C12 20 5 15.5 5 11 V5.5 Z"/>'
+          + '<path d="M2 5 L4.2 5 L4.2 14 L2 11.5 Z"/><path d="M22 5 L19.8 5 L19.8 14 L22 11.5 Z"/>' },
+    { key: "diamond",  label: "DIAMENT", rgb: "157,180,232", glow: true,
+      mark: '<path d="M12 1.5 L21.5 9 L12 22.5 L2.5 9 Z"/>'
+          + '<path d="M12 1.5 L12 22.5 M2.5 9 L21.5 9 M7.2 9 L12 22.5 L16.8 9"'
+          + ' stroke="#08080a" stroke-width="1.1" fill="none" opacity="0.55"/>' }
 ];
 
 // Recznie przypisane poziomy dla 86 odznak bez prog().

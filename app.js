@@ -757,6 +757,70 @@
             window._achSplashOpen = true;
             if (box && box.animate) box.animate([{ opacity: 0, transform: "scale(0.86)" }, { opacity: 1, transform: "scale(1)" }], { duration: 220, easing: "ease-out" });
         };
+        // --- POZIOM TRUDNOSCI ODZNAKI (dane: achievements-tiers-data.js) ---
+        // Zwraca wpis z ACH_TIER_DEFS albo null. NULL = brak pliku danych -> panel renderuje sie
+        // dokladnie jak przed ta zmiana (zaden wywolujacy nie musi znac wartownika).
+        // DWA ZRODLA (patrz db-schema.md): kwintyl prog().need W OBREBIE KATEGORII dla 442 odznak,
+        // reczna tablica ACH_TIERS_MANUAL dla 86 binarnych. Progi sa nieporownywalne MIEDZY
+        // kategoriami (REGIONY licza kraje, LOTY kilometry, KLIMAT milimetry) - stad podzial per cat.
+        // REMISY: indexOf zwraca pozycje PIERWSZEGO wystapienia, wiec odznaki o identycznym progu
+        // dostaja ten sam poziom. To zamierzone (rowna trudnosc = rowna ranga), kosztem rownych
+        // koszykow: przy 528 pozycjach wychodzi braz 143 / srebro 98 / zloto 110 / platyna 97 / diament 80.
+        // pr = juz policzony wynik a.prog(ctx) - podaj go, jesli masz, zeby nie liczyc drugi raz.
+        window._achTierOf = (function(){
+            var cacheCtx = null, needByCat = null;
+            function needOf(a, ctx){
+                if (typeof a.prog !== 'function') return null;
+                try { var p = a.prog(ctx); return (p && p.need > 0) ? p.need : null; } catch (e) { return null; }
+            }
+            function build(ctx){
+                needByCat = {};
+                window.ACHIEVEMENTS.forEach(function(a){
+                    var n = needOf(a, ctx);
+                    if (n !== null) (needByCat[a.cat] || (needByCat[a.cat] = [])).push(n);
+                });
+                Object.keys(needByCat).forEach(function(c){
+                    needByCat[c].sort(function(x, y){ return x - y; });
+                });
+                cacheCtx = ctx;
+            }
+            return function(a, ctx, pr){
+                if (typeof ACH_TIER_DEFS === 'undefined') return null;
+                if (ctx !== cacheCtx || !needByCat) build(ctx);
+                var n = (pr === undefined) ? needOf(a, ctx) : ((pr && pr.need > 0) ? pr.need : null);
+                if (n === null) {
+                    var key = (typeof ACH_TIERS_MANUAL !== 'undefined') ? ACH_TIERS_MANUAL[a.id] : null;
+                    for (var i = 0; i < ACH_TIER_DEFS.length; i++) {
+                        if (ACH_TIER_DEFS[i].key === key) return ACH_TIER_DEFS[i];
+                    }
+                    return null;
+                }
+                var arr = needByCat[a.cat];
+                if (!arr || !arr.length) return null;
+                var idx = Math.floor(arr.indexOf(n) / arr.length * ACH_TIER_DEFS.length);
+                return ACH_TIER_DEFS[Math.min(ACH_TIER_DEFS.length - 1, Math.max(0, idx))];
+            };
+        })();
+        // Styl kafelka niosacy poziom. Kolor dostaje TLO (gradient), bo na samej ramce srebro,
+        // platyna i diament sa nie do odroznienia - za malo powierzchni. Odznaka NIEZDOBYTA traci
+        // kolor poziomu i wraca do szarego kafelka: kolor jest nagroda, nie dekoracja.
+        // Styl idzie INLINE (a nie klasa CSS), bo bazowy styl kafelka tez jest inline - klasa
+        // przegralaby ze specyficznoscia i trzeba by ratowac sie !important.
+        window._achTierStyle = function(t, on){
+            if (!on) return 'background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08);';
+            if (!t)  return 'background:rgba(255,255,255,0.04); border:1px solid rgba(250,204,21,0.45);';
+            return 'background:linear-gradient(160deg,rgba(' + t.rgb + ',0.30),rgba(' + t.rgb + ',0.05) 70%);'
+                 + ' border:1px solid rgba(' + t.rgb + ',0.58);'
+                 + (t.glow ? ' box-shadow:0 0 15px rgba(' + t.rgb + ',0.5);' : '');
+        };
+        // Znaczek poziomu w prawym gornym rogu kafelka (17 px). Kafelek MUSI miec position:relative.
+        window._achTierMark = function(t, on){
+            if (!t) return '';
+            return '<svg viewBox="0 0 24 24" fill="rgb(' + t.rgb + ')" style="position:absolute;'
+                 + ' top:8px; right:8px; width:17px; height:17px; pointer-events:none;'
+                 + (on ? '' : ' filter:grayscale(1); opacity:0.5;') + '">' + t.mark + '</svg>';
+        };
+
         window.showAchievementsPanel = function(){
             var el = document.getElementById("achievements-overlay");
             if (!el) {
@@ -810,11 +874,17 @@
                         curs = ' cursor:pointer;';
                     }
                 }
+                // POZIOM TRUDNOSCI: pr jest juz policzone wyzej, wiec przekazujemy je dalej -
+                // inaczej a.prog() poszloby drugi raz na kazda z 528 pozycji.
+                var tier = window._achTierOf ? window._achTierOf(a, ctx, pr) : null;
+                // padding-right robi miejsce na znaczek poziomu; bez niego dluzsze nazwy wchodza pod niego.
+                var namePad = tier ? ' padding-right:22px;' : '';
                 byCat[a.cat].push(
-                    '<div' + clickAttr + ' style="display:flex; gap:10px; align-items:flex-start; padding:10px; border-radius:6px; background:rgba(255,255,255,0.04); border:1px solid ' + (on ? 'rgba(250,204,21,0.45)' : 'rgba(255,255,255,0.08)') + ';' + curs + '">'
+                    '<div' + clickAttr + ' style="display:flex; gap:10px; align-items:flex-start; padding:10px; border-radius:6px; position:relative; ' + window._achTierStyle(tier, on) + curs + '">'
+                  +   window._achTierMark(tier, on)
                   +   '<div style="font-size:1.7rem; opacity:' + (on ? '1' : '0.22') + '; filter:' + (on ? 'none' : 'grayscale(1)') + ';">' + a.icon + '</div>'
                   +   '<div style="flex:1; min-width:0;">'
-                  +     '<div style="font-weight:700; letter-spacing:0.5px; font-size:0.88rem; color:' + (on ? '#facc15' : '#6b7684') + ';">' + a.name + '</div>'
+                  +     '<div style="font-weight:700; letter-spacing:0.5px; font-size:0.88rem;' + namePad + ' color:' + (on ? '#facc15' : '#6b7684') + ';">' + a.name + '</div>'
                   +     '<div style="font-family:\'JetBrains Mono\',monospace; font-size:0.65rem; color:#8f9ba8; margin-top:3px; line-height:1.3;">' + a.desc + '</div>'
                   +     progHtml
                   +   '</div>'
