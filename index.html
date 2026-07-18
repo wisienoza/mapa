@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow, noarchive">
+    <title>Wisien World Map Tracker</title>
+	<link rel="icon" type="image/png" href="favicon.png">
+    <link href="fonts/fonts.css" rel="stylesheet">
+    <script src="data.js"></script>
+	<script src="intel.js"></script>
+	<script src="factbook-data.js"></script>
+	<!-- NIE deferowac: FLAGS sa uzywane w refreshVisitedUI (pasek flag + telemetria), ktore leci na
+     starcie z "datavalidated". am5.ready odpala sie PRZED skryptami defer, wiec dane potrzebne do
+     pierwszego renderu musza byc ladowane normalnie (patrz wpadka z intel.js / CAPITAL_COORDS). -->
+<script src="flags-data.js"></script>
+<script defer src="cities-data.js"></script>
+	<script defer src="climate-data.js"></script>
+	<script src="flights-data.js"></script>
+	<script src="visa-data.js"></script>
+	<script src="achievements-data.js"></script>
+	<script src="achievements-catalog.js"></script>
+	<script src="visited-cities-data.js"></script>
+	<script src="airport-links-data.js"></script>
+    <style>
+        /* --- GLOBAL FONT UPDATE --- */
+        body { 
+            margin: 0; padding: 0; 
+            background: radial-gradient(ellipse at center, #1b2735 0%, #000000 100%); 
+            color: #ffffff; 
+            font-family: 'Rajdhani', sans-serif; 
+            font-weight: 500;
+            overflow: hidden; height: 100vh; width: 100vw; 
+        }
+        
+        /* MONOSPACE DLA DANYCH */
+        .xp-label, .current-rank-display, .range-value, .mission-timer, .env-val, 
+        .fact-row, .numbeo-btn, .msz-btn, .windy-btn, .climate-btn, .my-flights-btn,
+        .rank-sidebar, .sys-log-container, .reset-btn {
+            font-family: 'JetBrains Mono', monospace !important;
+        }
+
+        .star { position: absolute; background: white; border-radius: 50%; opacity: 0.8; animation: twinkle var(--duration) infinite ease-in-out; z-index: 0; }
+        @keyframes twinkle { 0% { opacity: 0.3; transform: scale(0.8); } 50% { opacity: 1; transform: scale(1.2); } 100% { opacity: 0.3; transform: scale(0.8); } }
+        #chartdiv { width: 100%; height: 100vh; position: relative; z-index: 10; }
+        /* --- OZDOBA TLA: atmosfera globu + slonce (prawy-gora) + mglawica (lewy-dol); pod kula, nieklikalne --- */
+        #space-ambiance { position: fixed; inset: 0; z-index: 5; pointer-events: none; overflow: hidden; }
+        .amb-atmo, .amb-sun, .amb-nebula { position: absolute; inset: 0; }
+        /* GEOMETRIA GLOBU (promien + srodek) NIE jest juz zgadywana z vw/vh. Wczesniejsze proby (24vw,
+           potem min(25vw,50vh)) opieraly sie na zalozeniu, jak amCharts wpasowuje kule w plot - i przy
+           nietypowych proporcjach okna poswiata i tak "wylazila" poza glob. Teraz app.js
+           (_syncGlobeAmbiance) odczytuje REALNE wartosci wprost z projekcji d3: projection.scale() =
+           promien kuli w px, projection.translate() = jej srodek - i wpisuje je tutaj jako
+           --globe-r / --globe-cx / --globe-cy. Wartosci ponizej to WYLACZNIE FALLBACK na wypadek, gdyby
+           JS nie wystartowal (odpowiadaja dotychczasowemu zachowaniu). Mnozniki to oryginalne promienie
+           podzielone przez 25vw (24/25, 26.5/25, 32/25, 39/25). */
+        :root { --globe-r: min(25vw, 50vh); --globe-cx: 50vw; --globe-cy: calc(50vh - 50px); }
+        .amb-atmo { background: radial-gradient(circle at var(--globe-cx) var(--globe-cy),
+            rgba(0,180,255,0.15) calc(var(--globe-r) * 0.96), rgba(0,150,230,0.10) calc(var(--globe-r) * 1.06), rgba(0,120,200,0.03) calc(var(--globe-r) * 1.28), transparent calc(var(--globe-r) * 1.56)); }
+        .amb-sun { background: radial-gradient(circle at 88vw 10vh,
+            rgba(205,240,255,0.28) 0, rgba(150,215,255,0.11) 9vw, rgba(120,190,255,0.035) 22vw, transparent 36vw); }
+        .amb-sun-core { position: absolute; left: 88vw; top: 10vh; width: 18px; height: 18px; margin: -9px 0 0 -9px; border-radius: 50%;
+            background: radial-gradient(circle, #eef9ff 0%, #c3e7ff 55%, rgba(150,215,255,0) 78%);
+            box-shadow: 0 0 22px 7px rgba(180,225,255,0.45); }
+        .amb-nebula { background: radial-gradient(ellipse 34vw 22vw at 13vw 84vh,
+            rgba(70,45,130,0.15) 0%, rgba(45,32,95,0.05) 45%, transparent 75%); }
+        
+        /* --- UI WRAPPERS (SZTYWNA STRUKTURA) --- */
+        .left-wrapper {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            display: flex !important;       
+            gap: 20px !important;
+            flex-direction: row !important;
+            align-items: flex-start !important;
+            justify-content: flex-start !important;
+            transform-origin: 0 0;
+            z-index: 100;
+            pointer-events: none; 
+            transition: transform 0.1s linear;
+            width: max-content;
+        }
+
+        .right-wrapper {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex !important;
+            gap: 20px !important;
+            flex-direction: row !important;
+            align-items: flex-start !important;
+            justify-content: flex-end !important;
+            transform-origin: 100% 0;
+            z-index: 100;
+            pointer-events: none;
+            transition: transform 0.1s linear;
+            width: max-content;
+        }
+
+        .ui-container, .weather-floater, .factbook-floater, .right-hud {
+            position: relative !important; 
+            top: auto !important; 
+            left: auto !important; 
+            right: auto !important;
+            bottom: auto !important;
+            transform: none !important;
+            pointer-events: none;
+            flex-shrink: 0 !important;
+        }
+
+        .ui-container { width: 320px; display: flex; flex-direction: column; }
+        /* Kolumna 2 (pogoda + wyszukiwarka + FLIGHTS). Wysokosc ustawia adjustLayout (jak #left-hud),
+           dzieki czemu margin-top:auto na .flights-floater ma sie od czego odbic. flex-shrink:0 na
+           dzieciach - zeby przy ciasnocie panele NIE byly squashowane (ten sam wzorzec co .ui-container). */
+        .weather-floater { width: 260px; display: flex; flex-direction: column; }
+        .weather-floater > * { flex-shrink: 0; }
+        .factbook-floater { width: 340px; }
+        .right-hud { width: 240px; display: flex; flex-direction: column; }
+
+        h1 { 
+            font-weight: 700; text-transform: uppercase; letter-spacing: 2px; margin: 0; 
+            font-size: 1.1rem; 
+            color: #c6cfd9; border-bottom: 1px solid #444; padding-bottom: 5px; margin-bottom: 10px; 
+        }
+        
+        .stats-row { display: flex; align-items: flex-end; gap: 15px; margin-bottom: 5px; }
+        h2 { font-weight: 700; margin: 0; font-size: 4.0rem; color: #dc2626; line-height: 0.8; text-shadow: 0 0 20px rgba(220, 38, 38, 0.5); font-family: 'Rajdhani', sans-serif; }
+        .xp-container { flex-grow: 1; padding-bottom: 5px; display: flex; flex-direction: column; justify-content: flex-end; }
+        .xp-label { font-size: 0.7rem; color: #c6cfd9; display: flex; justify-content: space-between; margin-bottom: 3px; font-weight: bold; }
+        .xp-bar-bg { width: 100%; height: 8px; background: #111; border: 1px solid #444; border-radius: 4px; overflow: hidden; position: relative; box-shadow: 0 0 5px rgba(0,0,0,0.8) inset; }
+        .xp-bar-fill { height: 100%; background: linear-gradient(90deg, #991b1b, #ef4444); width: 0%; box-shadow: 0 0 10px #ef4444; transition: width 1s cubic-bezier(0.4, 0, 0.2, 1); position: relative; }
+        
+        .current-rank-display { font-size: 1.0rem; color: #facc15; text-shadow: 0 0 10px rgba(250, 204, 21, 0.4); border-left: 3px solid #facc15; padding-left: 10px; margin-bottom: 10px; margin-top: 10px; letter-spacing: -0.5px; }
+        #ach-label-row:hover span:first-child { color: #fff; }
+        
+        .hud-panel { background: rgba(0, 0, 0, 0.85); padding: 15px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.15); pointer-events: auto; backdrop-filter: blur(8px); margin-bottom: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+        .region-row { margin-bottom: 10px; }
+        .region-header { display: flex; justify-content: space-between; font-size: 1.0rem; color: #c6cfd9; margin-bottom: 4px; text-transform: uppercase; font-family: 'Rajdhani', sans-serif; font-weight: 700; letter-spacing: 1px; }
+        .progress-bar-bg { width: 100%; height: 5px; background: #222; border-radius: 3px; overflow: hidden; }
+        .progress-bar-fill { height: 100%; background: #dc2626; box-shadow: 0 0 8px #dc2626; }
+        .progress-bar-fill.empty { background: transparent; }
+        .max-range-box { display: flex; flex-direction: column; gap: 2px; }
+        #wonders-stats { flex: 1 1 0; min-height: 0; overflow-y: auto; }
+        #wonders-stats::-webkit-scrollbar { width: 6px; }
+        #wonders-stats::-webkit-scrollbar-thumb { background: rgba(250,204,21,0.4); border-radius: 3px; }
+        .ui-container > *:not(#wonders-stats) { flex-shrink: 0; }
+        .range-label { font-size: 0.8rem; color: #dc2626; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; font-family: 'Rajdhani', sans-serif; }
+        .range-value { font-size: 1.8rem; color: #fff; font-weight: 700; }
+        .mission-timer { font-size: 1.3rem; color: #facc15; font-weight: 700; text-shadow: 0 0 10px rgba(250, 204, 21, 0.5); margin-top: 5px; }
+        .mission-nav { display:none; align-items:center; justify-content:space-between; margin-bottom:8px; font-family:'JetBrains Mono','Consolas',monospace; font-size:0.8rem; color:#facc15; }
+        .mission-arrow { cursor:pointer; padding:1px 12px; border:1px solid rgba(250,204,21,0.35); border-radius:4px; user-select:none; transition:0.15s; }
+        .mission-arrow:hover { background:rgba(250,204,21,0.15); color:#fff; border-color:#facc15; }
+        #mission-counter { letter-spacing:2px; opacity:0.85; }
+        .range-sub { font-size: 0.95rem; color: #ccc; display: flex; align-items: center; justify-content: space-between; margin-top: 5px; min-height: 3.5rem; font-family: 'Rajdhani', sans-serif; font-weight: 600; }
+        .range-sub-text a:hover { color: #fff !important; cursor: pointer; }
+        /* MAX RANGE ma teraz DWA wiersze opisu (miasto + lotnisko) obok flagi. .range-sub jest flexem
+           space-between zbudowanym pod jeden wiersz, wiec wiersze pakujemy w ten kontener. */
+        .mr-lines { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+        .mr-line { font-size: 0.82rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .mr-line .mr-key { color: #8f9ba8; }
+        /* Lotnisko = wiersz glowny (biale, pod duza liczba, ktora tez jest jego). Miasto = odcinek
+           naziemny, na zielono - ten sam kolor co linia lotnisko->miasto na globusie, zeby bylo widac,
+           ze to ta sama rzecz. */
+        .mr-line.mr-air { color: #fff; }
+        .mr-line.mr-city { color: #22c55e; }
+        .telemetry-flag { font-size: 3rem; line-height: 1; filter: drop-shadow(0 0 10px rgba(255,255,255,0.2)); cursor: pointer; pointer-events: auto; transition: transform 0.2s; }
+        .telemetry-flag:hover { transform: scale(1.2); }
+        
+        .env-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 5px; }
+        .env-item { 
+            background: rgba(255,255,255,0.05); 
+            padding: 8px 10px; 
+            border-radius: 4px; 
+            border-left: 3px solid #555; 
+            overflow: hidden; 
+            display: flex; flex-direction: column; justify-content: center;
+        }
+        .env-label { font-size: 0.75rem; color: #cfd6de; text-transform: uppercase; margin-bottom: 2px; letter-spacing: 0.5px; font-weight: 700; font-family: 'Rajdhani', sans-serif; }
+        .env-row { display: flex; justify-content: space-between; align-items: center; width: 100%; }
+        .env-val { font-size: 1.1rem; color: #00ff00; font-weight: 700; white-space: nowrap; }
+        .env-icon { font-size: 1.6rem; line-height: 1; margin: 0; opacity: 0.9; }
+        .scanning-text { color: #facc15; font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; animation: blink 0.5s infinite; }
+
+        .fact-img { width: 100%; height: auto; max-height: 120px; object-fit: contain; margin-bottom: 12px; border-radius: 2px; border: 1px solid #444; background: rgba(0,0,0,0.3); }
+        .wonder-img { width: 100%; height: 170px; object-fit: cover; margin-bottom: 12px; border-radius: 2px; border: 1px solid #444; background: rgba(0,0,0,0.3); }
+        .wonder-desc { font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; color: #ccc; line-height: 1.45; margin-bottom: 12px; text-align: justify; }
+        .continent-img { display: block; width: 62%; margin: 6px auto 14px; }
+        .cont-cities { margin-top: 4px; }
+        .cont-city { display: flex; align-items: baseline; font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; padding: 2px 0; border-bottom: 1px solid rgba(255,255,255,0.06); }
+        .cc-rank { color: #8f9ba8; width: 22px; flex-shrink: 0; }
+        .cc-name { flex: 1; color: #ddd; }
+        .cc-pop { color: #00ccff; font-weight: bold; }
+        .fact-row { display: flex; justify-content: space-between; border-bottom: 1px solid #333; padding-bottom: 4px; margin-bottom: 4px; font-size: 0.85rem; align-items: center; }
+        .fact-key { color: #b3bdc9; font-size: 0.8rem; font-weight: 600; text-transform: uppercase; font-family: 'Rajdhani', sans-serif; }
+        .fact-val { color: #fff; font-weight: 700; text-align: right; max-width: 85%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        /* Wiersze list w intelu rangi/misji niosa dluzszy opis niz zwykly factbook (dystans + punkt
+           odniesienia + wiza + ceny), a globalny .fact-val jest jednolinijkowy z wielokropkiem - tu
+           pozwalamy zawijac zamiast ucinac. */
+        /* Baner nad panelem intelu (rangi/misje/loty) - ten sam wyglad co baner miasta w updateCityIntel,
+           tylko ze statycznego pliku z foty/ zamiast pobierania z Wikimedia. */
+        .panel-banner { width: 100%; height: 88px; object-fit: cover; object-position: center; border-radius: 4px; margin-bottom: 10px; border: 1px solid rgba(250,204,21,0.35); }
+        .rank-target-row, .mission-wonder-row, .flight-leg-row { align-items: flex-start; gap: 10px; }
+        /* Etykieta jako flex: bez tego flaga zajmowala pierwsza linie, a nazwa kraju zawijala sie POD
+           nia (przy waskim panelu wygladalo to jak zjechana w dol nazwa). Teraz flaga i tekst stoja
+           obok siebie, a zawija sie sam tekst. */
+        .rank-target-row .fact-key, .mission-wonder-row .fact-key { display: flex; align-items: flex-start; gap: 6px; flex: 0 1 auto; min-width: 0; }
+        .row-flag { width: 18px; height: 12px; object-fit: cover; flex: 0 0 auto; margin-top: 3px; }
+        .rank-target-row .fact-val, .mission-wonder-row .fact-val, .flight-leg-row .fact-val { flex: 1 1 auto; max-width: none; white-space: normal; overflow: visible; text-overflow: clip; word-break: break-word; }
+        
+        .links-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; align-items: stretch; }
+        .numbeo-btn, .msz-btn, .windy-btn, .climate-btn { 
+            display: block; width: 100%; text-align: center; padding: 8px 0; 
+            font-size: 0.8rem; font-weight: bold; text-decoration: none; border-radius: 4px; 
+            transition: all 0.2s; cursor: pointer; pointer-events: auto; display: flex; justify-content: center; align-items: center;
+        }
+        .numbeo-btn { background: rgba(0, 255, 0, 0.1); border: 1px solid #00ff00; color: #00ff00; }
+        .numbeo-btn:hover { background: rgba(0, 255, 0, 0.3); box-shadow: 0 0 10px rgba(0, 255, 0, 0.4); }
+        .msz-btn { background: rgba(220, 38, 38, 0.15); border: 1px solid #dc2626; color: #ffffff; }
+        .msz-btn:hover { background: rgba(220, 38, 38, 0.4); box-shadow: 0 0 10px rgba(220, 38, 38, 0.5); }
+        .windy-btn { background: rgba(0, 204, 255, 0.15); border: 1px solid #00ccff; color: #00ccff; }
+        .windy-btn:hover { background: rgba(0, 204, 255, 0.3); box-shadow: 0 0 10px rgba(0, 204, 255, 0.4); }
+        .climate-btn { background: rgba(250, 204, 21, 0.15); border: 1px solid #facc15; color: #facc15; }
+        .climate-btn:hover { background: rgba(250, 204, 21, 0.3); box-shadow: 0 0 10px rgba(250, 204, 21, 0.4); }
+
+        .my-flights-btn { 
+            display: flex; justify-content: center; align-items: center; width: 100%; 
+            background: rgba(250, 204, 21, 0.15); border: 1px solid #facc15; color: #facc15; 
+            padding: 8px 0; font-family: 'JetBrains Mono', monospace; font-size: 0.9rem; 
+            font-weight: bold; text-decoration: none; border-radius: 4px; margin-top: 5px; 
+            cursor: pointer; pointer-events: auto; box-sizing: border-box; transition: all 0.2s; 
+        }
+        .my-flights-btn:hover { background: rgba(250, 204, 21, 0.3); box-shadow: 0 0 10px rgba(250, 204, 21, 0.4); }
+        .my-flights-btn.mf-globe { background: rgba(0,234,255,0.15); border-color:#00eaff; color:#00eaff; }
+        .my-flights-btn.mf-globe:hover { background: rgba(0,234,255,0.3); box-shadow: 0 0 10px rgba(0,234,255,0.4); }
+        .my-flights-btn.mf-globe.active { background:#00eaff; color:#04222a; box-shadow:0 0 12px rgba(0,234,255,0.6); }
+        .flight-stats { display:flex; gap:5px; margin-top:6px; }
+        .flight-stats .fs-cell { flex:1; text-align:center; background:rgba(0,234,255,0.08); border:1px solid rgba(0,234,255,0.28); border-radius:4px; padding:4px 2px; }
+        .flight-stats .fs-num { display:block; font-family:'JetBrains Mono',monospace; font-size:1.1rem; font-weight:700; color:#00eaff; line-height:1; }
+        .flight-stats .fs-lbl { display:block; font-size:0.5rem; letter-spacing:0.5px; color:#7fb8c4; margin-top:3px; font-family:'Rajdhani',sans-serif; font-weight:600; }
+
+        .rank-sidebar { box-sizing: border-box; max-height: calc(100vh - 280px); background: rgba(0, 0, 0, 0.75); backdrop-filter: blur(8px); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 8px; padding: 15px; overflow-y: auto; pointer-events: auto; }
+        .rank-sidebar::-webkit-scrollbar { width: 4px; }
+        .rank-sidebar::-webkit-scrollbar-thumb { background: #444; border-radius: 2px; }
+        #factbook-panel { box-sizing: border-box; max-height: calc(100vh - 320px); overflow-y: auto; }
+        #factbook-panel::-webkit-scrollbar { width: 4px; }
+        #factbook-panel::-webkit-scrollbar-thumb { background: #444; border-radius: 2px; }
+        .rank-item { display: flex; justify-content: space-between; font-size: 0.95rem; margin-bottom: 4px; color: #8f9ba8; cursor: pointer; transition: color 0.2s; font-family: 'Rajdhani', sans-serif; font-weight: 600; }
+        .rank-item:hover { color: #c6cfd9; }
+        .rank-item.active { color: #facc15; font-weight: bold; background: rgba(250, 204, 21, 0.1); padding: 2px 5px; border-radius: 4px; }
+        .rank-item.completed { color: #00ff00; }
+        
+        .reset-btn {
+		position: absolute;	bottom: 110px; left: 360px;  background: rgba(0, 0, 0, 0.8); border: 1px solid #00ff00; color: #00ff00; padding: 8px 15px; font-size: 0.9rem; text-transform: uppercase; font-weight: bold; cursor: pointer; z-index: 110; border-radius: 4px; opacity: 1; pointer-events: auto; transition: all 0.3s ease;
+		}
+        .reset-btn .rb-icon { display: inline-block; width: 20px; flex: 0 0 20px; text-align: center; }
+        .reset-btn .rb-label { text-align: left; }
+        
+        /* --- LOOT BAR / MARQUEE FIX --- */
+        /* cursor:grab + touch-action:none -> pasek da sie przeciagac myszka i palcem (obsluga w app.js,
+           window._initLootBarDrag). touch-action MUSI byc none, inaczej przegladarka na dotyku probuje
+           przewijac strone zamiast oddac nam pointermove. */
+        .loot-bar-wrapper { position: absolute; bottom: 0; left: 0; width: 100%; height: 80px; background: rgba(20, 20, 20, 0.85); backdrop-filter: blur(10px); border-top: 1px solid rgba(255, 255, 255, 0.1); z-index: 100; overflow-x: hidden; overflow-y: hidden; display: flex; align-items: center; white-space: nowrap; scrollbar-width: none; cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none; }
+        .loot-bar-wrapper.lb-dragging { cursor: grabbing; }
+        /* W trakcie ciagniecia gasimy powiekszanie flagi pod kursorem - inaczej flagi "skacza" pod reka. */
+        .loot-bar-wrapper.lb-dragging .loot-flag:hover { transform: none; }
+        .loot-bar-wrapper::-webkit-scrollbar { display: none; }
+        
+        /* --- INFINITE LOOT BAR LOGIC --- */
+        .loot-track { 
+            display: flex; 
+            gap: 40px; /* Baza, JS może nadpisać */
+            width: max-content;
+            animation: marquee var(--duration, 30s) linear infinite;
+            will-change: transform;
+        }
+
+        .loot-bar-wrapper:hover .loot-track {
+            animation-play-state: paused;
+        }
+
+        /* Klucz do nieskończoności: jedziemy tylko do połowy, gdzie zaczyna się kopia */
+        @keyframes marquee {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); } 
+        }
+
+        .loot-flag { font-size: 3rem; transition: all 0.2s ease; cursor: pointer; display: inline-block; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.5)); }
+        /* AKTYWNY KRAJ: podswietlenie leci na WSZYSTKIE kopie flagi w pasku (pasek jest powielony), stad
+           klasa nadawana po [data-fid] w app.js (window._setLootBarActive), a nie na pojedynczym elemencie.
+           MUSI stac PRZED regula :hover - obie maja te sama specyficznosc (0,2,0), wiec o pierwszenstwie
+           decyduje kolejnosc, a hover ma wygrywac z podswietleniem. */
+        .loot-flag.lf-active { transform: scale(1.18) translateY(-6px); position: relative; filter: drop-shadow(0 0 8px rgba(0,255,0,0.85)) drop-shadow(0 4px 6px rgba(0,0,0,0.5)); }
+        .loot-flag.lf-active::after { content: ''; position: absolute; left: 0; right: 0; bottom: -8px; height: 2px; background: #00ff00; box-shadow: 0 0 6px #00ff00; }
+        .loot-flag:hover { transform: scale(1.3) translateY(-10px); z-index: 10; }
+        /* FLAGI JAKO OBRAZKI: Windows nie ma flag panstw w Segoe UI Emoji, wiec emoji z regional-indicator
+           (getFlagEmoji) renderuje sie w Chrome/Edge jako gole litery ("PL"). Firefox ma wlasny font i dziala -
+           stad roznica miedzy przegladarkami. Zrodlem obrazkow jest FLAGS (flags-data.js), tak jak od dawna
+           w admin.php. Samo tlo (.flag-XX) wstrzykuje app.js do <style id="flag-bg-css"> - dzieki temu data-URI
+           wystepuje RAZ na kraj, a powielane spany paska tylko wskazuja klase (inline data-URI x N rozdmuchalby
+           innerHTML przy kazdej przebudowie paska). Rozmiar w "em" podaza za font-size z reguly wyzej ORAZ za
+           media-query dla niskich okien - bez dublowania regul. Brak wpisu w FLAGS -> zostaje emoji (fallback). */
+        .loot-flag.lf-img { width: 1em; height: 0.75em; background-size: contain; background-repeat: no-repeat; background-position: center; }
+        
+        /* DYMEK NAD FLAGA W PASKU (zastepuje natywny title= - ten wchodzil z sekunda opoznienia i nie
+           dalo sie go ostylowac). Tresc sklada app.js (window._showLootTip), pozycja liczona z
+           getBoundingClientRect flagi. pointer-events:none - dymek nie moze przechwycic klikniecia
+           ani wywolac mouseout na fladze pod nim (migotanie). */
+        #loot-tip {
+            position: fixed; z-index: 120; pointer-events: none; opacity: 0;
+            transition: opacity 0.15s ease;
+            background: rgba(0, 0, 0, 0.92); border: 1px solid rgba(0, 255, 0, 0.45); border-radius: 5px;
+            padding: 7px 11px; backdrop-filter: blur(6px); box-shadow: 0 4px 18px rgba(0,0,0,0.6);
+            font-family: 'JetBrains Mono', 'Consolas', monospace; font-size: 0.78rem; color: #c6cfd9;
+            white-space: nowrap; line-height: 1.5;
+        }
+        #loot-tip.lt-on { opacity: 1; }
+        #loot-tip .lt-name { color: #ffffff; font-weight: bold; letter-spacing: 1px; }
+        #loot-tip .lt-cities { color: #00ff00; }
+        #loot-tip .lt-far { color: #8f9ba8; }
+        #loot-tip .lt-far b { color: #facc15; font-weight: normal; }
+        #loot-tip .lt-none { color: #8f9ba8; font-style: italic; }
+
+        .sys-log-container {
+            position: absolute; bottom: 100px; right: 20px; width: 280px; height: 104px;
+            background: rgba(0, 0, 0, 0.9); border: none; color: #00ff00;
+            font-size: 0.7rem; padding: 10px;
+            overflow: hidden; z-index: 90; pointer-events: none;
+            border-radius: 4px; display: flex; flex-direction: column;
+        }
+        .sys-log-header { border-bottom: 1px solid #004400; margin-bottom: 5px; padding-bottom: 2px; font-weight: bold; color: #00aa00; font-size: 0.7rem; letter-spacing: 1px; }
+        .sys-log-content { display: flex; flex-direction: column; justify-content: flex-end; height: 100%; }
+        .log-line { opacity: 0.9; margin-bottom: 2px; text-shadow: 0 0 2px #00ff00; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .blink-cursor { animation: blink 1s step-end infinite; }
+        @keyframes blink { 50% { opacity: 0; } }
+
+        @media (max-height: 1000px) {
+            h1 { font-size: 0.9rem; margin-bottom: 5px; }
+            .hud-panel { padding: 10px; margin-bottom: 10px; }
+            .stats-row h2 { font-size: 3.0rem; }
+            .telemetry-flag { font-size: 2.2rem; }
+            .loot-bar-wrapper { height: 70px; }
+            .loot-flag { font-size: 2.2rem; }
+            .sys-log-container { bottom: 80px; right: 10px; width: 220px; height: 80px; font-size: 0.65rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="access-gate" style="position:fixed; inset:0; z-index:99999; background:#000; display:flex; align-items:center; justify-content:center; font-family:'JetBrains Mono',monospace;">
+        <div style="text-align:center; color:#00ff00; padding:20px;">
+            <div style="font-size:1.1rem; margin-bottom:18px; letter-spacing:2px; text-shadow:0 0 10px rgba(0,255,0,0.5);">🔒 WISIEN WORLD MAP TRACKER</div>
+            <div id="gate-dots" style="min-height:1.4rem; margin-bottom:16px; font-size:1.4rem; letter-spacing:10px;"></div>
+            <div id="gate-pad" style="display:grid; grid-template-columns:repeat(3, 56px); gap:10px; justify-content:center;">
+                <button type="button" class="gate-key" data-k="1">1</button>
+                <button type="button" class="gate-key" data-k="2">2</button>
+                <button type="button" class="gate-key" data-k="3">3</button>
+                <button type="button" class="gate-key" data-k="4">4</button>
+                <button type="button" class="gate-key" data-k="5">5</button>
+                <button type="button" class="gate-key" data-k="6">6</button>
+                <button type="button" class="gate-key" data-k="7">7</button>
+                <button type="button" class="gate-key" data-k="8">8</button>
+                <button type="button" class="gate-key" data-k="9">9</button>
+                <button type="button" class="gate-key" data-k="back">⌫</button>
+                <button type="button" class="gate-key" data-k="0">0</button>
+                <button type="button" class="gate-key" data-k="ok">✓</button>
+            </div>
+            <div id="gate-error" style="color:#dc2626; font-size:0.8rem; margin-top:14px; min-height:1em; letter-spacing:1px;"></div>
+        </div>
+    </div>
+    <style>
+        .gate-key {
+            width:56px; height:56px; font-family:inherit; font-size:1.2rem;
+            background:rgba(0,255,0,0.05); border:1px solid #00ff00; color:#00ff00;
+            border-radius:4px; cursor:pointer; outline:none;
+        }
+        .gate-key:hover { background:rgba(0,255,0,0.15); }
+        .gate-key:active { background:rgba(0,255,0,0.3); }
+    </style>
+    <script>
+        (function(){
+            // --- BRAMKA PINEM (deterrent, NIE prawdziwe zabezpieczenie - statyczna strona nie ma backendu) ---
+            // Zeby zmienic PIN: w konsoli przegladarki (F12) wklej:
+            //   crypto.subtle.digest('SHA-256', new TextEncoder().encode('TWOJ_NOWY_PIN')).then(b=>console.log(Array.from(new Uint8Array(b)).map(x=>x.toString(16).padStart(2,'0')).join('')))
+            // i wklej wynik ponizej jako GATE_HASH. PIN moze miec dowolna dlugosc (cyfry).
+            var GATE_HASH = "1602b4048b35882a346c6887360d0343cde72797314f81a36065c71320562615";
+            var STORE_KEY = "wisien_gate_ok";
+            var gate = document.getElementById("access-gate");
+            function unlock(){ gate.style.display = "none"; document.body.style.overflow = ""; }
+            if (localStorage.getItem(STORE_KEY) === "1") { unlock(); return; }
+            document.body.style.overflow = "hidden";
+            var dots = document.getElementById("gate-dots");
+            var err = document.getElementById("gate-error");
+            var pin = "";
+            var audioCtx = null;
+            function beep(freq, dur, type){
+                try {
+                    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                    audioCtx.resume();
+                    var osc = audioCtx.createOscillator();
+                    var gain = audioCtx.createGain();
+                    osc.type = type || "square";
+                    osc.frequency.value = freq;
+                    var t0 = audioCtx.currentTime;
+                    gain.gain.setValueAtTime(0.06, t0);
+                    gain.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(t0);
+                    osc.stop(t0 + dur);
+                    osc.onended = function(){ osc.disconnect(); gain.disconnect(); };
+                } catch(e) {}
+            }
+            function render(){ dots.textContent = "●".repeat(pin.length); }
+            function verify(){
+                if (!pin) return;
+                crypto.subtle.digest("SHA-256", new TextEncoder().encode(pin)).then(function(buf){
+                    var hex = Array.from(new Uint8Array(buf)).map(function(b){ return b.toString(16).padStart(2, "0"); }).join("");
+                    if (hex === GATE_HASH) {
+                        beep(880, 0.08); setTimeout(function(){ beep(1320, 0.12); }, 90);
+                        localStorage.setItem(STORE_KEY, "1");
+                        unlock();
+                    } else {
+                        beep(150, 0.3, "sawtooth");
+                        err.textContent = "BŁĘDNY PIN";
+                        pin = "";
+                        render();
+                    }
+                });
+            }
+            document.getElementById("gate-pad").addEventListener("click", function(e){
+                var btn = e.target.closest(".gate-key");
+                if (!btn) return;
+                var k = btn.dataset.k;
+                err.textContent = "";
+                if (k === "back") { beep(400, 0.04); pin = pin.slice(0, -1); render(); }
+                else if (k === "ok") { verify(); }
+                else { beep(700, 0.04); pin += k; render(); }
+            });
+            document.addEventListener("keydown", function(e){
+                if (gate.style.display === "none") return;
+                if (e.key >= "0" && e.key <= "9") { beep(700, 0.04); err.textContent = ""; pin += e.key; render(); }
+                else if (e.key === "Backspace") { beep(400, 0.04); err.textContent = ""; pin = pin.slice(0, -1); render(); }
+                else if (e.key === "Enter") { verify(); }
+            });
+        })();
+    </script>
+
+    <div class="left-wrapper">
+        <div class="ui-container" id="left-hud">
+            <h1>Operative Status</h1>
+            <div class="hud-panel" style="margin-bottom:15px;">
+                <div class="stats-row">
+                    <h2 id="counter">0</h2>
+                    <div class="xp-container">
+                        <div class="xp-label">
+                            <span>XP PROGRESS</span>
+                            <span id="xp-text-val">0 / 0</span>
+                        </div>
+                        <div class="xp-bar-bg">
+                            <div class="xp-bar-fill" id="xp-fill"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="current-rank-display" id="current-rank">LOADING...</div>
+                <div class="xp-label" id="ach-label-row" style="margin-top:2px; cursor:pointer; pointer-events:auto;">
+                    <span>🏆 ACHIEVEMENTS <span style="color:#6b7684; font-weight:600;">(kliknij)</span></span>
+                    <span id="ach-text-val">0 / 0</span>
+                </div>
+                <div class="xp-bar-bg">
+                    <div class="xp-bar-fill" id="ach-fill" style="background: linear-gradient(90deg, #a16207, #facc15); box-shadow: 0 0 10px #facc15;"></div>
+                </div>
+            </div>
+
+            <h1>Active Mission</h1>
+            <div class="hud-panel" style="margin-bottom:6px; padding-bottom:8px;">
+                <div class="max-range-box">
+                    <div class="mission-nav" id="mission-nav">
+                        <span class="mission-arrow" onclick="cycleMission(-1)">◀</span>
+                        <span id="mission-counter">1/1</span>
+                        <span class="mission-arrow" onclick="cycleMission(1)">▶</span>
+                    </div>
+                    <div class="range-label" id="mission-status">SCANNING...</div>
+                    <div class="mission-timer" id="mission-countdown">AWAITING OBJECTIVES</div>
+                    <div class="range-sub" id="mission-info">
+                        <div class="range-sub-text">TARGET: STANDBY</div>
+                        <div class="telemetry-flag" id="mission-flag">🛰️</div>
+                    </div>
+                </div>
+            </div>
+
+            <h1>Continental Control</h1>
+            <div class="hud-panel" id="region-stats"></div>
+            
+            <h1>World Wonders</h1>
+            <div class="hud-panel" id="wonders-stats"></div>
+        </div>
+
+        <div class="weather-floater">
+            <h1>Live Environ Feed</h1>
+            <div class="hud-panel" id="weather-panel">
+                <div class="max-range-box">
+                    <div class="range-label" id="weather-target">TARGET: NONE</div>
+                    <div id="weather-content" style="margin-top: 10px;">
+                        <div style="color: #8f9ba8; font-family: 'Consolas', monospace; font-size: 0.9rem;">SYSTEM OFFLINE / STANDBY</div>
+                    </div>
+                </div>
+            </div>
+            <h1>Search & Track</h1>
+            <div class="hud-panel">
+                <div class="range-label">SATELLITE UPLINK / COUNTRY SEARCH</div>
+                <input type="text" id="country-search" placeholder="ENTER NAME..." 
+                       style="width: 100%; background: rgba(0,255,0,0.05); border: 1px solid #00ff00; color: #00ff00; padding: 10px; font-family: 'JetBrains Mono', monospace; margin-top: 10px; outline: none; box-sizing: border-box; border-radius: 4px;">
+                <div id="search-results" style="max-height: 200px; overflow-y: auto; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; background: rgba(0,0,0,0.6); margin-top: 5px; border-radius: 4px;"></div>
+            </div>
+            <!-- FLIGHTS: wczesniej position:absolute (left:325px; bottom:72px) wzgledem .left-wrapper.
+                 Przy niskim oknie wysokosc .left-wrapper maleje (adjustLayout liczy ja z innerHeight),
+                 wiec panel przyklejony do jej DOLU "podjezdzal" w gore i NAKLADAL sie na SEARCH & TRACK.
+                 Teraz jest zwyklym elementem tej samej kolumny (.weather-floater = flex column):
+                 margin-top:auto trzyma go przy dole, gdy jest miejsce (wyglad jak dotad), a gdy miejsca
+                 brak - auto schodzi do 0 i panel ustawia sie POD wyszukiwarka, zamiast na nia wchodzic.
+                 margin-bottom:72px zachowuje dawny odstep na przyciski RESET / "?" pod spodem. -->
+            <div class="flights-floater" style="width:100%; z-index:110; pointer-events:auto; margin-top:auto; margin-bottom:72px;">
+                <h1>Flights</h1>
+                <div class="hud-panel" style="padding-bottom:5px;">
+                    <div class="range-label">MY FLIGHTS</div>
+                    <a href="https://my.flightradar24.com/wisienoza" target="_blank" class="my-flights-btn">FLIGHTRADAR</a>
+                    <a href="https://www.loter.pl/user/wisienoza" target="_blank" class="my-flights-btn">LOTER</a>
+                    <div id="myflights-toggle" class="my-flights-btn mf-globe" onclick="toggleMyFlights()">✈ SHOW ON GLOBE</div>
+                    <div class="flight-stats">
+                        <div class="fs-cell"><span class="fs-num" id="fs-flights">–</span><span class="fs-lbl">LOTY</span></div>
+                        <div class="fs-cell"><span class="fs-num" id="fs-airports">–</span><span class="fs-lbl">LOTNISKA</span></div>
+                        <div class="fs-cell"><span class="fs-num" id="fs-routes">–</span><span class="fs-lbl">TRASY</span></div>
+                    </div>
+                    <div class="range-label" style="margin-top:3px;">MAX RANGE DETECTED</div>
+                    <div class="range-value" id="max-dist-val">CALCULATING...</div>
+                    <div class="range-sub" id="max-dist-name" style="min-height:0; margin-top:2px;"><div class="range-sub-text">SCANNING...</div><div class="telemetry-flag">📡</div></div>
+                </div>
+            </div>
+        </div>
+        <div class="reset-btn" id="reset-btn" style="left:340px; bottom:22px;">RESET AND RESUME ORBIT ↻</div>
+        <div class="reset-btn" id="help-toggle" style="left:588px; bottom:22px; width:40px; height:36px; box-sizing:border-box; padding:0; display:flex; align-items:center; justify-content:center; font-size:1.1rem; border-color:#facc15; color:#facc15;" title="Instrukcja / manual">❓</div>
+    </div>
+
+    <div class="right-wrapper">
+        <div class="factbook-floater">
+            <h1>Regional Intel / Factbook</h1>
+            <div class="hud-panel" id="factbook-panel">
+                <div class="max-range-box">
+                    <div class="range-label" id="factbook-target">TARGET: NONE</div>
+                    <div id="factbook-content" style="margin-top: 10px;">
+                        <div style="color: #8f9ba8; font-family: 'Consolas', monospace; font-size: 0.9rem;">AWAITING SELECTION...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="right-hud">
+            <h1>Progression Tree</h1>
+            <div class="rank-sidebar" id="rank-list"></div>
+        </div>
+    </div>
+
+    <!-- transform-origin:100% 100% -> skalowanie (adjustLayout w app.js, ten sam wspolczynnik co
+         .left-wrapper/.right-wrapper) kurczy ten rog W STRONE prawego-dolnego naroznika, wiec HUD zostaje
+         przyklejony nad paskiem flag zamiast odjezdzac. transition jak w obu wrapperach - dla spojnosci. -->
+    <div id="bottom-right-hud" style="position:fixed; right:20px; bottom:96px; z-index:110; display:flex; flex-direction:row; align-items:flex-end; gap:8px; pointer-events:none; max-height:calc(100vh - 116px); transform-origin:100% 100%; transition:transform 0.1s linear;">
+        <div id="toggle-stack" style="display:grid; grid-template-columns:auto auto; gap:8px; align-content:end; pointer-events:none;">
+            <div class="reset-btn" id="visa-toggle" style="position:static; width:132px; box-sizing:border-box; display:flex; align-items:center; padding:8px 12px; border-color:#c084fc; color:#c084fc; opacity:0.4; white-space:nowrap;" title="Wymogi wizowe PL wl/wyl"><span class="rb-icon">🛂</span><span class="rb-label">VISA: OFF</span></div>
+            <div class="reset-btn" id="tz-toggle" style="position:static; width:132px; box-sizing:border-box; display:flex; align-items:center; padding:8px 12px; border-color:#38d6c0; color:#38d6c0; opacity:0.4; white-space:nowrap;" title="Strefy czasowe wl/wyl"><span class="rb-icon">🕐</span><span class="rb-label">ZONES: OFF</span></div>
+            <div class="reset-btn" id="night-toggle" style="position:static; width:132px; box-sizing:border-box; display:flex; align-items:center; padding:8px 12px; border-color:#ffb066; color:#ffb066; opacity:0.4; white-space:nowrap;" title="Terminator dzien/noc wl/wyl"><span class="rb-icon">☾</span><span class="rb-label">NIGHT: OFF</span></div>
+            <div class="reset-btn" id="plane-toggle" style="position:static; width:132px; box-sizing:border-box; display:flex; align-items:center; padding:8px 12px; border-color:#00eaff; color:#00eaff; opacity:0.4; white-space:nowrap;" title="Samoloty wl/wyl"><span class="rb-icon">✈</span><span class="rb-label">PLANES: OFF</span></div>
+            <div class="reset-btn" id="detail-switch" style="grid-column:span 2; position:static; box-sizing:border-box; display:flex; align-items:center; gap:6px; padding:6px 10px; border-color:#9ca3af; color:#9ca3af; white-space:nowrap;" title="Szczegolowosc geometrii globu — LOW/HIGH/ULTRA (przeladowuje strone)"><span class="rb-icon">🌐</span><span class="rb-label">DETAIL</span><span class="ds-opt" data-lvl="low" style="cursor:pointer; padding:2px 7px; border:1px solid currentColor; border-radius:4px; opacity:0.4;">LOW</span><span class="ds-opt" data-lvl="high" style="cursor:pointer; padding:2px 7px; border:1px solid currentColor; border-radius:4px; opacity:0.4;">HIGH</span><span class="ds-opt" data-lvl="ultra" style="cursor:pointer; padding:2px 7px; border:1px solid currentColor; border-radius:4px; opacity:0.4;">ULTRA</span></div>
+        </div>
+        <div class="sys-log-container" style="position:static;">
+            <div class="sys-log-header">/// SYSTEM_LOG_V5.6 [HARD_LOCK]</div>
+            <div class="sys-log-content" id="console-logs">
+                <div class="log-line">> INITIALIZING BOOT SEQUENCE...</div>
+            </div>
+        </div>
+    </div>
+    <div id="space-ambiance" aria-hidden="true">
+        <div class="amb-nebula"></div>
+        <div class="amb-sun"></div>
+        <div class="amb-sun-core"></div>
+        <div class="amb-atmo"></div>
+    </div>
+    <div id="chartdiv"></div>
+    <div class="loot-bar-wrapper" id="loot-wrapper"><div class="loot-track" id="loot-track"></div></div>
+
+    <script src="vendor/amcharts5/index.js"></script>
+    <script src="vendor/amcharts5/map.js"></script>
+    <script>(function(){var d=localStorage.getItem('mapDetail')||'high';if(d!=='low'&&d!=='high'&&d!=='ultra')d='high';var f={low:'worldLow',high:'worldHigh',ultra:'worldUltra'}[d];document.write('<script src="vendor/amcharts5/geodata/'+f+'.js"><\/script>');})();</script>
+    <script>window.WORLD_GEO=(function(){var d=localStorage.getItem('mapDetail')||'high';if(d==='low'&&typeof am5geodata_worldLow!=='undefined')return am5geodata_worldLow;if(d==='ultra'&&typeof am5geodata_worldUltra!=='undefined')return am5geodata_worldUltra;return (typeof am5geodata_worldHigh!=='undefined')?am5geodata_worldHigh:(typeof am5geodata_worldLow!=='undefined'?am5geodata_worldLow:am5geodata_worldUltra);})();</script>
+    <script src="vendor/amcharts5/themes/Animated.js"></script>
+
+    <script src="help.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

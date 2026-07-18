@@ -1,0 +1,81 @@
+// === INSTRUKCJA / MANUAL: co i jak zrobić na tej stronie (widok uzytkownika, nie admina) ===
+window.HELP_SECTIONS = [
+    { cat: "NAWIGACJA GLOBUSEM", items: [
+        { icon: "🌍", text: "Globus obraca się sam. Scroll = przybliżenie/oddalenie. Kliknięcie w puste miejsce poza globusem wraca do obracania." },
+        { icon: "🔎", text: "Jeśli masz globus przybliżony scrollem, a klikniesz coś, co trzeba zobaczyć w całości (kontynent w „Continental Control”, MAX DISTANCE, „Show on globe” w panelu Flights, cel misji przy „TARGET”, cud świata, kraj z listy) — globus sam wraca do pełnego widoku i dopiero wtedy obraca się na cel. Nie musisz najpierw ręcznie oddalać. Jedyny wyjątek to skok do konkretnego miasta z wyszukiwarki — tam przybliżenie jest celowe." },
+        { icon: "↻", text: "Przycisk „RESET AND RESUME ORBIT” w lewym dolnym rogu wraca do widoku startowego." },
+        { icon: "🔎", text: "Wyszukiwarka w lewym panelu — wpisz nazwę kraju LUB miasta i kliknij wynik, żeby przenieść się od razu do niego. Wyniki-miasta są oznaczone ikoną 🏙️ i nazwą kraju obok; kliknięcie od razu pokazuje miasta tego kraju na mapie oraz otwiera profil wybranego miasta (pogoda, klimat, populacja, linki)." }
+    ]},
+    { cat: "KLIKNIĘCIE W KRAJ", items: [
+        { icon: "🗂️", text: "Otwiera pełny profil kraju: bezpieczeństwo, waluta z aktualnym kursem, populacja, języki, koszty życia, prąd/woda/napiwki, zegar lokalny i pogoda na żywo." },
+        { icon: "✔", text: "Obok poziomu bezpieczeństwa pojawia się znaczek live: ⚠️ = brytyjskie FCDO (gov.uk) ocenia ryzyko wyżej niż nasza baza (możliwe, że nasz poziom jest nieaktualny), ✔ = baza nie zaniża ryzyka względem FCDO (najedź myszką po szczegóły). Znaczek celowo nie ostrzega w drugą stronę (gdy baza jest ostrożniejsza niż FCDO). Brak znaczka = źródło live niedostępne dla tego kraju." },
+        { icon: "🏙️", text: "Na mapie pojawiają się miasta tego kraju: ★ stolica, ■ metropolia powyżej miliona mieszkańców, kropki — reszta. Kliknij miasto, żeby zobaczyć jego populację, zdjęcie, pogodę i klimat. Pod czasem lokalnym miasta znajdziesz też „DIST. WAW” — dystans w linii prostej z Warszawy." },
+        { icon: "🏅", text: "Jeśli zaznaczenie kraju, miasta albo cudu odblokuje nową odznakę albo da Ci awans na kolejną rangę, od razu wyskoczy okno — cyjanowe „▲ AWANS RANGI ▲” z nazwą nowej rangi albo żółte „★ NOWA ODZNAKA ★” z jej ikoną i nazwą. Po kolorze ramki poznasz od razu, na co patrzysz. Kliknij gdziekolwiek, żeby zamknąć. Gdy jeden klik odpali kilka rzeczy naraz (nowy kraj to często i awans, i próg krajów, i nowy kontynent, i region), lecą po kolei — najpierw awans, potem odznaki — a licznik pokazuje, ile jeszcze zostało. Okna pojawiają się tylko za zdobycie na żywo: przy zwykłym wejściu na stronę nic nie wyskakuje." },
+        { icon: "✅", text: "W profilu kraju i w profilu miasta jest wiersz „ODWIEDZONE” — kliknij go (i potwierdź okienko z ostrzeżeniem), żeby oznaczyć kraj/miasto jako odwiedzone. Działa tylko w jedną stronę: raz zaznaczonego nie da się stąd odznaczyć — kraj/cud świata cofniesz w panelu admina, a miasto tylko ręczną edycją pliku. Odwiedzone miasta świecą się na zielono na mapie, a w profilu kraju widać pokrycie, np. „MIASTA: 12/53”. Zaznaczenie miasta (albo cudu świata) automatycznie zaznacza też cały kraj." },
+        { icon: "🛬", text: "Nad legendą miast pojawia się niebieski przycisk „POKAŻ LOTNISKA” — przełącza widok tego kraju na lotniska od razu, bez ponownego klikania w mapę. Kliknięcie lotniska pokazuje jego profil w panelu INTEL po prawej — tak samo jak przy mieście: nazwa, kod IATA, miasto i kraj, a pod spodem przyciski do zewnętrznych stron: nocowanie na lotnisku (Sleeping in Airports), palarnie (Airport Smokers) i woda pitna / poidełka (Water at Airports). Każdy otwiera się w nowej karcie." },
+        { icon: "📊", text: "Liczby LOTY / LOTNISKA / TRASY w panelu Flights są klikalne (obojętnie która) — otwierają szczegółowe statystyki: ile masz przeleciane w kilometrach, ile to okrążeń Ziemi i jaką część drogi na Księżyc (384 400 km) już pokonałeś, łączny czas w powietrzu, średni lot, najdłuższy i najkrótszy (dystansem i czasem), datę pierwszego lotu, rekordowy rok, ulubione linie i maszyny oraz najczęstsze lotniska. Wiersze z rekordowymi lotami są klikalne — rysują tę trasę na globusie, a przy najdłuższym dystansowo i najdłuższym czasowo leci po niej samolocik (tak jak przy MAX RANGE); kliknięcie lotniska z listy pokazuje je na globusie. Wszystko liczone z Twojego eksportu z Flightradara — każdy lot osobno, razem z powtórkami tej samej trasy." },
+        { icon: "📡", text: "Box MAX RANGE (najdalszy odwiedzony kraj) jest klikalny w całości — zarówno liczba kilometrów, jak i nazwa celu z flagą. Rysuje trasę z Warszawy, puszcza po niej samolot i otwiera profil tego kraju." },
+        { icon: "🔗", text: "Pod profilem kraju znajdziesz przyciski do zewnętrznych stron (koszty życia, jedzenie, przewodnik podróżniczy, mapy i inne) — od razu podlinkowane pod ten konkretny kraj." }
+    ]},
+    { cat: "TWÓJ POSTĘP", items: [
+        { icon: "🔢", text: "Liczba w lewym górnym rogu to Twój wynik — ile krajów odwiedziłeś. Pasek pod nią pokazuje, ile brakuje do kolejnej rangi — kliknij go, żeby zobaczyć plan dojścia do niej. Kliknięcie w nazwę aktualnej rangi otwiera jej szczegóły." },
+        { icon: "🏆", text: "Pasek ACHIEVEMENTS pod nazwą rangi pokazuje, ile odznak masz z 528 — kliknij go, żeby zobaczyć pełną listę (kontynenty, regiony świata, miasta, ciekawostki geograficzne, loty, wizy, pieniądze i ryzyko). Odznaki lotnicze liczą się z Twojego importu z Flightradara: osobne kategorie za godziny w powietrzu oraz za linie i typy samolotów. Za sam staż odznak nie ma — wszystko trzeba wylatać albo objechać. Prawie każda odznaka ma pod opisem pasek postępu (np. „35 / 45, 78%” albo „91 026 / 384 400 km”), więc od razu widać, jak blisko jesteś. Odznaki oparte o konkretne listy — kontynenty, cuda świata i regiony — są dodatkowo klikalne: klik otwiera okienko z pełną rozpiską, na zielono zaliczone, na czerwono brakujące. Przy odznakach typu „postaw stopę na 3 kontynentach” czerwone pozycje to kandydaci do wyboru — wystarczy dowolny z nich, a ile dokładnie brakuje, pisze nad listą. Odznaki w stylu „byłeś / nie byłeś” (np. „odwiedź kraj na półkuli południowej”) paska nie mają, bo nie ma tam czego odliczać." },
+        { icon: "🌐", text: "Panel „Continental Control” pokazuje procent ukończenia dla każdego kontynentu — kliknij nazwę, żeby przenieść się tam i zobaczyć szczegóły. Kliknięcie w samą liczbę (np. „35/45 (78%)”) otwiera listę wszystkich państw tego kontynentu: na zielono zaliczone, na czerwono brakujące. Kliknij dowolne państwo z listy, żeby zobaczyć je na globusie razem z profilem." },
+        { icon: "⭐", text: "Lista Cudów Świata — kliknij dowolny, żeby zobaczyć zdjęcie i opis oraz przenieść się do niego na mapie. W profilu cudu też jest wiersz „ODWIEDZONE” (zaznaczenie tylko w jedną stronę, z potwierdzeniem — cofnięcie wyłącznie w panelu admina)." },
+        { icon: "🎖️", text: "Lista rang po prawej („Progression Tree”) jest klikalna. Ranga jeszcze niezdobyta pokazuje plan dojścia: ile krajów brakuje, blok „W planach” z krajami, które wpadną na zaplanowanych misjach (razem z przystankami trasy), wyliczenie „PO WYPRAWIE” — ile krajów i jaką rangę będziesz mieć po powrocie i od kiedy — oraz 10 propozycji nieodwiedzonych krajów (najpierw bezwizowe i bezpieczne, z dystansem w linii prostej z Warszawy, wizą i poziomem cen). Kliknij kraj z listy, żeby zobaczyć go na globusie. Misje nie zmniejszają licznika „brakuje” — kraj liczy się dopiero po odwiedzeniu, a przed wyprawą i tak możesz zaliczyć coś jeszcze. Ranga już zdobyta pokazuje swój próg i o ile go przekroczyłeś." },
+        { icon: "🎯", text: "Kliknięcie w nazwę misji przy „TARGET” (panel Active Mission) rysuje trasę na globusie i otwiera jej szczegóły: daty wylotu i powrotu, liczbę przystanków, nowe kraje, które wyprawa dorzuci, wynik i rangę po powrocie (z ewentualnym awansem), kraje na trasie już zaliczone, a także — do rozważenia przy okazji — nieodwiedzone kraje i cuda świata leżące do 500 km od trasy, z odległością od konkretnego przystanku. Kliknij dowolną pozycję, żeby zobaczyć jej szczegóły." },
+        { icon: "🏳️", text: "Przewijający się pasek flag na dole ekranu to skrót do każdego odwiedzonego kraju — kliknij flagę, żeby się tam przenieść. Nie musisz czekać, aż flaga sama przyjedzie: najedź na pasek, żeby go zatrzymać, a potem przeciągnij go myszką (albo palcem) lub przewiń kółkiem w dowolną stronę. Pasek jest zapętlony, więc kręci się w kółko bez końca. Po zjechaniu kursorem z paska sam rusza dalej z miejsca, w którym go zostawiłeś. Samo przeciągnięcie nie liczy się jako kliknięcie flagi — glob nie skoczy Ci przypadkowo w inne miejsce. Aktualnie wybrany kraj świeci w pasku na zielono (z podkreśleniem) — działa to w obie strony: kliknięcie państwa na globusie też zapala jego flagę na dole, więc od razu widzisz, gdzie jesteś. Po najechaniu na flagę wyskakuje dymek z nazwą kraju, liczbą odwiedzonych w nim miast i tym najdalszym od Warszawy. Kliknięcie flagi obraca globus na stolicę kraju, a najdalsze odwiedzone miasto dostaje własny, złoty znacznik połączony ze stolicą przerywanym łukiem — widzisz więc naraz i sam kraj, i to, jak daleko w nim dotarłeś (dla Hiszpanii: Madryt plus Arona na Teneryfie). Etykieta przy stolicy podaje liczbę odwiedzonych miast i dystans do tego najdalszego. Jeśli w danym kraju nie masz jeszcze zaznaczonego żadnego miasta, zobaczysz sam znacznik stolicy z dystansem do niej." }
+    ]},
+    { cat: "TWOJE PODRÓŻE", items: [
+        { icon: "🛫", text: "Panel „Active Mission” odlicza czas do najbliższego wyjazdu. Jeśli masz zaplanowane więcej niż jedną podróż, strzałkami przełączysz się między nimi." },
+        { icon: "🎯", text: "Kliknij cel misji, żeby zobaczyć całą zaplanowaną trasę narysowaną na globusie." },
+        { icon: "✈️", text: "Przycisk „Show on globe” w panelu Flights pokazuje Twoje realne, zrealizowane loty jako łuki na mapie, razem z ich liczbą i najdalej odwiedzonym krajem." },
+        { icon: "🎯", text: "„MAX RANGE DETECTED” w panelu Flights to Twój rekord zasięgu. Duża liczba to dystans do najdalszego LOTNISKA, na jakim wylądowałeś — pod nią masz jego nazwę i kod IATA. Niżej, na zielono, najdalsze odwiedzone MIASTO wraz z krajem i własnym dystansem. Kliknij box, żeby zobaczyć całą drogę: żółta przerywana linia z Warszawy to lot na to lotnisko (leci nią samolot), a zielona ciągła — dalszy odcinek z lotniska do miasta. Zielona linia pojawia się tylko wtedy, gdy to miasto naprawdę leży dalej niż samo lotnisko; zwykle lotnisko stoi tuż przy mieście, więc jej nie zobaczysz i tak ma być." }
+    ]},
+    { cat: "SPECJALNE WIDOKI MAPY", items: [
+        { icon: "🛂", text: "VISA — koloruje wszystkie kraje według tego, czy potrzebujesz wizy (zielony = nie, żółty = uproszczona procedura, czerwony = tak)." },
+        { icon: "🕐", text: "ZONES — koloruje mapę według stref czasowych i pokazuje, która jest tam teraz godzina." },
+        { icon: "☾", text: "NIGHT — pokazuje na żywo, gdzie na świecie jest teraz dzień, a gdzie noc." },
+        { icon: "✈️", text: "PLANES — animowane samoloty przelatujące przez mapę, czysto dla klimatu." },
+        { icon: "ℹ️", text: "VISA, ZONES i NIGHT wykluczają się nawzajem — możesz mieć włączony tylko jeden z nich naraz." },
+        { icon: "🌐", text: "DETAIL (LOW / HIGH / ULTRA) — poziom szczegółowości granic globu. HIGH to domyślna wartość; ULTRA daje najdokładniejsze wybrzeża (ale więcej liczenia przy obracaniu, na słabszym sprzęcie może zwalniać), LOW jest najlżejszy. Wybór jest zapamiętywany, a strona krótko się przeładowuje po zmianie." }
+    ]}
+];
+
+window.hideHelpPanel = function(){
+    var el = document.getElementById("help-overlay");
+    if (el) el.style.display = "none";
+};
+
+window.showHelpPanel = function(){
+    var el = document.getElementById("help-overlay");
+    if (!el) {
+        el = document.createElement("div");
+        el.id = "help-overlay";
+        el.style.cssText = "display:none; position:fixed; inset:0; z-index:200; background:rgba(0,0,0,0.75); backdrop-filter:blur(4px); align-items:center; justify-content:center;";
+        el.innerHTML =
+            '<div id="help-modal" style="background:rgba(8,8,10,0.96); border:1px solid rgba(250,204,21,0.4); border-radius:8px; padding:22px; width:min(720px,92vw); max-height:85vh; overflow-y:auto; box-shadow:0 8px 40px rgba(0,0,0,0.6); font-family:\'Rajdhani\',sans-serif;">'
+          +   '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">'
+          +     '<h1 style="margin:0; border:none; padding:0; font-size:1.3rem;">📖 JAK KORZYSTAĆ ZE STRONY</h1>'
+          +     '<span id="help-close" style="cursor:pointer; font-size:1.5rem; color:#8f9ba8; line-height:1;">✕</span>'
+          +   '</div>'
+          +   '<div id="help-body"></div>'
+          + '</div>';
+        document.body.appendChild(el);
+        el.addEventListener("click", function(e){ if (e.target === el) window.hideHelpPanel(); });
+        document.getElementById("help-close").onclick = window.hideHelpPanel;
+        document.getElementById("help-body").innerHTML = window.HELP_SECTIONS.map(function(sec){
+            var lines = sec.items.map(function(it){
+                return '<div style="display:flex; gap:10px; align-items:baseline; padding:7px 0; border-bottom:1px solid rgba(255,255,255,0.06);">'
+                  +   '<span style="font-size:1rem; flex:0 0 22px;">' + it.icon + '</span>'
+                  +   '<span style="font-family:\'JetBrains Mono\',monospace; font-size:0.72rem; color:#c6cfd9; line-height:1.5;">' + it.text + '</span>'
+                  + '</div>';
+            }).join('');
+            return '<div style="margin-top:16px;">'
+              +   '<div style="font-family:\'JetBrains Mono\',monospace; font-size:0.78rem; color:#facc15; letter-spacing:1.5px; border-bottom:1px solid #444; padding-bottom:5px; margin-bottom:2px; font-weight:700;">' + sec.cat + '</div>'
+              +   lines
+              + '</div>';
+        }).join('');
+    }
+    el.style.display = "flex";
+};

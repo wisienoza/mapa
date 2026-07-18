@@ -1,0 +1,30 @@
+# UWAGA: .gitignore dziala TYLKO na pliki, ktorych git jeszcze nie sledzi.
+# Dopisanie tu pliku, ktory JUZ jest w repo, nic nie zmieni - trzeba go najpierw
+# odpiac przez: git rm --cached <plik>   (plik zostaje na dysku, znika z repo).
+# Tak wlasnie bylo z db-schema.md: byl na tej liscie od dawna, a mimo to lecial
+# publicznie na GitHub Pages. Odpiety 2026-07-18.
+
+# --- infrastruktura NAS / Synology ---
+@eaDir/
+sync.sh
+
+# --- backend i dokumentacja wewnetrzna (nie moga byc publiczne) ---
+admin.php
+db-schema.md
+CLAUDE.md
+.claude/
+
+# --- kopie zapasowe robione przed edycja plikow bez rollbacku w gicie ---
+#     (CLAUDE.md kaze robic .bak przed ruszaniem admin.php / db-schema.md - a kopia
+#     db-schema.md.bak zawieralaby dokladnie te tresc, ktora odpielismy od repo)
+*.bak
+
+# --- surowe zrzuty robocze (odpiete 2026-07-18) ---
+have.txt
+wiki-visa-raw.txt
+
+# --- narzedzia buildujace dane offline: nie sa potrzebne stronie do dzialania,
+#     a pidx.csv to 605 KB, ktore nie ma po co wisiec publicznie ---
+pidx.csv
+build-climate-data.php
+build-climate-data.mjs
