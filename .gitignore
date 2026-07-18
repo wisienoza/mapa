@@ -19,6 +19,11 @@ CLAUDE.md
 #     db-schema.md.bak zawieralaby dokladnie te tresc, ktora odpielismy od repo)
 *.bak
 
+# --- podglady makiet UI do akceptacji (LAN-only, kasowane po zatwierdzeniu) ---
+#     Zawsze dopisuj TU zanim utworzysz taki plik: sync.sh commituje co 5 minut,
+#     wiec inaczej makieta zdazy trafic do publicznego repo.
+*-preview.html
+
 # --- surowe zrzuty robocze (odpiete 2026-07-18) ---
 have.txt
 wiki-visa-raw.txt

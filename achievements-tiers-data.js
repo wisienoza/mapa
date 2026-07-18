@@ -1,0 +1,134 @@
+// === POZIOMY TRUDNOSCI ODZNAK (dane, nie logika) ===
+// Silnik liczacy poziomy mieszka w app.js; TU sa wylacznie definicje poziomow oraz recznie
+// przypisane rangi dla odznak, ktorych z danych policzyc SIE NIE DA.
+//
+// DWA ZRODLA POZIOMU (patrz db-schema.md, sekcja POZIOMY TRUDNOSCI ODZNAK):
+//   1. AUTOMAT (442 z 528) - kwintyl progu prog().need W OBREBIE WLASNEJ KATEGORII.
+//      Per kategoria, bo jednostki sa nieporownywalne miedzy nimi: REGIONY licza kraje (2-27),
+//      CZAS W POWIETRZU godziny (1-1080), LOTY kilometry (do 1 000 000), KLIMAT milimetry opadu.
+//      Globalny prog dalby diamenty wszystkim odznakom kilometrowym i braz calym REGIONOM.
+//   2. RECZNIE (86 z 528) - ponizsza tablica. To odznaki binarne (0/1), ktore CELOWO nie maja
+//      prog(): 21 imiennych cudow, progi odwrotne ("opad max. 25 mm"), warunki typu "odwiedz kraj
+//      na polkuli poludniowej". Nie ma z czego liczyc kwintyla, wiec range nadaje czlowiek.
+//
+// UWAGA: klucz to ACHIEVEMENTS[].id = "ach_" + hash(cat+desc). Zmiana 'cat' albo 'desc' odznaki
+// PRZEBIJA hash i wpis tutaj sie osieroci (odznaka cicho spadnie do poziomu domyslnego).
+// To ta sama pulapka co w achievements-data.js - przy zmianie opisu odznaki popraw tez ten plik.
+
+// Kolejnosc MA ZNACZENIE (rosnaco) - app.js indeksuje po niej kwintyle.
+// Zero emoji w etykietach: na Windows renderuja sie niechlujnie w drobnym tekscie
+// (ta sama rodzina problemow co flagi - patrz notka przy FLAGS w db-schema.md).
+const ACH_TIER_DEFS = [
+    { key: "bronze",   label: "BRĄZ",     color: "#cd7f32", glow: "rgba(205,127,50,0.45)" },
+    { key: "silver",   label: "SREBRO",   color: "#cbd5e1", glow: "rgba(203,213,225,0.45)" },
+    { key: "gold",     label: "ZŁOTO",    color: "#facc15", glow: "rgba(250,204,21,0.45)" },
+    { key: "platinum", label: "PLATYNA",  color: "#67e8f9", glow: "rgba(103,232,249,0.45)" },
+    { key: "diamond",  label: "DIAMENT",  color: "#c084fc", glow: "rgba(192,132,252,0.5)" }
+];
+
+// Recznie przypisane poziomy dla 86 odznak bez prog().
+// Kryterium: realna trudnosc dla podroznika z Polski (dostepnosc, dystans, ryzyko, rzadkosc
+// zjawiska), a NIE dlugosc opisu. Grupy zostawione w kolejnosci kategorii dla czytelnosci.
+const ACH_TIERS_MANUAL = {
+    // --- CUDA SWIATA (21 imiennych): stopniowane dostepnoscia z Europy ---
+    "ach_1yegset": "bronze",   // Wieza Eiffla
+    "ach_1y4ttbx": "bronze",   // Koloseum
+    "ach_1rizkaz": "bronze",   // Neuschwanstein
+    "ach_mcvuxi":  "bronze",   // Stonehenge
+    "ach_jvuxzg":  "bronze",   // Alhambra
+    "ach_bsnfe":   "bronze",   // Akropol
+    "ach_17yz4qa": "silver",   // Hagia Sophia
+    "ach_wgfnv5":  "silver",   // Kreml
+    "ach_du443s":  "silver",   // Statua Wolnosci
+    "ach_1cyvagg": "silver",   // piramidy w Gizie
+    "ach_1dvmf26": "silver",   // Wielki Mur
+    "ach_wiyndm":  "gold",     // Petra
+    "ach_92lhdc":  "gold",     // Tadz Mahal
+    "ach_1o77ukw": "gold",     // Chichen Itza
+    "ach_107k62u": "gold",     // Kiyomizu-dera
+    "ach_n306i6":  "gold",     // Opera w Sydney
+    "ach_1ph6fbe": "gold",     // Angkor Wat
+    "ach_1l3qbxy": "platinum", // Machu Picchu
+    "ach_1s9ms0v": "platinum", // Chrystus Zbawiciel
+    "ach_glxhgi":  "diamond",  // moai, Wyspa Wielkanocna (skrajnie odlegla)
+    "ach_snnwp9":  "diamond",  // Timbuktu (odlegle + wysokie ryzyko)
+
+    // --- GEOGRAFIA EKSTREMALNA (10) ---
+    "ach_1s1k2mn": "bronze",   // wschodnia i zachodnia dlugosc
+    "ach_cavxk5":  "silver",   // polkula poludniowa
+    "ach_1qnzukv": "silver",   // miedzy zwrotnikami
+    "ach_uxyx4l":  "silver",   // kolo podbiegunowe
+    "ach_j8k7pu":  "gold",     // 5 st. od rownika
+    "ach_18njd86": "gold",     // gleboko na poludniu
+    "ach_1k9qyhp": "gold",     // kolo podbiegunowe + zwrotniki
+    "ach_pj284i":  "platinum", // arktyka + gleboki poludnik
+    "ach_y86xm0":  "platinum", // wszystkie cztery cwiartki globu
+    "ach_177z0yd": "platinum", // mroz + rownik + poludnie
+
+    // --- LOTY / RYTM LOTOW / LOTNISKA (9) ---
+    "ach_13s9hwc": "bronze",   // lot ponizej 300 km
+    "ach_1qllxhd": "gold",     // A>B i B>A tego samego dnia
+    "ach_3ls8iz":  "gold",     // lot 31.12 lub 1.01
+    "ach_yah1ss":  "gold",     // lot 24 lub 25.12
+    "ach_148s2q6": "silver",   // dwa lotniska < 50 km
+    "ach_1474oy3": "gold",     // dwa lotniska < 20 km
+    "ach_om4ewa":  "silver",   // lotnisko na polkuli poludniowej
+    "ach_ngl64w":  "gold",     // lotnisko ponizej 30 st. S
+    "ach_11l17oi": "silver",   // lotnisko na zachod od 30 st. W
+
+    // --- KLIMAT (13): progi ODWROTNE, wiec im nizsza wartosc, tym trudniej ---
+    "ach_b3pl99":  "bronze",   // najzimniejszy miesiac ponizej zera
+    "ach_17gcdz0": "silver",   // max -10 st.
+    "ach_17gd0yj": "gold",     // zmarzlina
+    "ach_17gdny2": "platinum", // tam rzesy marzna
+    "ach_1n8bxvn": "gold",     // srednia roczna max 3 st.
+    "ach_1n8bvnk": "platinum", // srednia roczna ponizej zera
+    "ach_1so6zkp": "diamond",  // srednia roczna max -5 st.
+    "ach_zgf4v":   "silver",   // mala roznica miesiecy
+    "ach_fyqfcl":  "gold",     // amplituda max 3 st.
+    "ach_fyqelw":  "platinum", // amplituda max 2 st.
+    "ach_hycjsd":  "silver",   // opad max 100 mm
+    "ach_ufdnd3":  "gold",     // opad max 50 mm
+    "ach_udtgin":  "platinum", // opad max 25 mm
+
+    // --- CIEKAWOSTKI (16) ---
+    "ach_1jrbrh9": "bronze",   // populacja > 100 mln
+    "ach_17fsue9": "gold",     // populacja > 500 mln
+    "ach_1xpb39k": "gold",     // populacja > 1 mld
+    "ach_jbel25":  "silver",   // populacja < 100 tys.
+    "ach_9l2sk3":  "platinum", // populacja < 10 tys.
+    "ach_1ptcjp9": "silver",   // powierzchnia > 5 mln km2
+    "ach_rv1m0l":  "gold",     // powierzchnia > 10 mln km2
+    "ach_s935n5":  "silver",   // powierzchnia < 1000 km2
+    "ach_1d0t0nz": "gold",     // powierzchnia < 100 km2
+    "ach_gs5e6":   "bronze",   // min. 3 jezyki urzedowe
+    "ach_nzktsc":  "silver",   // dwie stolice
+    "ach_5pwbzz":  "gold",     // trzy stolice (RPA)
+    "ach_o0fmfm":  "silver",   // gestosc > 1000 os/km2
+    "ach_1r4yci8": "bronze",   // gestosc > 500 os/km2
+    "ach_1d80lge": "silver",   // gestosc < 5 os/km2
+    "ach_ub8ynm":  "gold",     // gestosc < 2 os/km2
+
+    // --- LOGISTYKA (3) ---
+    "ach_1ezbgrk": "bronze",   // napiwek obowiazkowy
+    "ach_do6miq":  "silver",   // brak zwyczaju napiwkow
+    "ach_sx811j":  "gold",     // oba naraz
+
+    // --- PIENIADZE I RYZYKO (4) ---
+    "ach_3mtp9e":  "silver",   // kraj $ i kraj $$$$
+    "ach_16om6ob": "silver",   // podwyzszone ryzyko
+    "ach_1hc7sgj": "diamond",  // maksymalny poziom ryzyka
+    "ach_1oh62wy": "gold",     // bezpieczny + podwyzszone ryzyko
+
+    // --- MIASTA (10) ---
+    "ach_1x1d6rr": "bronze",   // miasto > 1 mln
+    "ach_1x3kd57": "silver",   // miasto > 5 mln
+    "ach_9geqx3":  "gold",     // miasto > 10 mln
+    "ach_smoj7h":  "silver",   // miasto < 10 tys.
+    "ach_er8lch":  "silver",   // miasta na 3 kontynentach
+    "ach_idjeq7":  "platinum", // miasta na 5 kontynentach
+    "ach_jb8htc":  "diamond",  // miasta na wszystkich 6 kontynentach
+    "ach_knqc82":  "silver",   // 10 miast w jednym kraju
+    "ach_oxk0w6":  "gold",     // 25 miast w jednym kraju
+    "ach_n8i2x8":  "bronze"    // miasto niebedace stolica
+};
