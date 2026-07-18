@@ -633,15 +633,24 @@
                 newIds.push(a.id);
             });
             window.updateAchievementProgressBadge(ctx);
-            if (newIds.length === 0) return ctx;
             // SPLASH TYLKO ZA ZDOBYCIE NA ZYWO (klik "ODWIEDZONE" -> mark* -> refreshVisitedUI -> tutaj).
             // Pierwszy przebieg po wczytaniu strony leci CICHO i tylko uzbraja mechanizm, bo "nowe" liczy sie
             // wzgledem achievements-data.js: gdy ten plik jest pusty albo zostal w tyle za katalogiem, na
             // starcie wpada nawet ~100 pozycji naraz i splash zablokowalby strone na kilkadziesiat klikniec.
             // Dodatkowo na GitHub Pages nie ma admin.php, wiec zapis cicho pada i BEZ tego strazniku ta sama
             // lawina wracalaby przy KAZDEJ wizycie.
-            if (!window._achSplashArmed) window._achSplashArmed = true;
-            else if (window.showAchievementSplash) window.showAchievementSplash(newIds);
+            //
+            // !!! UZBRAJAMY BEZWARUNKOWO I PRZED WYJSCIEM PRZY PUSTYM newIds (naprawione 2026-07-19).
+            // Wczesniej ustawienie flagi siedzialo ZA `if (newIds.length === 0) return ctx`, wiec przy
+            // ZSYNCHRONIZOWANYM achievements-data.js (czyli w stanie NORMALNYM - pierwszy przebieg nie
+            // znajduje wtedy nic nowego) mechanizm nie uzbrajal sie wcale. Straznik czekal na PIERWSZE
+            // realne zdobycie usera, zjadal je jako "przebieg uzbrajajacy", a splash pokazywal sie dopiero
+            // za drugim razem. Zgloszone jako "nie wyskakuja splashe po cudach" - w rzeczywistosci
+            // dotyczylo KAZDEJ sciezki (kraje, miasta, cuda), bo strazniks jest dla nich wspolny.
+            var _wasArmed = window._achSplashArmed;
+            window._achSplashArmed = true;
+            if (newIds.length === 0) return ctx;   // nic nowego - nie ma czego pokazywac ani zapisywac
+            if (_wasArmed && window.showAchievementSplash) window.showAchievementSplash(newIds);
             fetch("admin.php", {
                 method: "POST",
                 headers: { "Content-Type": "application/x-www-form-urlencoded" },
