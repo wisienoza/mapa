@@ -128,10 +128,17 @@
         h2 { font-weight: 700; margin: 0; font-size: 4.0rem; color: #dc2626; line-height: 0.8; text-shadow: 0 0 20px rgba(220, 38, 38, 0.5); font-family: 'Rajdhani', sans-serif; }
         .xp-container { flex-grow: 1; padding-bottom: 5px; display: flex; flex-direction: column; justify-content: flex-end; }
         .xp-label { font-size: 0.7rem; color: #c6cfd9; display: flex; justify-content: space-between; margin-bottom: 3px; font-weight: bold; }
-        /* Udzial w swiecie - mieszka w PUSTYM zapasie .xp-container (justify-content:flex-end dociska
-           pasek XP do dolu, a wysokosc .stats-row dyktuje h2 "38"). Zapas to ~20 px przy h2 4.0rem;
-           ten wiersz zajmuje ~12 px, wiec box NIE rosnie. Przy zmianie font-size h2 przelicz zapas. */
-        .world-share { font-size: 0.62rem; line-height: 1; margin-bottom: 2px; opacity: 0.75; letter-spacing: 0.5px; }
+        /* Udzial w swiecie - TRZECI span w istniejacym wierszu "XP PROGRESS" (.xp-label to flex
+           space-between), a NIE osobny wiersz. Powod: miedzy "XP PROGRESS" a "LVL UP IN: n" jest
+           ~110 px martwej przestrzeni, wiec box nie rosnie ANI O PIKSEL przy kazdej wysokosci okna.
+           Wariant z osobnym wierszem odpadl: miescil sie tylko w zapasie .xp-container przy h2 4.0rem,
+           a @media nizej (max-height:1000px, czyli WIEKSZOSC ekranow) zbija h2 do 3.0rem i zapasu
+           juz nie ma. Nie wynos tego do wlasnego wiersza bez ponownego pomiaru obu galezi.
+           BUDZET SZEROKOSCI (zmierzony 2026-07-18, obie galezie, przy "LVL UP IN: 12"): span musi
+           zmiescic sie w ~100 px. Dlatego procenty sa CALKOWITE i bez separatora - wersja
+           "🌍 26,2% · 🗺 11,3%" miala 130 px i rozpychala panel o 7,6 px. Skrajne "🌍100% 🗺100%"
+           = 89,5 px i nadal miesci sie bez wzrostu. Kazda zmiana tresci wymaga ponownego pomiaru. */
+        .world-share { font-weight: 600; opacity: 0.7; letter-spacing: 0; white-space: nowrap; }
         .xp-bar-bg { width: 100%; height: 8px; background: #111; border: 1px solid #444; border-radius: 4px; overflow: hidden; position: relative; box-shadow: 0 0 5px rgba(0,0,0,0.8) inset; }
         .xp-bar-fill { height: 100%; background: linear-gradient(90deg, #991b1b, #ef4444); width: 0%; box-shadow: 0 0 10px #ef4444; transition: width 1s cubic-bezier(0.4, 0, 0.2, 1); position: relative; }
         
@@ -342,9 +349,6 @@
             h1 { font-size: 0.9rem; margin-bottom: 5px; }
             .hud-panel { padding: 10px; margin-bottom: 10px; }
             .stats-row h2 { font-size: 3.0rem; }
-            /* h2 spada do 3.0rem = 38,4 px, wiec zapas w .xp-container kurczy sie do ~7 px -
-               wiersz udzialu w swiecie rozepchnalby box o ~5 px. Chowamy go zamiast tego. */
-            .world-share { display: none; }
             .telemetry-flag { font-size: 2.2rem; }
             .loot-bar-wrapper { height: 70px; }
             .loot-flag { font-size: 2.2rem; }
@@ -460,12 +464,9 @@
                 <div class="stats-row">
                     <h2 id="counter">0</h2>
                     <div class="xp-container">
-                        <div class="xp-label world-share" id="world-share-row">
-                            <span>🌍 POPULACJA <span id="ws-pop">-</span></span>
-                            <span>🗺 LĄD <span id="ws-area">-</span></span>
-                        </div>
                         <div class="xp-label">
                             <span>XP PROGRESS</span>
+                            <span class="world-share" id="world-share-row" title="Udział odwiedzonych państw w populacji i w powierzchni lądowej świata">🌍<span id="ws-pop">-</span> 🗺<span id="ws-area">-</span></span>
                             <span id="xp-text-val">0 / 0</span>
                         </div>
                         <div class="xp-bar-bg">

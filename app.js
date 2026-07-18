@@ -614,10 +614,13 @@
             // UDZIAL W SWIECIE (#world-share-row w left-hud): ctx ma juz policzone popPct/areaPct,
             // wiec jedziemy na tym samym obiekcie - zero dodatkowego przejscia po FACTBOOK i zero
             // wlasnego cache do inwalidacji (ctx zeruja markVisitedCity / _markVisitedGeneric).
+            // Procenty CALKOWITE - nie "dla czytelnosci", tylko z budzetu szerokosci: span ma do
+            // dyspozycji ~100 px martwej przestrzeni w wierszu XP (patrz komentarz przy .world-share
+            // w index.html). Wersja z jednym miejscem po przecinku rozpychala panel o 7,6 px.
             var wsPop = document.getElementById("ws-pop");
             var wsArea = document.getElementById("ws-area");
-            if (wsPop) wsPop.innerText = (ctx.popPct || 0).toLocaleString('pl-PL', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + "%";
-            if (wsArea) wsArea.innerText = (ctx.areaPct || 0).toLocaleString('pl-PL', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + "%";
+            if (wsPop) wsPop.innerText = Math.round(ctx.popPct || 0) + "%";
+            if (wsArea) wsArea.innerText = Math.round(ctx.areaPct || 0) + "%";
         };
         // Zwraca policzony ctx (computeAchievementContext()), zeby wolajacy mogl go ponownie uzyc
         // (np. showAchievementsPanel) zamiast liczyc od nowa - patrz komentarz przy _computeCityStats
