@@ -46,7 +46,7 @@ const ACH_TIER_DEFS = [
     { key: "platinum", label: "PLATYNA", rgb: "207,218,228", glow: true,  bg: [0.60, 0.05],
       mark: '<path d="M12 2.5 L19 5.5 V11 C19 15.5 12 20 12 20 C12 20 5 15.5 5 11 V5.5 Z"/>'
           + '<path d="M2 5 L4.2 5 L4.2 14 L2 11.5 Z"/><path d="M22 5 L19.8 5 L19.8 14 L22 11.5 Z"/>' },
-    { key: "diamond",  label: "DIAMENT", rgb: "157,180,232", glow: true,  bg: [0.80, 0.07],
+    { key: "diamond",  label: "DIAMENT", rgb: "72,34,124", glow: true,  bg: [0.99, 0.27],
       mark: '<path d="M12 1.5 L21.5 9 L12 22.5 L2.5 9 Z"/>'
           + '<path d="M12 1.5 L12 22.5 M2.5 9 L21.5 9 M7.2 9 L12 22.5 L16.8 9"'
           + ' stroke="#08080a" stroke-width="1.1" fill="none" opacity="0.55"/>' }
