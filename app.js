@@ -809,7 +809,11 @@
         window._achTierStyle = function(t, on){
             if (!on) return 'background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08);';
             if (!t)  return 'background:rgba(255,255,255,0.04); border:1px solid rgba(250,204,21,0.45);';
-            return 'background:linear-gradient(160deg,rgba(' + t.rgb + ',0.30),rgba(' + t.rgb + ',0.05) 70%);'
+            // Natezenie tla jest PER POZIOM (t.bg = [gora, dol]) - patrz komentarz w
+            // achievements-tiers-data.js. Fallback na dawne 0.30/0.05, gdyby wpis go nie mial.
+            var a1 = (t.bg && t.bg[0] != null) ? t.bg[0] : 0.30;
+            var a2 = (t.bg && t.bg[1] != null) ? t.bg[1] : 0.05;
+            return 'background:linear-gradient(160deg,rgba(' + t.rgb + ',' + a1 + '),rgba(' + t.rgb + ',' + a2 + ') 70%);'
                  + ' border:1px solid rgba(' + t.rgb + ',0.58);'
                  + (t.glow ? ' box-shadow:0 0 15px rgba(' + t.rgb + ',0.5);' : '');
         };

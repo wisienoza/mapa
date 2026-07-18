@@ -29,19 +29,24 @@
 // skrzydla -> tarcza -> krysztal), zeby poziom dalo sie rozpoznac takze bez koloru: srebro,
 // platyna i diament to trzy chlodne, jasne tony i na samym kolorze myla sie ze soba.
 // Zero emoji - na Windows renderuja sie w drobnym tekscie niechlujnie (patrz notka przy FLAGS).
+// NATEZENIE TLA (bg: [gora, dol] - alfa gradientu) jest per poziom, a nie wspolne, bo te kolory
+// maja bardzo rozna sile wlasna. Braz jest ciemny i nasycony: przy tej samej alfie co reszta
+// wygladal NAJBARDZIEJ prestizowo z calej piatki, czyli dokladnie odwrotnie niz powinien.
+// Zloto odwrotnie - gaslo i wygladalo na przybrudzone. Stad braz zjechal w dol, zloto w gore.
+// Strojac te wartosci pamietaj: to ma rosnac razem z ranga, nie byc rowne.
 const ACH_TIER_DEFS = [
-    { key: "bronze",   label: "BRĄZ",    rgb: "192,112,60",  glow: false,
+    { key: "bronze",   label: "BRĄZ",    rgb: "150,92,48",   glow: false, bg: [0.17, 0.02],
       mark: '<path d="M3 7 L12 15 L21 7 L21 12 L12 20 L3 12 Z"/>' },
-    { key: "silver",   label: "SREBRO",  rgb: "169,178,186", glow: false,
+    { key: "silver",   label: "SREBRO",  rgb: "169,178,186", glow: false, bg: [0.22, 0.03],
       mark: '<path d="M3 4 L12 11 L21 4 L21 8 L12 15 L3 8 Z"/>'
           + '<path d="M6 14 L12 18.5 L18 14 L18 17.5 L12 22 L6 17.5 Z"/>' },
-    { key: "gold",     label: "ZŁOTO",   rgb: "229,185,60",  glow: false,
+    { key: "gold",     label: "ZŁOTO",   rgb: "245,199,45",  glow: false, bg: [0.40, 0.06],
       mark: '<path d="M5 7 L12 14 L19 7 L19 12 L12 19 L5 12 Z"/>'
           + '<path d="M1.5 4 L4 4 L4 13 L1.5 10.5 Z"/><path d="M22.5 4 L20 4 L20 13 L22.5 10.5 Z"/>' },
-    { key: "platinum", label: "PLATYNA", rgb: "207,218,228", glow: true,
+    { key: "platinum", label: "PLATYNA", rgb: "207,218,228", glow: true,  bg: [0.34, 0.05],
       mark: '<path d="M12 2.5 L19 5.5 V11 C19 15.5 12 20 12 20 C12 20 5 15.5 5 11 V5.5 Z"/>'
           + '<path d="M2 5 L4.2 5 L4.2 14 L2 11.5 Z"/><path d="M22 5 L19.8 5 L19.8 14 L22 11.5 Z"/>' },
-    { key: "diamond",  label: "DIAMENT", rgb: "157,180,232", glow: true,
+    { key: "diamond",  label: "DIAMENT", rgb: "157,180,232", glow: true,  bg: [0.40, 0.07],
       mark: '<path d="M12 1.5 L21.5 9 L12 22.5 L2.5 9 Z"/>'
           + '<path d="M12 1.5 L12 22.5 M2.5 9 L21.5 9 M7.2 9 L12 22.5 L16.8 9"'
           + ' stroke="#08080a" stroke-width="1.1" fill="none" opacity="0.55"/>' }
