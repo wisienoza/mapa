@@ -35,15 +35,15 @@
 // Zloto odwrotnie - gaslo i wygladalo na przybrudzone. Stad braz zjechal w dol, zloto w gore.
 // Strojac te wartosci pamietaj: to ma rosnac razem z ranga, nie byc rowne.
 const ACH_TIER_DEFS = [
-    { key: "bronze",   label: "BRĄZ",    rgb: "150,92,48",   glow: false, bg: [0.10, 0.02],
+    { key: "bronze",   label: "BRĄZ",    rgb: "150,92,48",   glow: false, bg: [0.05, 0.02],
       mark: '<path d="M3 7 L12 15 L21 7 L21 12 L12 20 L3 12 Z"/>' },
-    { key: "silver",   label: "SREBRO",  rgb: "169,178,186", glow: false, bg: [0.40, 0.03],
+    { key: "silver",   label: "SREBRO",  rgb: "169,178,186", glow: false, bg: [0.25, 0.03],
       mark: '<path d="M3 4 L12 11 L21 4 L21 8 L12 15 L3 8 Z"/>'
           + '<path d="M6 14 L12 18.5 L18 14 L18 17.5 L12 22 L6 17.5 Z"/>' },
     { key: "gold",     label: "ZŁOTO",   rgb: "245,199,45",  glow: false, bg: [0.40, 0.06],
       mark: '<path d="M5 7 L12 14 L19 7 L19 12 L12 19 L5 12 Z"/>'
           + '<path d="M1.5 4 L4 4 L4 13 L1.5 10.5 Z"/><path d="M22.5 4 L20 4 L20 13 L22.5 10.5 Z"/>' },
-    { key: "platinum", label: "PLATYNA", rgb: "207,218,228", glow: true,  bg: [0.60, 0.05],
+    { key: "platinum", label: "PLATYNA", rgb: "207,218,228", glow: true,  bg: [0.99, 0.25],
       mark: '<path d="M12 2.5 L19 5.5 V11 C19 15.5 12 20 12 20 C12 20 5 15.5 5 11 V5.5 Z"/>'
           + '<path d="M2 5 L4.2 5 L4.2 14 L2 11.5 Z"/><path d="M22 5 L19.8 5 L19.8 14 L22 11.5 Z"/>' },
     { key: "diamond",  label: "DIAMENT", rgb: "72,34,124", glow: true,  bg: [0.99, 0.27],
