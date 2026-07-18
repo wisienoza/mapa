@@ -784,21 +784,38 @@
                 });
                 cacheCtx = ctx;
             }
+            // Sufit kategorii - patrz ACH_CAT_CEILING. Brak wpisu = pelna skala.
+            function ceilOf(cat){
+                if (typeof ACH_CAT_CEILING === 'undefined') return ACH_TIER_DEFS.length - 1;
+                var c = ACH_CAT_CEILING[cat];
+                return (c === undefined) ? ACH_TIER_DEFS.length - 1 : c;
+            }
             return function(a, ctx, pr){
                 if (typeof ACH_TIER_DEFS === 'undefined') return null;
                 if (ctx !== cacheCtx || !needByCat) build(ctx);
+                var top = ceilOf(a.cat), idx;
                 var n = (pr === undefined) ? needOf(a, ctx) : ((pr && pr.need > 0) ? pr.need : null);
                 if (n === null) {
+                    // Odznaka binarna: poziom z recznej tablicy, ale sufit obowiazuje TAK SAMO -
+                    // inaczej ACH_TIERS_MANUAL obchodzilaby regule tylnymi drzwiami.
                     var key = (typeof ACH_TIERS_MANUAL !== 'undefined') ? ACH_TIERS_MANUAL[a.id] : null;
+                    idx = -1;
                     for (var i = 0; i < ACH_TIER_DEFS.length; i++) {
-                        if (ACH_TIER_DEFS[i].key === key) return ACH_TIER_DEFS[i];
+                        if (ACH_TIER_DEFS[i].key === key) { idx = i; break; }
                     }
-                    return null;
+                    if (idx < 0) return null;
+                    return ACH_TIER_DEFS[Math.min(idx, top)];
                 }
                 var arr = needByCat[a.cat];
                 if (!arr || !arr.length) return null;
-                var idx = Math.floor(arr.indexOf(n) / arr.length * ACH_TIER_DEFS.length);
-                return ACH_TIER_DEFS[Math.min(ACH_TIER_DEFS.length - 1, Math.max(0, idx))];
+                // Percentyl progu W OBREBIE KATEGORII -> poziom wg krzywej (piramida, nie kwintyle).
+                var pct = arr.indexOf(n) / arr.length;
+                var curve = (typeof ACH_TIER_CURVE !== 'undefined') ? ACH_TIER_CURVE : [0.2, 0.4, 0.6, 0.8, 1];
+                idx = ACH_TIER_DEFS.length - 1;
+                for (var j = 0; j < curve.length && j < ACH_TIER_DEFS.length; j++) {
+                    if (pct < curve[j]) { idx = j; break; }
+                }
+                return ACH_TIER_DEFS[Math.max(0, Math.min(idx, top))];
             };
         })();
         // Styl kafelka niosacy poziom. Kolor dostaje TLO (gradient), bo na samej ramce srebro,

@@ -52,6 +52,35 @@ const ACH_TIER_DEFS = [
           + ' stroke="#08080a" stroke-width="1.1" fill="none" opacity="0.55"/>' }
 ];
 
+// === SUFIT KATEGORII: jak wysoko dana kategoria W OGOLE moze siegnac ===
+// Indeks w ACH_TIER_DEFS (0=braz, 1=srebro, 2=zloto, 3=platyna, 4=diament).
+// POWOD ISTNIENIA: kwintyl liczony per kategoria zawsze oddaje 20% pozycji na diament - NIEZALEZNIE
+// od tego, czy kategoria zawiera cokolwiek trudnego. Bez sufitu LOGISTYKA, gdzie najtrudniejsze
+// osiagniecie to "odwiedz kraj z napiwkiem obowiazkowym i kraj bez", produkowala diamenty na rowni
+// z LOTAMI. Ranga byla wtedy zawsze WZGLEDNA wobec sasiadow w kategorii i nigdy wobec calosci -
+// czyli nie znaczyla nic.
+// Sufit tnie TAKZE poziomy z ACH_TIERS_MANUAL (np. reczny diament w PIENIADZE I RYZYKO spada
+// do zlota) - inaczej reczna tablica obchodzilaby te regule tylnymi drzwiami.
+// Kategoria nieobecna w tej tablicy = brak sufitu (moze siegnac diamentu).
+const ACH_CAT_CEILING = {
+    // pelna skala - tu diament naprawde cos znaczy (komplety kontynentow, 195 krajow, obwod Ziemi)
+    "REGIONY": 4, "KONTYNENTY": 4, "KRAJE": 4, "LOTY": 4, "MIASTA": 4, "CUDA ŚWIATA": 4,
+    // do platyny - trudne, ale to pojedyncze osie, nie podboj swiata
+    "CZAS W POWIETRZU": 3, "KLIMAT": 3, "GEOGRAFIA EKSTREMALNA": 3,
+    // do zlota - zbieractwo i ciekawostki, nie wyczyn
+    "LINIE I MASZYNY": 2, "RYTM LOTÓW": 2, "LOTNISKA": 2, "CIEKAWOSTKI": 2,
+    "WIZY I PASZPORT": 2, "PIENIĄDZE I RYZYKO": 2,
+    // do srebra - najlzejsza kategoria w calym katalogu
+    "LOGISTYKA": 1
+};
+
+// === KRZYWA ROZKLADU: skumulowane progi percentyla w obrebie kategorii ===
+// Rowne kwintyle (0.2/0.4/0.6/0.8/1.0) dawaly 80 diamentow i 97 platyn, czyli 34% CALEGO katalogu
+// stalo w dwoch najwyzszych poziomach. Piramida schodzi z tym do 49 pozycji (9%).
+// Czytanie: pierwszy prog, ktory przekracza percentyl odznaki, wyznacza poziom.
+// Zmieniajac te liczby patrz na rozklad koncowy, nie na "ladnosc" progow.
+const ACH_TIER_CURVE = [0.42, 0.68, 0.87, 0.96, 1.00];
+
 // Recznie przypisane poziomy dla 86 odznak bez prog().
 // Kryterium: realna trudnosc dla podroznika z Polski (dostepnosc, dystans, ryzyko, rzadkosc
 // zjawiska), a NIE dlugosc opisu. Grupy zostawione w kolejnosci kategorii dla czytelnosci.
