@@ -20,7 +20,7 @@
 	<script src="visa-data.js"></script>
 	<script src="achievements-data.js"></script>
 	<script src="achievements-catalog.js"></script>
-	<script src="achievements-tiers-data.js"></script>
+	<script src="achievements-tiers-data.js?v=20260719a"></script>
 	<script src="visited-cities-data.js"></script>
 	<script src="airport-links-data.js"></script>
     <style>
@@ -595,7 +595,14 @@
     <script>window.WORLD_GEO=(function(){var d=localStorage.getItem('mapDetail')||'high';if(d==='low'&&typeof am5geodata_worldLow!=='undefined')return am5geodata_worldLow;if(d==='ultra'&&typeof am5geodata_worldUltra!=='undefined')return am5geodata_worldUltra;return (typeof am5geodata_worldHigh!=='undefined')?am5geodata_worldHigh:(typeof am5geodata_worldLow!=='undefined'?am5geodata_worldLow:am5geodata_worldUltra);})();</script>
     <script src="vendor/amcharts5/themes/Animated.js"></script>
 
-    <script src="help.js"></script>
-    <script src="app.js"></script>
+    <!-- ?v= WYMUSZA POBRANIE PO ZMIANIE. Serwer (Web Station) nie wysyla Cache-Control ani Expires -
+         tylko Last-Modified i ETag - wiec przegladarka stosuje wlasna heurystyke i potrafi trzymac
+         stara wersje mimo odswiezenia. Kosztowalo to pol dnia mylnych pomiarow ("poprawka nie dziala",
+         a byla po prostu niezaladowana).
+         BUMPUJ TEN NUMER PRZY KAZDEJ ZMIANIE app.js / help.js / achievements-tiers-data.js.
+         Celowo TYLKO te trzy pliki: ciezkie bazy (flags 2 MB, climate 2.3 MB) maja sie cache'owac,
+         bo zmieniaja sie raz na ruski rok, a publiczna kopia na GitHub Pages sciagalaby je od nowa. -->
+    <script src="help.js?v=20260719a"></script>
+    <script src="app.js?v=20260719a"></script>
 </body>
 </html>
