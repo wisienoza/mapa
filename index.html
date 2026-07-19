@@ -262,8 +262,9 @@
         .reset-btn {
 		position: absolute;	bottom: 110px; left: 360px;  background: rgba(0, 0, 0, 0.8); border: 1px solid #00ff00; color: #00ff00; padding: 8px 15px; font-size: 0.9rem; text-transform: uppercase; font-weight: bold; cursor: pointer; z-index: 110; border-radius: 4px; opacity: 1; pointer-events: auto; transition: all 0.3s ease;
 		}
-        .reset-btn .rb-icon { display: inline-block; width: 20px; flex: 0 0 20px; text-align: center; }
-        .reset-btn .rb-label { text-align: left; }
+        .reset-btn .rb-icon { display: inline-block; width: 18px; flex: 0 0 18px; text-align: center; }
+        .reset-btn .rb-label { text-align: left; flex: 1 1 auto; }
+        #toggle-stack .reset-btn { justify-content: flex-start; }
         
         /* --- LOOT BAR / MARQUEE FIX --- */
         /* cursor:grab + touch-action:none -> pasek da sie przeciagac myszka i palcem (obsluga w app.js,
@@ -580,10 +581,10 @@
          przyklejony nad paskiem flag zamiast odjezdzac. transition jak w obu wrapperach - dla spojnosci. -->
     <div id="bottom-right-hud" style="position:fixed; right:20px; bottom:96px; z-index:110; display:flex; flex-direction:row; align-items:flex-end; gap:8px; pointer-events:none; max-height:calc(100vh - 116px); transform-origin:100% 100%; transition:transform 0.1s linear;">
         <div id="toggle-stack" style="display:grid; grid-template-columns:auto auto; gap:8px; align-content:end; pointer-events:none;">
-            <div class="reset-btn" id="visa-toggle" style="position:static; width:132px; box-sizing:border-box; display:flex; align-items:center; padding:8px 12px; border-color:#c084fc; color:#c084fc; opacity:0.4; white-space:nowrap;" title="Wymogi wizowe PL wl/wyl"><span class="rb-icon">🛂</span><span class="rb-label">VISA: OFF</span></div>
-            <div class="reset-btn" id="tz-toggle" style="position:static; width:132px; box-sizing:border-box; display:flex; align-items:center; padding:8px 12px; border-color:#38d6c0; color:#38d6c0; opacity:0.4; white-space:nowrap;" title="Strefy czasowe wl/wyl"><span class="rb-icon">🕐</span><span class="rb-label">ZONES: OFF</span></div>
-            <div class="reset-btn" id="night-toggle" style="position:static; width:132px; box-sizing:border-box; display:flex; align-items:center; padding:8px 12px; border-color:#ffb066; color:#ffb066; opacity:0.4; white-space:nowrap;" title="Terminator dzien/noc wl/wyl"><span class="rb-icon">☾</span><span class="rb-label">NIGHT: OFF</span></div>
-            <div class="reset-btn" id="climate-toggle" style="position:static; width:132px; box-sizing:border-box; display:flex; align-items:center; padding:8px 12px; border-color:#f0883e; color:#f0883e; opacity:0.4; white-space:nowrap;" title="Komfort klimatyczny wg miesiaca wl/wyl"><span class="rb-icon">🌡</span><span class="rb-label">CLIMATE: OFF</span></div>
+            <div class="reset-btn" id="visa-toggle" style="position:static; width:148px; box-sizing:border-box; display:flex; align-items:center; padding:8px 12px; border-color:#c084fc; color:#c084fc; opacity:0.4; white-space:nowrap;" title="Wymogi wizowe PL wl/wyl"><span class="rb-icon">🛂</span><span class="rb-label">VISA: OFF</span></div>
+            <div class="reset-btn" id="tz-toggle" style="position:static; width:148px; box-sizing:border-box; display:flex; align-items:center; padding:8px 12px; border-color:#38d6c0; color:#38d6c0; opacity:0.4; white-space:nowrap;" title="Strefy czasowe wl/wyl"><span class="rb-icon">🕐</span><span class="rb-label">ZONES: OFF</span></div>
+            <div class="reset-btn" id="night-toggle" style="position:static; width:148px; box-sizing:border-box; display:flex; align-items:center; padding:8px 12px; border-color:#ffb066; color:#ffb066; opacity:0.4; white-space:nowrap;" title="Terminator dzien/noc wl/wyl"><span class="rb-icon">☾</span><span class="rb-label">NIGHT: OFF</span></div>
+            <div class="reset-btn" id="climate-toggle" style="position:static; width:148px; box-sizing:border-box; display:flex; align-items:center; padding:8px 12px; border-color:#f0883e; color:#f0883e; opacity:0.4; white-space:nowrap;" title="Komfort klimatyczny wg miesiaca wl/wyl"><span class="rb-icon">🌡</span><span class="rb-label">CLIMATE: OFF</span></div>
             <div class="reset-btn" id="detail-switch" style="grid-column:span 2; position:static; box-sizing:border-box; display:flex; align-items:center; gap:6px; padding:6px 10px; border-color:#9ca3af; color:#9ca3af; white-space:nowrap;" title="Szczegolowosc geometrii globu — LOW/HIGH/ULTRA (przeladowuje strone)"><span class="rb-icon">🌐</span><span class="rb-label">DETAIL</span><span class="ds-opt" data-lvl="low" style="cursor:pointer; padding:2px 7px; border:1px solid currentColor; border-radius:4px; opacity:0.4;">LOW</span><span class="ds-opt" data-lvl="high" style="cursor:pointer; padding:2px 7px; border:1px solid currentColor; border-radius:4px; opacity:0.4;">HIGH</span><span class="ds-opt" data-lvl="ultra" style="cursor:pointer; padding:2px 7px; border:1px solid currentColor; border-radius:4px; opacity:0.4;">ULTRA</span></div>
         </div>
         <div class="sys-log-container" style="position:static;">
