@@ -493,6 +493,15 @@
                 hasMultiCapital: hasMultiCapital, hasTripleCapital: hasTripleCapital,
                 currencyCount: Object.keys(currencySet).length, languageCount: Object.keys(languageSet).length,
                 religionCount: Object.keys(religionSet).length, iddCount: Object.keys(iddSet).length,
+                // Te same zbiory WYPISANE (posortowane A-Z) - zrodlo list `done` dla licznikow
+                // roznorodnosci w CIEKAWOSTKACH. Klucze sa juz czytelne: languageSet i religionSet
+                // trzymaja NAZWY, currencySet kody walut (PLN), iddSet prefiksy telefoniczne (+48).
+                // Bez tego kafelki "min. 10 jezykow urzedowych" byly nieklikalne - licznik mowil ILE,
+                // ale nie dalo sie sprawdzic, KTORE jezyki sie na to zlozyly.
+                _currencyList: Object.keys(currencySet).sort(),
+                _languageList: Object.keys(languageSet).sort(function(a,b){ return a.localeCompare(b,"pl"); }),
+                _religionList: Object.keys(religionSet).sort(function(a,b){ return a.localeCompare(b,"pl"); }),
+                _iddList: Object.keys(iddSet).sort(),
                 adapterCount: adapterCount, noAdapterCount: noAdapterCount, tapSafeCount: tapSafeCount, bottledOnlyCount: bottledOnlyCount,
                 hasMandatoryTip: hasMandatoryTip, hasNoTipCulture: hasNoTipCulture, voltageCount: Object.keys(voltageSet).length,
                 citiesStats: _cityStats
