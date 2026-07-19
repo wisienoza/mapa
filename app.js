@@ -5277,7 +5277,25 @@
                         el.title = _act ? ("Pokaż trasę i profil: " + (_fa ? _fa.name.toUpperCase() + " (" + _fa.iata + ")" : _fc.name.toUpperCase())) : "";
                         el.onclick = _act ? _maxRangeClick : null;
                     });
-                    
+                    // Klik w SAM wiersz MIASTO (nie caly box): max zoom na najdalsze miasto zamiast rysowania
+                    // trasy. stopPropagation dusi handler boxa (_maxRangeClick). Jesli lecial samolot MAX RANGE
+                    // (po wczesniejszym kliknieciu w box) - ubijamy go, zeby nie krazyl nad niczym po zoomie.
+                    if (_fc) {
+                        var _mrCityEl = telemetryBox.querySelector(".mr-city");
+                        if (_mrCityEl) {
+                            _mrCityEl.style.cursor = "pointer";
+                            _mrCityEl.title = "Powiększ na miasto: " + _fc.name.toUpperCase();
+                            _mrCityEl.onclick = function(e){
+                                e.stopPropagation();
+                                if (window._clearMaxRangePlane) window._clearMaxRangePlane();   // ubij samolot MAX RANGE, jesli leci
+                                stopRot();
+                                rotateGlobe(_fc.lat, _fc.lon, 1000, true);
+                                chart.animate({ key: "zoomLevel", to: 6, duration: 1000, easing: am5.ease.out(am5.ease.cubic) });
+                                if (window.showCityIntel && window.resolveCityIntel) window.showCityIntel(window.resolveCityIntel(_fc.name, _fc.lat, _fc.lon));
+                            };
+                        }
+                    }
+
                     var ws = document.getElementById("wonders-stats");
                     ws.innerHTML = "";
                     let wondersVisited = 0;
