@@ -4901,6 +4901,8 @@
 
                                 resetBtn.onclick = function() {
                     if (autoRot) autoRot.pause();
+                    if (window._exitActiveOverlayMode) window._exitActiveOverlayMode();   // zgas aktywne tryby-nakladki (VISA/ZONES/NIGHT/CLIMATE)
+                    window.airportMode = false;                                           // wroc do miast (wylacz tryb lotnisk)
                     if (window.clearCountrySearch) window.clearCountrySearch();   // wyczysc tez pole wyszukiwania kraju
                     window.resetIntelPanels();
                     chart.goHome();
