@@ -35,7 +35,10 @@
 // Zloto odwrotnie - gaslo i wygladalo na przybrudzone. Stad braz zjechal w dol, zloto w gore.
 // Strojac te wartosci pamietaj: to ma rosnac razem z ranga, nie byc rowne.
 const ACH_TIER_DEFS = [
-    { key: "bronze",   label: "BRĄZ",    rgb: "150,92,48",   glow: false, bg: [0.05, 0.02],
+    // markRgb jasniejszy od rgb: rgb jest CELOWO ciemny (tlo kafelka ma byc najskromniejsze z piatki),
+    // ale ten sam kolor uzyty na znaczku i w splashu wychodzil przygaszony - kontrast nazwy w oknie
+    // splasha 3.69 przy 8.5-14 na pozostalych poziomach. markRgb rozdziela te dwa zastosowania.
+    { key: "bronze",   label: "BRĄZ",    rgb: "150,92,48", markRgb: "205,132,74", glow: false, bg: [0.05, 0.02],
       mark: '<path d="M3 7 L12 15 L21 7 L21 12 L12 20 L3 12 Z"/>' },
     { key: "silver",   label: "SREBRO",  rgb: "169,178,186", glow: false, bg: [0.25, 0.03],
       mark: '<path d="M3 4 L12 11 L21 4 L21 8 L12 15 L3 8 Z"/>'
