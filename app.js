@@ -404,6 +404,30 @@
                 // z citiesStats.cliCityList ({name, cc, hi, lo, amp, ann, wet, annPrec}).
                 // Uzywane przez prog() kategorii KLIMAT do zbudowania listy `done` - agregaty
                 // (cliColdest itd.) mowia ILE, to mowi KTORE. Sortowane A-Z, jak reszta list w panelu.
+                // MIASTA: nazwy odwiedzonych miast spelniajacych warunek. fn dostaje wpis z
+                // citiesStats.cityList ({name, cc, pop, cap}). Nazwa doklejana krajem, bo miasta
+                // powtarzaja sie miedzy krajami ("Sajgon" i dziesiatki "San Jose").
+                _visCities: function(fn){
+                    var L = (_cityStats && _cityStats.cityList) ? _cityStats.cityList : [];
+                    var out = [];
+                    L.forEach(function(c){
+                        try { if (fn(c)) out.push(c.name + " (" + c.cc + ")"); } catch (e) {}
+                    });
+                    return out.sort(function(a, b){ return a.localeCompare(b, "pl"); });
+                },
+                // MIASTA: kraje, w ktorych masz min. `min` odwiedzonych miast. Zwraca nazwy z FACTBOOK
+                // z licznikiem, np. "Polska (34)" - sam kod kraju nic by nie mowil w rozpisce.
+                _visCityCountries: function(min){
+                    var P = (_cityStats && _cityStats.perCountry) ? _cityStats.perCountry : {};
+                    var out = [];
+                    Object.keys(P).forEach(function(cc){
+                        if (P[cc] < (min || 1)) return;
+                        var nm = (typeof FACTBOOK !== 'undefined' && FACTBOOK[cc] && FACTBOOK[cc].name)
+                                 ? FACTBOOK[cc].name.common : cc;
+                        out.push(nm + " (" + P[cc] + ")");
+                    });
+                    return out.sort(function(a, b){ return a.localeCompare(b, "pl"); });
+                },
                 _cliCities: function(fn){
                     var L = (_cityStats && _cityStats.cliCityList) ? _cityStats.cliCityList : [];
                     var out = [];
@@ -457,6 +481,7 @@
         function _computeCityStats(){
             var vSet = window._visitedCitySet ? window._visitedCitySet() : {};
             var totalVisited = 0, capitalsVisited = 0, hasNonCapital = false;
+            var cityList = [];   // komplet odwiedzonych miast - patrz push nizej
             var hasMega1M = false, hasMega5M = false, hasMega10M = false, hasTiny = false;
             var countriesWithVisit = {}, continentsTouched = {}, perCountryCount = {};
             var fullCoverageCountries = 0;
@@ -486,6 +511,10 @@
                         if (pop > 10000000) hasMega10M = true;
                         if (pop > 0 && pop < 10000) hasTiny = true;
                         if (j === capIdx) capitalsVisited++; else hasNonCapital = true;
+                        // KOMPLET ODWIEDZONYCH MIAST (nazwa, kraj, populacja, czy stolica).
+                        // Agregaty ponizej (visitedCount, capitalsVisited, hasMega10M...) mowia ILE,
+                        // ta lista mowi KTORE - zrodlo list `done` dla kategorii MIASTA w prog().
+                        cityList.push({ name: ci[0], cc: cc, pop: pop, cap: (j === capIdx) });
                         var region = (typeof REGION_MAP !== "undefined") ? REGION_MAP[cc] : null;
                         if (region) continentsTouched[region] = true;
                         if (typeof CLIMATE_DB !== "undefined") {
@@ -550,7 +579,12 @@
                 // Lista odwiedzonych miast z metrykami klimatu (name, cc, hi, lo, amp, ann, wet, annPrec).
                 // Zrodlo list done/missing dla kategorii KLIMAT w prog() - agregaty wyzej mowia ILE,
                 // ta tablica mowi KTORE. Pusta, gdy CLIMATE_DB jeszcze nie dojechalo (defer).
-                cliCityList: cliList
+                cliCityList: cliList,
+                // Zrodla list `done` dla kategorii MIASTA (patrz db-schema.md):
+                //   cityList  - {name, cc, pop, cap} dla KAZDEGO odwiedzonego miasta
+                //   perCountry- kod kraju -> ile miast w nim odwiedzono (mianownik dla "N miast w kraju")
+                cityList: cityList,
+                perCountry: perCountryCount
             };
         }
         window.hideAchievementsPanel = function(){
@@ -1187,11 +1221,12 @@
             var ctx = window.checkAndPersistAchievements() || window.computeAchievementContext();
             var persisted = _persistedAchSet();
             var unlocked = 0;
-            var byCat = {}, catOrder = [];
+            var byCat = {}, catOrder = [], catDone = {};
             window.ACHIEVEMENTS.forEach(function(a){
                 var on = !!a.check(ctx) || !!persisted[a.id];
                 if (on) unlocked++;
-                if (!byCat[a.cat]) { byCat[a.cat] = []; catOrder.push(a.cat); }
+                if (!byCat[a.cat]) { byCat[a.cat] = []; catOrder.push(a.cat); catDone[a.cat] = 0; }
+                if (on) catDone[a.cat]++;   // licznik zdobytych W KATEGORII (do naglowka sekcji)
                 // prog() jest OPCJONALNY (patrz achievements-catalog.js): jest - kafelek dostaje pasek
                 // postepu i klikalna liste brakow; nie ma - stary wyglad (sam opis, bez klikania).
                 // Bledy w prog() nie moga wywrocic calego panelu - stad try/catch i fallback na null.
@@ -1238,8 +1273,22 @@
             });
             document.getElementById("achievements-body").innerHTML = catOrder.map(function(cat){
                 var items = byCat[cat];
-                return '<div style="margin-top:14px;">'
-                  +   '<div style="font-family:\'JetBrains Mono\',monospace; font-size:0.75rem; color:#c6cfd9; letter-spacing:1.5px; border-bottom:1px solid #333; padding-bottom:4px; margin-bottom:8px;">' + cat + '</div>'
+                // NAGLOWEK KATEGORII: position:sticky wzgledem #achievements-modal (to on ma overflow-y
+                // i jest najblizszym przodkiem przewijanym). top:0 przykleja go do gornej krawedzi, wiec
+                // przy dlugiej liscie zawsze wiadomo, ktora to kategoria.
+                // TLO MUSI BYC NIEPRZEZROCZYSTE (#0a0a0c, nie rgba modala) - inaczej kafelki przewijaja
+                // sie widocznie POD napisem. z-index nad kafelkami, ktore maja position:relative.
+                // Marginesy ujemne + padding: pasek tla ma siegac krawedzi modala mimo jego paddingu 22px.
+                var _cd = catDone[cat] || 0, _ct = items.length;
+                return '<div style="margin-top:18px;">'
+                  +   '<div style="position:sticky; top:0; z-index:6; background:#0a0a0c;'
+                  +     ' margin:0 -22px; padding:11px 22px 8px; border-bottom:1px solid #444;'
+                  +     ' font-family:\'JetBrains Mono\',monospace; font-size:1.05rem; font-weight:700;'
+                  +     ' color:#facc15; letter-spacing:3px; display:flex; justify-content:space-between; align-items:baseline;">'
+                  +     '<span>' + cat + '</span>'
+                  +     '<span style="font-size:0.8rem; font-weight:400; letter-spacing:1.5px; color:#8f9ba8;">' + _cd + ' / ' + _ct + '</span>'
+                  +   '</div>'
+                  +   '<div style="height:10px;"></div>'
                   +   '<div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(270px,1fr)); gap:8px;">' + items.join('') + '</div>'
                   + '</div>';
             }).join('');
