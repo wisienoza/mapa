@@ -3,7 +3,7 @@ window.HELP_SECTIONS = [
     { cat: "NAWIGACJA GLOBUSEM", items: [
         { icon: "🌍", text: "Globus obraca się sam. Scroll = przybliżenie/oddalenie. Kliknięcie w puste miejsce poza globusem wraca do obracania." },
         { icon: "🔎", text: "Jeśli masz globus przybliżony scrollem, a klikniesz coś, co trzeba zobaczyć w całości (kontynent w „Continental Control”, MAX DISTANCE, „Show on globe” w panelu Flights, cel misji przy „TARGET”, cud świata, kraj z listy) — globus sam wraca do pełnego widoku i dopiero wtedy obraca się na cel. Nie musisz najpierw ręcznie oddalać. Jedyny wyjątek to skok do konkretnego miasta z wyszukiwarki — tam przybliżenie jest celowe." },
-        { icon: "↻", text: "Przycisk „RESET AND RESUME ORBIT” w lewym dolnym rogu wraca do widoku startowego." },
+        { icon: "↻", text: "Przycisk „RESET AND RESUME ORBIT” w lewym dolnym rogu wraca do widoku startowego — wznawia orbitę i wyłącza aktywne tryby-nakładki (VISA, ZONES, NIGHT, CLIMATE) oraz tryb lotnisk." },
         { icon: "🔎", text: "Wyszukiwarka w lewym panelu — wpisz nazwę kraju LUB miasta i kliknij wynik, żeby przenieść się od razu do niego. Wyniki-miasta są oznaczone ikoną 🏙️ i nazwą kraju obok; kliknięcie od razu pokazuje miasta tego kraju na mapie oraz otwiera profil wybranego miasta (pogoda, klimat, populacja, linki)." }
     ]},
     { cat: "KLIKNIĘCIE W KRAJ", items: [
