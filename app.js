@@ -939,6 +939,164 @@
                  + (on ? '' : ' filter:grayscale(1); opacity:0.5;') + '">' + t.mark + '</svg>';
         };
 
+        // ============================================================================
+        // --- PASZPORT OPERATORA (klik w nazwe rangi w "Operative Status") ---
+        // Zbiera w jednym miejscu to, co dotad bylo rozsypane po HUD i panelach: range, zasieg
+        // (kraje / % ludzkosci / % ladu), drabinke poziomow odznak, najrzadsze zdobycze i nalot.
+        // Buduje sie LENIWIE, wzorcem showAchievementsPanel/showContinentCountries - bez wpisu
+        // w index.html; tresc przeliczana przy KAZDYM otwarciu, wiec panel nie wymaga odswiezania.
+        // ============================================================================
+        window.hidePassportPanel = function(){
+            var el = document.getElementById("passport-overlay");
+            if (el) el.style.display = "none";
+        };
+        window.showPassportPanel = function(){
+            var el = document.getElementById("passport-overlay");
+            if (!el) {
+                el = document.createElement("div");
+                el.id = "passport-overlay";
+                el.style.cssText = "display:none; position:fixed; inset:0; z-index:200; background:rgba(0,0,0,0.75); backdrop-filter:blur(4px); align-items:center; justify-content:center;";
+                el.innerHTML =
+                    '<div id="passport-modal" style="background:rgba(8,8,10,0.96); border:1px solid rgba(0,204,255,0.4); border-radius:8px; width:min(820px,92vw); max-height:86vh; overflow-y:auto; box-shadow:0 8px 40px rgba(0,0,0,0.6); font-family:\'Rajdhani\',sans-serif;">'
+                  +   '<div style="display:flex; justify-content:space-between; align-items:center; padding:14px 20px; border-bottom:1px solid rgba(255,255,255,0.12); background:linear-gradient(90deg,rgba(0,204,255,0.12),transparent);">'
+                  +     '<div style="font-weight:700; letter-spacing:4px; font-size:1.05rem; color:#fff;">OPERATIVE PASSPORT</div>'
+                  +     '<span id="passport-close" style="cursor:pointer; font-size:1.4rem; color:#8f9ba8; line-height:1;">✕</span>'
+                  +   '</div>'
+                  +   '<div id="passport-body"></div>'
+                  + '</div>';
+                document.body.appendChild(el);
+                el.addEventListener("click", function(e){ if (e.target === el) window.hidePassportPanel(); });
+                document.getElementById("passport-close").onclick = window.hidePassportPanel;
+            }
+            document.getElementById("passport-body").innerHTML = window._passportHTML();
+            el.style.display = "flex";
+        };
+        // Cala tresc paszportu. Wydzielone z showPassportPanel, zeby dalo sie ja przeliczyc
+        // bez dotykania overlaya (i zeby funkcja budujaca okno zostala czytelna).
+        window._passportHTML = function(){
+            var ctx = window.computeAchievementContext ? window.computeAchievementContext() : null;
+            var rs = window._rankState || { score: 0, idx: 0, visited: [] };
+            var rank = (typeof RANKS !== 'undefined' && RANKS[rs.idx]) ? RANKS[rs.idx] : null;
+            var next = (typeof RANKS !== 'undefined') ? RANKS[rs.idx + 1] : null;
+            var fs = window._flightStats ? window._flightStats() : null;
+            var N = window._achNum || function(n){ return String(n); };
+
+            // --- naglowek: ranga ---
+            // RANKS[].title trzyma emoji na koncu ("CAPTAIN ⚓") - odcinamy je jak w showRankSplash,
+            // zeby ikona mogla stanac osobno w emblemacie.
+            var rTitle = rank ? rank.title : "—", rIcon = "🎖️";
+            try { var m = rTitle.match(/^(.+?)\s+([^\p{L}\p{N}\s]+)$/u); if (m) { rTitle = m[1]; rIcon = m[2]; } } catch (e) {}
+            var doNast = next ? (next.min - rs.score) : 0;
+            var sub = next ? ("POZIOM " + (rs.idx + 1) + " · DO NASTĘPNEJ RANGI: " + (doNast > 0 ? doNast : 0) + " KR.")
+                           : ("POZIOM " + (rs.idx + 1) + " · MAX LEVEL");
+
+            var h = '<div style="display:flex; gap:18px; align-items:center; padding:18px 20px; border-bottom:1px solid rgba(255,255,255,0.12);">'
+                  +   '<div style="width:70px; height:70px; flex:0 0 70px; border-radius:50%; border:2px solid #facc15; display:flex; align-items:center; justify-content:center; font-size:2rem; background:radial-gradient(circle,rgba(250,204,21,0.18),transparent 70%); box-shadow:0 0 22px rgba(250,204,21,0.3);">' + rIcon + '</div>'
+                  +   '<div style="min-width:0;">'
+                  +     '<div style="font-size:2.1rem; line-height:1; color:#facc15; text-shadow:0 0 14px rgba(250,204,21,0.4); letter-spacing:-0.5px;">' + rTitle + '</div>'
+                  +     '<div style="font-family:\'JetBrains Mono\',monospace; font-size:0.65rem; color:#8f9ba8; letter-spacing:2px; margin-top:6px;">' + sub + '</div>'
+                  +   '</div>'
+                  + '</div>';
+
+            // --- pasek 5 liczb: zasieg podboju ---
+            // popPct/areaPct do 2026-07-19 nie mialy ZADNEGO konsumenta w UI (liczyly sie tylko dla
+            // kategorii CIEKAWOSTKI) - to jest ich pierwsze miejsce na stronie.
+            function cell(val, lab, sufiks){
+                return '<div style="padding:13px 6px; text-align:center; border-right:1px solid rgba(255,255,255,0.07);">'
+                     +   '<div style="font-size:1.6rem; color:#fff; line-height:1;">' + val
+                     +     (sufiks ? '<span style="font-size:0.95rem; color:#6b7684;">' + sufiks + '</span>' : '') + '</div>'
+                     +   '<div style="font-family:\'JetBrains Mono\',monospace; font-size:0.55rem; color:#6b7684; letter-spacing:1.5px; margin-top:5px;">' + lab + '</div>'
+                     + '</div>';
+            }
+            var miasta = (ctx && ctx.citiesStats) ? ctx.citiesStats.visitedCount : 0;
+            h += '<div style="display:grid; grid-template-columns:repeat(5,1fr); border-bottom:1px solid rgba(255,255,255,0.12);">'
+               +   cell(rs.score, "KRAJE", "")
+               +   cell(ctx ? Math.round(ctx.popPct) + "%" : "—", "LUDZKOŚCI", "")
+               +   cell(ctx ? Math.round(ctx.areaPct) + "%" : "—", "LĄDU", "")
+               +   cell(N(miasta), "MIASTA", "")
+               +   cell(ctx ? ctx.wondersCount : 0, "CUDA", ctx ? ("/" + ctx.wondersTotal) : "")
+               + '</div>';
+
+            h += '<div style="padding:16px 20px;">';
+            function naglowek(t){
+                return '<div style="font-family:\'JetBrains Mono\',monospace; font-size:0.62rem; letter-spacing:2.5px; color:#8f9ba8; font-weight:700; margin:0 0 10px;">' + t + '</div>';
+            }
+
+            // --- drabinka poziomow odznak ---
+            var tally = {}, rare = [], sumaHave = 0, sumaTotal = 0;
+            if (ctx && typeof ACH_TIER_DEFS !== 'undefined' && window.ACHIEVEMENTS && window._achTierOf) {
+                var persisted = _persistedAchSet();
+                ACH_TIER_DEFS.forEach(function(d){ tally[d.key] = { have: 0, total: 0, def: d }; });
+                window.ACHIEVEMENTS.forEach(function(a){
+                    var t = window._achTierOf(a, ctx);
+                    if (!t || !tally[t.key]) return;
+                    var on = !!persisted[a.id];
+                    if (!on) { try { on = !!a.check(ctx); } catch (e) { on = false; } }
+                    tally[t.key].total++; sumaTotal++;
+                    if (on) {
+                        tally[t.key].have++; sumaHave++;
+                        if (t.key === "platinum" || t.key === "diamond") rare.push({ a: a, t: t });
+                    }
+                });
+            }
+            h += naglowek("ODZNAKI WEDŁUG POZIOMU — " + N(sumaHave) + " / " + N(sumaTotal));
+            if (typeof ACH_TIER_DEFS !== 'undefined') {
+                ACH_TIER_DEFS.forEach(function(d){
+                    var t = tally[d.key] || { have: 0, total: 0 };
+                    var pct = t.total ? Math.round(t.have / t.total * 100) : 0;
+                    var col = "rgb(" + (d.markRgb || d.rgb) + ")";
+                    h += '<div style="display:flex; align-items:center; gap:10px; margin-bottom:7px;">'
+                       +   '<svg viewBox="0 0 24 24" fill="' + col + '" style="width:16px; height:16px; min-width:16px; flex:0 0 auto;">' + d.mark + '</svg>'
+                       +   '<div style="width:70px; font-family:\'JetBrains Mono\',monospace; font-size:0.58rem; letter-spacing:1.5px; color:' + col + ';">' + d.label + '</div>'
+                       +   '<div style="flex:1; height:7px; background:#111; border:1px solid #333; border-radius:4px; overflow:hidden;">'
+                       +     '<div style="height:100%; width:' + pct + '%; background:' + col + ';"></div>'
+                       +   '</div>'
+                       +   '<div style="width:64px; text-align:right; font-family:\'JetBrains Mono\',monospace; font-size:0.6rem; color:#8f9ba8;">' + t.have + ' / ' + t.total + '</div>'
+                       + '</div>';
+                });
+            }
+
+            // --- najrzadsze zdobyte (platyna + diament, diamenty pierwsze) ---
+            if (rare.length) {
+                rare.sort(function(x, y){
+                    if (x.t.key !== y.t.key) return x.t.key === "diamond" ? -1 : 1;
+                    return x.a.name.localeCompare(y.a.name, "pl");
+                });
+                h += '<div style="margin-top:22px;"></div>' + naglowek("NAJRZADSZE ZDOBYTE — " + rare.length);
+                rare.slice(0, 12).forEach(function(r){
+                    var col = "rgb(" + (r.t.markRgb || r.t.rgb) + ")";
+                    h += '<div style="display:flex; align-items:center; gap:9px; padding:5px 0; border-bottom:1px solid rgba(255,255,255,0.05);">'
+                       +   '<svg viewBox="0 0 24 24" fill="' + col + '" style="width:14px; height:14px; min-width:14px; flex:0 0 auto;">' + r.t.mark + '</svg>'
+                       +   '<span style="font-size:1.5rem; line-height:1;">' + r.a.icon + '</span>'
+                       +   '<span style="flex:1; min-width:0; color:#e6ecf2; font-size:0.85rem; font-weight:700; letter-spacing:0.5px;">' + r.a.name + '</span>'
+                       +   '<span style="font-family:\'JetBrains Mono\',monospace; font-size:0.55rem; color:#6b7684; letter-spacing:1px;">' + r.a.cat + '</span>'
+                       + '</div>';
+                });
+                if (rare.length > 12) {
+                    h += '<div style="font-family:\'JetBrains Mono\',monospace; font-size:0.58rem; color:#6b7684; margin-top:7px;">…i jeszcze ' + (rare.length - 12) + '</div>';
+                }
+            }
+
+            // --- nalot (z FLIGHTS_LOG przez _flightStats; bez logu panel te sekcje pomija) ---
+            if (fs) {
+                function row(l, v){
+                    return '<div style="display:flex; justify-content:space-between; padding:4px 0; font-family:\'JetBrains Mono\',monospace; font-size:0.62rem; border-bottom:1px solid rgba(255,255,255,0.05);">'
+                         +   '<span style="color:#8f9ba8; letter-spacing:1px;">' + l + '</span><span style="color:#fff;">' + v + '</span></div>';
+                }
+                h += '<div style="margin-top:22px;"></div>' + naglowek("NALOT");
+                h += row(fs.hasLog ? "LOTY / LOTNISKA / TRASY" : "SUMA TRAS",
+                         fs.flights + " · " + fs.topAirports.length + " · " + (typeof FLIGHTS_META !== 'undefined' ? FLIGHTS_META.routes : "—"));
+                h += row(fs.hasLog ? "PRZELECIANE" : "SUMA TRAS (NIE NALOT)",
+                         N(Math.round(fs.totalKm)) + " km  (" + fs.laps.toFixed(2).replace(".", ",") + " × dookoła Ziemi)");
+                if (fs.minutes) h += row("W POWIETRZU", window._fmtHm ? window._fmtHm(fs.minutes) : (fs.minutes + " min"));
+                if (fs.first) h += row("PIERWSZY → OSTATNI LOT", fs.first + " → " + fs.last);
+                h += row("DO KSIĘŻYCA", (fs.totalKm / 384400 * 100).toFixed(1).replace(".", ",") + " % drogi");
+            }
+
+            h += '</div>';
+            return h;
+        };
+
         window.showAchievementsPanel = function(){
             var el = document.getElementById("achievements-overlay");
             if (!el) {
@@ -4459,11 +4617,15 @@
                     // Skroty w Operative Status: nazwa rangi -> panel tej rangi, pasek XP -> panel
                     // nastepnej. Podpinane tutaj, bo #current-rank jest przerysowywany co refresh
                     // (innerHTML wyzej), wiec handler ustawiony raz na starcie by przepadl.
+                    // ZMIANA 2026-07-19: nazwa rangi otwiera PASZPORT, a nie plan dojscia do rangi.
+                    // Plan rangi nie znika - prowadza do niego dwie inne, juz istniejace sciezki:
+                    // pasek XP pod spodem (updateRankIntel dla NASTEPNEJ rangi) oraz lista rang
+                    // "Progression Tree" po prawej (klik w dowolny wiersz).
                     var _rankNameEl = document.querySelector("#current-rank .rank-title-text");
                     if (_rankNameEl) {
                         _rankNameEl.style.cursor = "pointer";
-                        _rankNameEl.title = "Pokaż szczegóły tej rangi";
-                        _rankNameEl.onclick = function(){ window.updateRankIntel(currentRankIndex); };
+                        _rankNameEl.title = "Pokaż paszport operatora";
+                        _rankNameEl.onclick = function(){ window.showPassportPanel(); };
                     }
                     var _xpEl = document.querySelector("#left-hud .xp-container");
                     if (_xpEl) {
