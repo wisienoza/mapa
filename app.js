@@ -4736,30 +4736,11 @@
                 window.startRot = startRot;
                 window.stopRot = stopRot;
 
-                // ===== FLAVOR: samoloty (20 tras rozrzuconych po globie; wlasne serie, nieklikalne, trasy ukryte) =====
+                // ===== SAMOLOTY: FLAVOR USUNIETY 2026-07-19 =====
+                // 20 ozdobnych samolotow latajacych po rozrzuconych trasach (+ przelacznik PLANES) skasowane na
+                // zyczenie: nic nie wnosily wizualnie, a kosztowaly 20 nieustannych animacji. Zostal WYLACZNIE
+                // samolot lecacy po torze wybranej trasy (nizej: _flyMaxRange, panel MAX RANGE / najdluzsze loty).
                 try {
-                    var flavPlaneLine = chart.series.push(am5map.MapLineSeries.new(root, {}));
-                    flavPlaneLine.mapLines.template.setAll({ strokeOpacity: 0 });
-                    var flavPlanePoints = chart.series.push(am5map.MapPointSeries.new(root, {}));
-                    flavPlanePoints.bullets.push(function() {
-                        return am5.Bullet.new(root, { sprite: am5.Graphics.new(root, {
-                            svgPath: "M13,0 L4,1 L1,1 L-2,6 L-4,6 L-3,1 L-9,1 L-11,3 L-12,3 L-11,0 L-12,-3 L-11,-3 L-9,-1 L-3,-1 L-4,-6 L-2,-6 L1,-1 L4,-1 Z",
-                            fill: am5.color(0x00eaff), stroke: am5.color(0x00343c), strokeWidth: 0.5,
-                            shadowColor: am5.color(0x00eaff), shadowBlur: 6, scale: 0.8, centerX: am5.p50, centerY: am5.p50
-                        }) });
-                    });
-                    // [a_lon,a_lat,b_lon,b_lat,dur] - loty jednokierunkowe, autoRotate = dziob w kierunku lotu
-                    var PLANES = [[-118.4,33.9,-73.8,40.6,38000],[-79.6,43.7,-99.1,19.4,39800],[-122.3,47.4,-80.3,25.8,41600],[-46.5,-23.4,-74.1,4.7,43400],[-58.5,-34.8,-77.1,-12.0,45200],[-70.8,-33.4,-46.5,-23.4,47000],[-0.45,51.5,28.8,41.0,48800],[-3.6,40.5,2.55,49.0,50600],[8.6,50.0,37.4,55.9,52400],[31.4,30.1,28.2,-26.1,54200],[3.3,6.6,36.9,-1.3,56000],[-7.6,33.4,18.6,-33.9,57800],[77.1,28.6,116.6,40.1,59600],[55.4,25.3,104.0,1.4,61400],[139.8,35.5,100.7,13.7,63200],[126.4,37.5,113.9,22.3,65000],[151.2,-33.9,174.8,-36.9,66800],[115.9,-31.9,144.8,-37.7,68600],[-122.4,37.6,139.8,35.5,70400],[55.4,25.3,151.2,-33.9,72200]];
-                    var _planePoints = [];
-                    PLANES.forEach(function(r){
-                        var ld = flavPlaneLine.pushDataItem({ geometry: { type: "LineString", coordinates: [[r[0],r[1]],[r[2],r[3]]] } });
-                        var pd = flavPlanePoints.pushDataItem({ lineDataItem: ld, positionOnLine: 0, autoRotate: true });
-                        pd._dur = r[4];
-                        _planePoints.push(pd);
-                    });
-                    // przelacznik samolotow - DOMYSLNIE OFF; animacje startuja dopiero przy ON (wylaczone = 0 kosztu)
-                    flavPlanePoints.hide(0);
-
                     // ===== SAMOLOT NA TRASIE MAX RANGE =====
                     // Wlasna para serii (linia + punkt), zeby nie mieszac z flavorowymi samolotami - te maja
                     // swoj przelacznik i wlasne animacje. Linia tutaj jest niewidoczna (strokeOpacity 0),
@@ -4800,23 +4781,7 @@
                         if (window.pointSeries) window.pointSeries.data.clear();
                         if (window.lineSeries) window.lineSeries.data.clear();
                     }
-                    var planesOn = false;
-                    var planeToggle = document.getElementById("plane-toggle");
-                    if (planeToggle) {
-                        planeToggle.onclick = function() {
-                            _dropCountryFocus();
-                            planesOn = !planesOn;
-                            var planeLabel = planeToggle.querySelector(".rb-label");
-                            if (planesOn) {
-                                _planePoints.forEach(function(pd){ if(pd._anim){pd._anim.stop();} pd._anim = pd.animate({ key: "positionOnLine", from: (pd.get("positionOnLine")||0), to: 1, duration: pd._dur, loops: Infinity }); });
-                                flavPlanePoints.show(); if(planeLabel){ planeLabel.textContent = "PLANES: ON"; } planeToggle.style.opacity = "1";
-                            } else {
-                                _planePoints.forEach(function(pd){ if(pd._anim){ pd._anim.stop(); pd._anim = null; } });
-                                flavPlanePoints.hide(); if(planeLabel){ planeLabel.textContent = "PLANES: OFF"; } planeToggle.style.opacity = "0.4";
-                            }
-                        };
-                    }
-                    // --- VISA / ZONES / NIGHT: tryby WYKLUCZAJACE sie (nigdy razem) ---
+                    // --- VISA / ZONES / NIGHT / CLIMATE: tryby WYKLUCZAJACE sie (nigdy razem) ---
                     var _modes = [
                         { id:"night-toggle", on:function(){return window._terminatorOn;}, set:function(v){ if(window.setTerminator) window.setTerminator(v); }, lbl:"NIGHT" },
                         { id:"tz-toggle",    on:function(){return window._tzOn;},         set:function(v){ if(window.setTimezones) window.setTimezones(v); }, lbl:"ZONES" },
