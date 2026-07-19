@@ -5245,6 +5245,8 @@
                             stopRot();                    // pauzuje rotacje ORAZ ubija samolot MAX RANGE (_clearMaxRangePlane)
                             lineSeries.data.clear();      // skasuj luk WAW -> lotnisko...
                             groundLegSeries.data.clear(); // ...i odcinek naziemny lotnisko -> miasto
+                            // migajacy celownik na miescie (bullet type "target" - krzyzyk + okrag + animacja opacity)
+                            pointSeries.data.setAll([{ geometry: { type: "Point", coordinates: [_fc.lon, _fc.lat] }, type: "target" }]);
                             rotateGlobe(_fc.lat, _fc.lon, 1000, true);
                             chart.animate({ key: "zoomLevel", to: 6, duration: 1000, easing: am5.ease.out(am5.ease.cubic) });
                             if (window.showCityIntel && window.resolveCityIntel) window.showCityIntel(window.resolveCityIntel(_fc.name, _fc.lat, _fc.lon));
@@ -5294,7 +5296,7 @@
                     // powyzej, po closest(".mr-city") - dlatego tu tylko kursor "zoom-in" + wlasny tooltip).
                     if (_fc) {
                         var _mrCityEl = telemetryBox.querySelector(".mr-city");
-                        if (_mrCityEl) { _mrCityEl.style.cursor = "zoom-in"; _mrCityEl.title = "Powiększ na miasto: " + _fc.name.toUpperCase(); }
+                        if (_mrCityEl) { _mrCityEl.style.cursor = "pointer"; _mrCityEl.title = "Powiększ na miasto: " + _fc.name.toUpperCase(); }
                     }
 
                     var ws = document.getElementById("wonders-stats");
