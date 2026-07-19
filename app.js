@@ -957,7 +957,7 @@
                 el.id = "passport-overlay";
                 el.style.cssText = "display:none; position:fixed; inset:0; z-index:200; background:rgba(0,0,0,0.75); backdrop-filter:blur(4px); align-items:center; justify-content:center;";
                 el.innerHTML =
-                    '<div id="passport-modal" style="background:rgba(8,8,10,0.96); border:1px solid rgba(0,204,255,0.4); border-radius:8px; width:min(820px,92vw); max-height:86vh; overflow-y:auto; box-shadow:0 8px 40px rgba(0,0,0,0.6); font-family:\'Rajdhani\',sans-serif;">'
+                    '<div id="passport-modal" style="background:rgba(8,8,10,0.96); border:1px solid rgba(0,204,255,0.4); border-radius:8px; width:min(900px,94vw); max-height:88vh; overflow-y:auto; box-shadow:0 8px 40px rgba(0,0,0,0.6); font-family:\'Rajdhani\',sans-serif;">'
                   +   '<div style="display:flex; justify-content:space-between; align-items:center; padding:14px 20px; border-bottom:1px solid rgba(255,255,255,0.12); background:linear-gradient(90deg,rgba(0,204,255,0.12),transparent);">'
                   +     '<div style="font-weight:700; letter-spacing:4px; font-size:1.05rem; color:#fff;">OPERATIVE PASSPORT</div>'
                   +     '<span id="passport-close" style="cursor:pointer; font-size:1.4rem; color:#8f9ba8; line-height:1;">✕</span>'
@@ -1001,7 +1001,7 @@
                   +   '<div style="width:70px; height:70px; flex:0 0 70px; border-radius:50%; border:2px solid #facc15; display:flex; align-items:center; justify-content:center; font-size:2rem; background:radial-gradient(circle,rgba(250,204,21,0.18),transparent 70%); box-shadow:0 0 22px rgba(250,204,21,0.3);">' + rIcon + '</div>'
                   +   '<div style="min-width:0;">'
                   +     '<div style="font-size:2.1rem; line-height:1; color:#facc15; text-shadow:0 0 14px rgba(250,204,21,0.4); letter-spacing:-0.5px;">' + rTitle + '</div>'
-                  +     '<div style="font-family:\'JetBrains Mono\',monospace; font-size:0.65rem; color:#8f9ba8; letter-spacing:2px; margin-top:6px;">' + sub + '</div>'
+                  +     '<div style="font-family:\'JetBrains Mono\',monospace; font-size:0.82rem; color:#c6cfd9; letter-spacing:2px; margin-top:8px;">' + sub + '</div>'
                   +   '</div>'
                   + '</div>';
 
@@ -1010,9 +1010,9 @@
             // kategorii CIEKAWOSTKI) - to jest ich pierwsze miejsce na stronie.
             function cell(val, lab, sufiks){
                 return '<div style="padding:13px 6px; text-align:center; border-right:1px solid rgba(255,255,255,0.07);">'
-                     +   '<div style="font-size:1.6rem; color:#fff; line-height:1;">' + val
-                     +     (sufiks ? '<span style="font-size:0.95rem; color:#6b7684;">' + sufiks + '</span>' : '') + '</div>'
-                     +   '<div style="font-family:\'JetBrains Mono\',monospace; font-size:0.55rem; color:#6b7684; letter-spacing:1.5px; margin-top:5px;">' + lab + '</div>'
+                     +   '<div style="font-size:2rem; color:#fff; line-height:1;">' + val
+                     +     (sufiks ? '<span style="font-size:1.1rem; color:#6b7684;">' + sufiks + '</span>' : '') + '</div>'
+                     +   '<div style="font-family:\'JetBrains Mono\',monospace; font-size:0.72rem; color:#8f9ba8; letter-spacing:1.5px; margin-top:6px;">' + lab + '</div>'
                      + '</div>';
             }
             var miasta = (ctx && ctx.citiesStats) ? ctx.citiesStats.visitedCount : 0;
@@ -1026,13 +1026,14 @@
 
             h += '<div style="padding:16px 20px;">';
             function naglowek(t){
-                return '<div style="font-family:\'JetBrains Mono\',monospace; font-size:0.62rem; letter-spacing:2.5px; color:#8f9ba8; font-weight:700; margin:0 0 10px;">' + t + '</div>';
+                return '<div style="font-family:\'JetBrains Mono\',monospace; font-size:0.8rem; letter-spacing:2.5px; color:#c6cfd9; font-weight:700; margin:0 0 12px;">' + t + '</div>';
             }
 
             // --- drabinka poziomow odznak ---
-            var tally = {}, rare = [], sumaHave = 0, sumaTotal = 0;
+            var tally = {}, rare = [], sumaHave = 0, sumaTotal = 0, _tierIdx = {};
             if (ctx && typeof ACH_TIER_DEFS !== 'undefined' && window.ACHIEVEMENTS && window._achTierOf) {
                 var persisted = _persistedAchSet();
+                ACH_TIER_DEFS.forEach(function(d, i){ _tierIdx[d.key] = i; });   // klucz -> ranga (0 = braz)
                 ACH_TIER_DEFS.forEach(function(d){ tally[d.key] = { have: 0, total: 0, def: d }; });
                 window.ACHIEVEMENTS.forEach(function(a){
                     var t = window._achTierOf(a, ctx);
@@ -1042,7 +1043,11 @@
                     tally[t.key].total++; sumaTotal++;
                     if (on) {
                         tally[t.key].have++; sumaHave++;
-                        if (t.key === "platinum" || t.key === "diamond") rare.push({ a: a, t: t });
+                        // TYLKO platyna i diament (decyzja uzytkownika). 14 to SUFIT listy, nie cel:
+                        // po przebudowie balansu w katalogu jest 10 diamentow i 39 platyn, wiec dopoki
+                        // gracz ma ich mniej, lista bedzie krotsza - i tak ma byc. Nie "dosypuj" tu
+                        // zlota, zeby uzbierac 14; wtedy sekcja przestaje znaczyc "najrzadsze".
+                        if (t.key === "platinum" || t.key === "diamond") rare.push({ a: a, t: t, i: _tierIdx[t.key] });
                     }
                 });
             }
@@ -1052,13 +1057,13 @@
                     var t = tally[d.key] || { have: 0, total: 0 };
                     var pct = t.total ? Math.round(t.have / t.total * 100) : 0;
                     var col = "rgb(" + (d.markRgb || d.rgb) + ")";
-                    h += '<div style="display:flex; align-items:center; gap:10px; margin-bottom:7px;">'
-                       +   '<svg viewBox="0 0 24 24" fill="' + col + '" style="width:16px; height:16px; min-width:16px; flex:0 0 auto;">' + d.mark + '</svg>'
-                       +   '<div style="width:70px; font-family:\'JetBrains Mono\',monospace; font-size:0.58rem; letter-spacing:1.5px; color:' + col + ';">' + d.label + '</div>'
-                       +   '<div style="flex:1; height:7px; background:#111; border:1px solid #333; border-radius:4px; overflow:hidden;">'
+                    h += '<div style="display:flex; align-items:center; gap:11px; margin-bottom:9px;">'
+                       +   '<svg viewBox="0 0 24 24" fill="' + col + '" style="width:20px; height:20px; min-width:20px; flex:0 0 auto;">' + d.mark + '</svg>'
+                       +   '<div style="width:92px; font-family:\'JetBrains Mono\',monospace; font-size:0.76rem; font-weight:700; letter-spacing:1.5px; color:' + col + ';">' + d.label + '</div>'
+                       +   '<div style="flex:1; height:9px; background:#111; border:1px solid #333; border-radius:5px; overflow:hidden;">'
                        +     '<div style="height:100%; width:' + pct + '%; background:' + col + ';"></div>'
                        +   '</div>'
-                       +   '<div style="width:64px; text-align:right; font-family:\'JetBrains Mono\',monospace; font-size:0.6rem; color:#8f9ba8;">' + t.have + ' / ' + t.total + '</div>'
+                       +   '<div style="width:86px; text-align:right; font-family:\'JetBrains Mono\',monospace; font-size:0.78rem; color:#c6cfd9;">' + t.have + ' / ' + t.total + '</div>'
                        + '</div>';
                 });
             }
@@ -1066,29 +1071,29 @@
             // --- najrzadsze zdobyte (platyna + diament, diamenty pierwsze) ---
             if (rare.length) {
                 rare.sort(function(x, y){
-                    if (x.t.key !== y.t.key) return x.t.key === "diamond" ? -1 : 1;
+                    if (x.i !== y.i) return y.i - x.i;                       // najwyzszy poziom na gorze
                     return x.a.name.localeCompare(y.a.name, "pl");
                 });
                 h += '<div style="margin-top:22px;"></div>' + naglowek("NAJRZADSZE ZDOBYTE — " + rare.length);
                 rare.slice(0, 14).forEach(function(r){
                     var col = "rgb(" + (r.t.markRgb || r.t.rgb) + ")";
                     h += '<div onclick="window._passportGoToAch(\'' + r.a.id + '\')" style="display:flex; align-items:center; gap:9px; padding:5px 0; border-bottom:1px solid rgba(255,255,255,0.05); cursor:pointer;" title="Pokaż tę odznakę w panelu osiągnięć">'
-                       +   '<svg viewBox="0 0 24 24" fill="' + col + '" style="width:14px; height:14px; min-width:14px; flex:0 0 auto;">' + r.t.mark + '</svg>'
-                       +   '<span style="font-size:1.5rem; line-height:1;">' + r.a.icon + '</span>'
-                       +   '<span style="flex:1; min-width:0; color:#e6ecf2; font-size:0.85rem; font-weight:700; letter-spacing:0.5px;">' + r.a.name + '</span>'
-                       +   '<span style="font-family:\'JetBrains Mono\',monospace; font-size:0.55rem; color:#6b7684; letter-spacing:1px;">' + r.a.cat + '</span>'
+                       +   '<svg viewBox="0 0 24 24" fill="' + col + '" style="width:18px; height:18px; min-width:18px; flex:0 0 auto;">' + r.t.mark + '</svg>'
+                       +   '<span style="font-size:1.7rem; line-height:1;">' + r.a.icon + '</span>'
+                       +   '<span style="flex:1; min-width:0; color:#e6ecf2; font-size:1.05rem; font-weight:700; letter-spacing:0.5px;">' + r.a.name + '</span>'
+                       +   '<span style="font-family:\'JetBrains Mono\',monospace; font-size:0.7rem; color:#8f9ba8; letter-spacing:1px;">' + r.a.cat + '</span>'
                        + '</div>';
                 });
                 if (rare.length > 14) {
-                    h += '<div style="font-family:\'JetBrains Mono\',monospace; font-size:0.58rem; color:#6b7684; margin-top:7px;">…i jeszcze ' + (rare.length - 14) + '</div>';
+                    h += '<div style="font-family:\'JetBrains Mono\',monospace; font-size:0.75rem; color:#8f9ba8; margin-top:9px;">…i jeszcze ' + (rare.length - 14) + '</div>';
                 }
             }
 
             // --- nalot (z FLIGHTS_LOG przez _flightStats; bez logu panel te sekcje pomija) ---
             if (fs) {
                 function row(l, v){
-                    return '<div style="display:flex; justify-content:space-between; padding:4px 0; font-family:\'JetBrains Mono\',monospace; font-size:0.62rem; border-bottom:1px solid rgba(255,255,255,0.05);">'
-                         +   '<span style="color:#8f9ba8; letter-spacing:1px;">' + l + '</span><span style="color:#fff;">' + v + '</span></div>';
+                    return '<div style="display:flex; justify-content:space-between; gap:14px; padding:6px 0; font-family:\'JetBrains Mono\',monospace; font-size:0.78rem; border-bottom:1px solid rgba(255,255,255,0.05);">'
+                         +   '<span style="color:#8f9ba8; letter-spacing:1px;">' + l + '</span><span style="color:#fff; text-align:right;">' + v + '</span></div>';
                 }
                 h += '<div style="margin-top:22px;"></div>' + naglowek("NALOT");
                 // UWAGA: liczba lotnisk i tras idzie z FLIGHTS_META, NIE z fs.topAirports.length -
