@@ -793,7 +793,7 @@
                   +   '<div id="ach-splash-icon" style="font-size:4.2rem; line-height:1; margin-bottom:12px;"></div>'
                   +   '<div id="ach-splash-name" style="font-size:1.5rem; font-weight:700; letter-spacing:1px; color:#facc15; line-height:1.2;"></div>'
                   +   '<div id="ach-splash-cat" style="font-family:\'JetBrains Mono\',monospace; font-size:0.65rem; letter-spacing:2px; color:#8f9ba8; margin-top:8px;"></div>'
-                  +   '<div id="ach-splash-tier" style="display:none; align-items:center; justify-content:center; gap:7px; margin-top:11px; font-family:\'JetBrains Mono\',monospace; font-size:0.62rem; letter-spacing:2.5px;"></div>'
+                  +   '<div id="ach-splash-tier" style="display:none; align-items:center; justify-content:center; gap:10px; margin-top:13px; font-family:\'JetBrains Mono\',monospace; font-size:1.2rem; font-weight:700; letter-spacing:2.5px;"></div>'
                   +   '<div id="ach-splash-desc" style="font-family:\'JetBrains Mono\',monospace; font-size:0.72rem; color:#c6cfd9; margin-top:14px; line-height:1.5;"></div>'
                   +   '<div id="ach-splash-more" style="font-family:\'JetBrains Mono\',monospace; font-size:0.62rem; color:#8f9ba8; margin-top:18px;"></div>'
                   + '</div>';
@@ -823,7 +823,12 @@
             var _tr = document.getElementById("ach-splash-tier");
             if (_tr) {
                 if (a.tier) {
-                    _tr.innerHTML = '<svg viewBox="0 0 24 24" fill="' + ac.hex + '" style="width:15px; height:15px;">'
+                    // Znaczek skalowany razem z napisem (1.2rem) - przy 15 px wygladal jak literowka
+                    // obok dwa razy wiekszego tekstu.
+                    // min-width/min-height, bo samo width/height SVG bywa dociskane do wysokosci
+                    // line-boxa wiersza (renderowalo sie 22,4 px zamiast 26). min-* tego nie podlega.
+                    _tr.innerHTML = '<svg viewBox="0 0 24 24" fill="' + ac.hex + '" style="width:26px; height:26px;'
+                                  + ' min-width:26px; min-height:26px; flex:0 0 auto; align-self:center;">'
                                   + a.tier.mark + '</svg><span>POZIOM: ' + a.tier.label + '</span>';
                     _tr.style.color = ac.hex;
                     _tr.style.display = "flex";
