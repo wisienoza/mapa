@@ -1147,7 +1147,9 @@
                     var t = tally[d.key] || { have: 0, total: 0 };
                     var pct = t.total ? Math.round(t.have / t.total * 100) : 0;
                     var col = "rgb(" + (d.markRgb || d.rgb) + ")";
-                    h += '<div style="display:flex; align-items:center; gap:11px; margin-bottom:9px;">'
+                    h += '<div onclick="window._passportOpenTier(\'' + d.key + '\')" title="Pokaż wszystkie odznaki poziomu ' + d.label + '"'
+                       + ' style="display:flex; align-items:center; gap:11px; margin-bottom:9px; cursor:pointer; padding:3px 6px; margin-left:-6px; margin-right:-6px; border-radius:5px;"'
+                       + ' onmouseover="this.style.background=\'rgba(255,255,255,0.06)\'" onmouseout="this.style.background=\'transparent\'">'
                        +   '<svg viewBox="0 0 24 24" fill="' + col + '" style="width:20px; height:20px; min-width:20px; flex:0 0 auto;">' + d.mark + '</svg>'
                        +   '<div style="width:92px; font-family:\'JetBrains Mono\',monospace; font-size:0.76rem; font-weight:700; letter-spacing:1.5px; color:' + col + ';">' + d.label + '</div>'
                        +   '<div style="flex:1; height:9px; background:#111; border:1px solid #333; border-radius:5px; overflow:hidden;">'
@@ -1209,6 +1211,12 @@
         // Celowo NIE wolamy showAchievementDetail: platyny i diamenty to czesto odznaki licznikowe
         // bez list done/missing, wiec okienko rozpiski otworzyloby sie puste (patrz warunek
         // klikalnosci kafelka). Skok do kafelka dziala dla KAZDEJ odznaki.
+        // Klik w pasek poziomu w paszporcie: zamyka paszport i otwiera panel osiagniec
+        // ODFILTROWANY do tego poziomu (np. same zlote). Powrot do pelnej listy jest w tytule panelu.
+        window._passportOpenTier = function(key){
+            if (window.hidePassportPanel) window.hidePassportPanel();
+            window.showAchievementsPanel({ tier: key });
+        };
         window._passportGoToAch = function(id){
             if (window.hidePassportPanel) window.hidePassportPanel();
             window.showAchievementsPanel();
@@ -1224,7 +1232,22 @@
                 ], { duration: 1600, easing: "ease-out" });
             }
         };
-        window.showAchievementsPanel = function(){
+        // Klik w kafelek spisu tresci: przewija modal do naglowka danej kategorii.
+        // NIE uzywamy scrollIntoView - naglowki sa position:sticky, wiec cel wyladowalby DOKLADNIE
+        // pod przyklejonym naglowkiem poprzedniej sekcji. Liczymy pozycje recznie i odejmujemy
+        // wysokosc naglowka, zeby tytul kategorii byl widoczny.
+        window._achGoToCat = function(cat){
+            var mod = document.getElementById("achievements-modal");
+            var sec = document.querySelector('#achievements-body [data-cat="' + cat + '"]');
+            if (!mod || !sec) return;
+            var head = sec.querySelector('div[style*="position:sticky"]');
+            var h = head ? head.getBoundingClientRect().height : 0;
+            mod.scrollTop += sec.getBoundingClientRect().top - mod.getBoundingClientRect().top - h;
+        };
+        // opts.tier = klucz z ACH_TIER_DEFS ("gold") -> panel pokazuje TYLKO odznaki tego poziomu.
+        // Wolane bez argumentu (wiekszosc miejsc) dziala jak dotad: pelna lista.
+        window.showAchievementsPanel = function(opts){
+            var _tierFilter = (opts && opts.tier) ? opts.tier : null;
             var el = document.getElementById("achievements-overlay");
             if (!el) {
                 el = document.createElement("div");
@@ -1233,7 +1256,7 @@
                 el.innerHTML =
                     '<div id="achievements-modal" style="background:rgba(8,8,10,0.96); border:1px solid rgba(250,204,21,0.4); border-radius:8px; padding:22px; width:min(920px,92vw); max-height:85vh; overflow-y:auto; box-shadow:0 8px 40px rgba(0,0,0,0.6); font-family:\'Rajdhani\',sans-serif;">'
                   +   '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">'
-                  +     '<h1 style="margin:0; border:none; padding:0; font-size:1.3rem;">🏆 OSIĄGNIĘCIA</h1>'
+                  +     '<h1 id="achievements-title" style="margin:0; border:none; padding:0; font-size:1.3rem;">🏆 OSIĄGNIĘCIA</h1>'
                   +     '<span id="achievements-close" style="cursor:pointer; font-size:1.5rem; color:#8f9ba8; line-height:1;">✕</span>'
                   +   '</div>'
                   +   '<div id="achievements-progress" style="font-family:\'JetBrains Mono\',monospace; font-size:0.8rem; color:#facc15; margin-bottom:14px;"></div>'
@@ -1246,17 +1269,24 @@
             var ctx = window.checkAndPersistAchievements() || window.computeAchievementContext();
             var persisted = _persistedAchSet();
             var unlocked = 0;
-            var byCat = {}, catOrder = [], catDone = {};
+            var byCat = {}, catOrder = [], catDone = {}, total = 0;
             window.ACHIEVEMENTS.forEach(function(a){
                 var on = !!a.check(ctx) || !!persisted[a.id];
+                // FILTR POZIOMU: liczymy prog() RAZ i przekazujemy do _achTierOf, zeby nie odpalac
+                // go drugi raz na kazdej z 528 pozycji (patrz komentarz przy _achTierOf).
+                var pr = null;
+                if (typeof a.prog === 'function') { try { pr = a.prog(ctx); } catch (e) { pr = null; } }
+                if (_tierFilter) {
+                    var _tf = window._achTierOf ? window._achTierOf(a, ctx, pr) : null;
+                    if (!_tf || _tf.key !== _tierFilter) return;   // nie ten poziom - pomijamy calkiem
+                }
+                total++;
                 if (on) unlocked++;
                 if (!byCat[a.cat]) { byCat[a.cat] = []; catOrder.push(a.cat); catDone[a.cat] = 0; }
                 if (on) catDone[a.cat]++;   // licznik zdobytych W KATEGORII (do naglowka sekcji)
                 // prog() jest OPCJONALNY (patrz achievements-catalog.js): jest - kafelek dostaje pasek
                 // postepu i klikalna liste brakow; nie ma - stary wyglad (sam opis, bez klikania).
                 // Bledy w prog() nie moga wywrocic calego panelu - stad try/catch i fallback na null.
-                var pr = null;
-                if (typeof a.prog === 'function') { try { pr = a.prog(ctx); } catch (e) { pr = null; } }
                 var progHtml = "", clickAttr = "", curs = "";
                 if (pr && pr.need > 0) {
                     var pct = Math.min(100, Math.round((pr.have / pr.need) * 100));
@@ -1296,7 +1326,30 @@
                   + '</div>'
                 );
             });
-            document.getElementById("achievements-body").innerHTML = catOrder.map(function(cat){
+            // --- SPIS TRESCI: kafelki kategorii ze statusem, klik przewija do sekcji ---
+            // Renderowany tylko w widoku PELNYM: przy filtrze poziomu kategorii bywa 2-3 i spis
+            // dublowalby to, co i tak widac na ekranie.
+            var toc = "";
+            if (!_tierFilter && catOrder.length > 1) {
+                toc = '<div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(190px,1fr)); gap:7px; margin-bottom:6px;">'
+                    + catOrder.map(function(cat){
+                        var d = catDone[cat] || 0, t = byCat[cat].length;
+                        var pct = t ? Math.round(d / t * 100) : 0;
+                        // Kolor licznika sygnalizuje postep: komplet na zielono, zero na szaro.
+                        var col = (d === t) ? "#4ade80" : (d === 0 ? "#6b7684" : "#facc15");
+                        return '<div onclick="window._achGoToCat(\'' + cat.replace(/'/g, "\\'") + '\')"'
+                             + ' style="cursor:pointer; padding:7px 9px; border-radius:5px;'
+                             + ' background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.1);'
+                             + ' display:flex; justify-content:space-between; align-items:baseline; gap:8px;"'
+                             + ' onmouseover="this.style.background=\'rgba(250,204,21,0.12)\'"'
+                             + ' onmouseout="this.style.background=\'rgba(255,255,255,0.04)\'">'
+                             +   '<span style="font-family:\'JetBrains Mono\',monospace; font-size:0.68rem; letter-spacing:1px; color:#c6cfd9;">' + cat + '</span>'
+                             +   '<span style="font-family:\'JetBrains Mono\',monospace; font-size:0.66rem; color:' + col + ';">' + d + '/' + t + '</span>'
+                             + '</div>';
+                      }).join('')
+                    + '</div>';
+            }
+            document.getElementById("achievements-body").innerHTML = toc + catOrder.map(function(cat){
                 var items = byCat[cat];
                 // NAGLOWEK KATEGORII: position:sticky wzgledem #achievements-modal (to on ma overflow-y
                 // i jest najblizszym przodkiem przewijanym). top:0 przykleja go do gornej krawedzi, wiec
@@ -1305,7 +1358,7 @@
                 // sie widocznie POD napisem. z-index nad kafelkami, ktore maja position:relative.
                 // Marginesy ujemne + padding: pasek tla ma siegac krawedzi modala mimo jego paddingu 22px.
                 var _cd = catDone[cat] || 0, _ct = items.length;
-                return '<div style="margin-top:18px;">'
+                return '<div data-cat="' + cat + '" style="margin-top:18px;">'
                   +   '<div style="position:sticky; top:0; z-index:6; background:#0a0a0c;'
                   +     ' margin:0 -22px; padding:11px 22px 8px; border-bottom:1px solid #444;'
                   +     ' font-family:\'JetBrains Mono\',monospace; font-size:1.05rem; font-weight:700;'
@@ -1317,7 +1370,27 @@
                   +   '<div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(270px,1fr)); gap:8px;">' + items.join('') + '</div>'
                   + '</div>';
             }).join('');
-            document.getElementById("achievements-progress").innerText = unlocked + " / " + window.ACHIEVEMENTS.length + " ODBLOKOWANYCH";
+            // Licznik liczy z `total` (po filtrze), nie z calego katalogu - inaczej widok jednego
+            // poziomu pokazywalby "25 / 528" przy 114 wyswietlonych kafelkach.
+            document.getElementById("achievements-progress").innerText = unlocked + " / " + total + " ODBLOKOWANYCH";
+            // Tytul: w widoku filtrowanym mowi WPROST, ze to wycinek, i daje powrot do pelnej listy.
+            var _ttl = document.getElementById("achievements-title");
+            if (_ttl) {
+                if (_tierFilter) {
+                    var _td = null;
+                    if (typeof ACH_TIER_DEFS !== 'undefined') {
+                        ACH_TIER_DEFS.forEach(function(d){ if (d.key === _tierFilter) _td = d; });
+                    }
+                    var _tc = _td ? ("rgb(" + (_td.markRgb || _td.rgb) + ")") : "#facc15";
+                    _ttl.innerHTML = '<span style="color:' + _tc + ';">'
+                                   + (_td ? ('<svg viewBox="0 0 24 24" fill="' + _tc + '" style="width:20px;height:20px;min-width:20px;vertical-align:-3px;margin-right:7px;">' + _td.mark + '</svg>') : '')
+                                   + 'POZIOM ' + (_td ? _td.label : _tierFilter) + '</span>'
+                                   + '<span onclick="window.showAchievementsPanel()" style="cursor:pointer; font-size:0.72rem; color:#8f9ba8; letter-spacing:1.5px; margin-left:14px; font-family:\'JetBrains Mono\',monospace;">← WSZYSTKIE</span>';
+                } else {
+                    _ttl.innerHTML = "🏆 OSIĄGNIĘCIA";
+                }
+            }
+            document.getElementById("achievements-modal").scrollTop = 0;
             el.style.display = "flex";
         };
 
