@@ -3680,7 +3680,7 @@
             if(leftWrapper) leftWrapper.style.transform = `scale(${scale})`;
             if(rightWrapper) rightWrapper.style.transform = `scale(${scale})`;
 
-            // Dolny-prawy HUD (przelaczniki VISA/ZONES/NIGHT/PLANES + DETAIL + SYSTEM_LOG) NIE byl dotad
+            // Dolny-prawy HUD (przelaczniki VISA/ZONES/NIGHT/CLIMATE + DETAIL + SYSTEM_LOG) NIE byl dotad
             // skalowany: siedzi poza .left-wrapper/.right-wrapper, wiec na wezszych ekranach zostawal 1:1
             // i wygladal na ogromny obok skurczonej reszty HUD-u. Skalujemy tym samym wspolczynnikiem.
             // Kotwica (transform-origin:100% 100%) jest w index.html. USTAWIAMY TO PRZED odczytem

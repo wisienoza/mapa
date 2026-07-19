@@ -40,7 +40,6 @@ window.HELP_SECTIONS = [
         { icon: "🕐", text: "ZONES — koloruje mapę według stref czasowych i pokazuje, która jest tam teraz godzina." },
         { icon: "☾", text: "NIGHT — pokazuje na żywo, gdzie na świecie jest teraz dzień, a gdzie noc." },
         { icon: "🌡", text: "CLIMATE — koloruje kraje według komfortu temperaturowego w wybranym miesiącu (niebieski = zimno, zielony = idealnie 18–27°C, czerwony = upał). U góry ekranu wybierasz miesiąc, klikając jego skrót (STY…GRU) — mapa przemalowuje się od razu. Temperatura liczona wg stolicy z 30-letnich normalnych; to narzędzie decyzyjne \"gdzie mi w lutym ciepło\", nie prognoza." },
-        { icon: "✈️", text: "PLANES — animowane samoloty przelatujące przez mapę, czysto dla klimatu." },
         { icon: "ℹ️", text: "VISA, ZONES, NIGHT i CLIMATE wykluczają się nawzajem — możesz mieć włączony tylko jeden z nich naraz." },
         { icon: "🌐", text: "DETAIL (LOW / HIGH / ULTRA) — poziom szczegółowości granic globu. HIGH to domyślna wartość; ULTRA daje najdokładniejsze wybrzeża (ale więcej liczenia przy obracaniu, na słabszym sprzęcie może zwalniać), LOW jest najlżejszy. Wybór jest zapamiętywany, a strona krótko się przeładowuje po zmianie." }
     ]}
