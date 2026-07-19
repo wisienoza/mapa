@@ -19,10 +19,12 @@
 	<script src="flights-data.js"></script>
 	<script src="visa-data.js"></script>
 	<script src="achievements-data.js"></script>
-	<script src="achievements-catalog.js?v=20260719j"></script>
-	<script src="achievements-tiers-data.js?v=20260719j"></script>
+	<script src="achievements-catalog.js?v=20260719l"></script>
+	<script src="achievements-tiers-data.js?v=20260719l"></script>
 	<script src="visited-cities-data.js"></script>
 	<script src="airport-links-data.js"></script>
+	<script src="airlines-data.js?v=20260719l"></script>
+	<script src="aircraft-data.js?v=20260719l"></script>
     <style>
         /* --- GLOBAL FONT UPDATE --- */
         body { 
@@ -232,6 +234,12 @@
             cursor: pointer; pointer-events: auto; box-sizing: border-box; transition: all 0.2s; 
         }
         .my-flights-btn:hover { background: rgba(250, 204, 21, 0.3); box-shadow: 0 0 10px rgba(250, 204, 21, 0.4); }
+        /* Dwa przyciski w jednym rzedzie (FR24 + LOTER) - box FLIGHTS rosl na wysokosc szybciej,
+           niz przybywalo w nim tresci. .my-flights-btn ma width:100%, wiec w flexie trzeba je
+           przelaczyc na flex:1 + width:auto, inaczej kazdy chce calej szerokosci rzedu.
+           min-width:0 pozwala im zjechac ponizej szerokosci wlasnego tekstu na waskim HUD. */
+        .mf-row { display: flex; gap: 5px; }
+        .mf-row .my-flights-btn { flex: 1; width: auto; min-width: 0; }
         .my-flights-btn.mf-globe { background: rgba(0,234,255,0.15); border-color:#00eaff; color:#00eaff; }
         .my-flights-btn.mf-globe:hover { background: rgba(0,234,255,0.3); box-shadow: 0 0 10px rgba(0,234,255,0.4); }
         .my-flights-btn.mf-globe.active { background:#00eaff; color:#04222a; box-shadow:0 0 12px rgba(0,234,255,0.6); }
@@ -525,8 +533,13 @@
                 <h1>Flights</h1>
                 <div class="hud-panel" style="padding-bottom:5px;">
                     <div class="range-label">MY FLIGHTS</div>
-                    <a href="https://my.flightradar24.com/wisienoza" target="_blank" class="my-flights-btn">FLIGHTRADAR</a>
-                    <a href="https://www.loter.pl/user/wisienoza" target="_blank" class="my-flights-btn">LOTER</a>
+                    <div class="mf-row">
+                        <a href="https://my.flightradar24.com/wisienoza" target="_blank" class="my-flights-btn">FLIGHTRADAR</a>
+                        <a href="https://www.loter.pl/user/wisienoza" target="_blank" class="my-flights-btn">LOTER</a>
+                    </div>
+                    <!-- Drugie wejscie do panelu linii (pierwsze jest w paszporcie, sekcja NALOT).
+                         Bez argumentu = "nie z paszportu", wiec zamkniecie NIE otworzy paszportu. -->
+                    <div class="my-flights-btn" onclick="window.showAirlinesPanel()">✈ LINIE LOTNICZE</div>
                     <div id="myflights-toggle" class="my-flights-btn mf-globe" onclick="toggleMyFlights()">✈ SHOW ON GLOBE</div>
                     <div class="flight-stats">
                         <div class="fs-cell"><span class="fs-num" id="fs-flights">–</span><span class="fs-lbl">LOTY</span></div>
@@ -599,10 +612,13 @@
          tylko Last-Modified i ETag - wiec przegladarka stosuje wlasna heurystyke i potrafi trzymac
          stara wersje mimo odswiezenia. Kosztowalo to pol dnia mylnych pomiarow ("poprawka nie dziala",
          a byla po prostu niezaladowana).
-         BUMPUJ TEN NUMER PRZY KAZDEJ ZMIANIE app.js / help.js / achievements-tiers-data.js.
-         Celowo TYLKO te trzy pliki: ciezkie bazy (flags 2 MB, climate 2.3 MB) maja sie cache'owac,
+         BUMPUJ TEN NUMER PRZY KAZDEJ ZMIANIE app.js / help.js / achievements-tiers-data.js
+         / airlines-data.js (ten ostatni dopisany 2026-07-19: wazy tyle co nic, a stara kopia z cache
+         cicho gasi baner linii, ktorej kod dopiero co tam wpisales - dokladnie ten rodzaj bledu,
+         ktory sie potem debuguje pol dnia).
+         Celowo TYLKO te pliki: ciezkie bazy (flags 2 MB, climate 2.3 MB) maja sie cache'owac,
          bo zmieniaja sie raz na ruski rok, a publiczna kopia na GitHub Pages sciagalaby je od nowa. -->
-    <script src="help.js?v=20260719j"></script>
-    <script src="app.js?v=20260719j"></script>
+    <script src="help.js?v=20260719l"></script>
+    <script src="app.js?v=20260719l"></script>
 </body>
 </html>

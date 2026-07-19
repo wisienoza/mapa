@@ -141,7 +141,7 @@
             var hasSouth = false, hasArctic = false, hasDeepSouth = false, hasEast = false, hasWest = false;
             var hasTropical = false, hasNearEquator = false;
             var quadNE = false, quadNW = false, quadSE = false, quadSW = false;
-            var maxDistKm = 0, wawLat = 52.2297, wawLon = 21.0122;
+            var maxDistKm = 0, maxDistId = null, wawLat = 52.2297, wawLon = 21.0122;
             uniqueVisited.forEach(function(id){
                 var c = (typeof CAPITAL_COORDS !== 'undefined') ? CAPITAL_COORDS[id] : null;
                 if (!c) return;
@@ -159,7 +159,7 @@
                 if (Math.abs(lat) <= 5) hasNearEquator = true;
                 if (id !== "PL" && typeof getDist === 'function') {
                     var d = getDist(wawLat, wawLon, lat, lon);
-                    if (d > maxDistKm) maxDistKm = d;
+                    if (d > maxDistKm) { maxDistKm = d; maxDistId = id; }
                 }
             });
 
@@ -389,12 +389,74 @@
                 if (typeof SAFETY_OVERRIDE !== 'undefined') Object.keys(SAFETY_OVERRIDE).forEach(function(c){ if (SAFETY_OVERRIDE[c] >= minLevel) l.push(c); });
                 return _dictProg(l, min);
             };
+            // --- DOPISANE 2026-07-19: analogiczne helpery dla LOGISTYKA / PIENIĄDZE I RYZYKO / GEOGRAFIA
+            // EKSTREMALNA - wczesniej te kategorie mialy prog() z samym have/need (pasek), bez done/missing,
+            // wiec kafelek nie byl klikalny (warunek klikalnosci w showAchievementsPanel wymaga niepustej
+            // listy). Dla COST_INDEX "$" i SAFETY_OVERRIDE<=1 uniwersum kandydatow jest DUZE (~konwencja
+            // "Progi >40 krajow CELOWO bez listy" w db-schema.md), wiec dajemy TYLKO `done` (odwiedzone,
+            // z natury male) - bez `missing`, zeby nie zrobic sciany czerwonego tekstu z ~70 nieodwiedzonych.
+            var _visCountriesIntel = function(fn){
+                if (typeof INTEL_DB === 'undefined') return [];
+                var out = [];
+                Object.keys(visitedSet).forEach(function(code){
+                    var intel = INTEL_DB[code];
+                    if (!intel) return;
+                    try { if (fn(intel)) out.push(_cName(code)); } catch (e) {}
+                });
+                return out.sort(function(a, b){ return a.localeCompare(b, "pl"); });
+            };
+            var _visCountriesCost = function(fn){
+                if (typeof COST_INDEX === 'undefined') return [];
+                var out = [];
+                Object.keys(visitedSet).forEach(function(code){
+                    var v = COST_INDEX[code];
+                    if (v === undefined) return;
+                    try { if (fn(v)) out.push(_cName(code)); } catch (e) {}
+                });
+                return out.sort(function(a, b){ return a.localeCompare(b, "pl"); });
+            };
+            var _visCountriesSafety = function(fn){
+                var out = [];
+                Object.keys(visitedSet).forEach(function(code){
+                    var safety = (typeof SAFETY_OVERRIDE !== 'undefined' && SAFETY_OVERRIDE[code]) ? SAFETY_OVERRIDE[code] : 1;
+                    try { if (fn(safety)) out.push(_cName(code)); } catch (e) {}
+                });
+                return out.sort(function(a, b){ return a.localeCompare(b, "pl"); });
+            };
+            // PANSTWA odwiedzone wg WSPOLRZEDNYCH STOLICY (GEOGRAFIA EKSTREMALNA) - fn dostaje
+            // {code, name, lat, lon}. Iteruje uniqueVisited, a NIE visitedSet, zeby zgadzac sie co do
+            // kraju z check(): flagi hasSouth/hasArctic/... licza sie wyzej wlasnie z uniqueVisited
+            // (visitedSet ma wymuszone PL=true, wiec przez nie "DOOKOLA ZEGARA" widzialoby wschodnia
+            // dlugosc nawet przy niezaznaczonej Polsce - lista klamalaby wzgledem wygaszonej ikony).
+            var _visCountriesGeo = function(fn){
+                if (typeof CAPITAL_COORDS === 'undefined') return [];
+                var out = [];
+                uniqueVisited.forEach(function(code){
+                    var c = CAPITAL_COORDS[code];
+                    if (!c) return;
+                    try { if (fn({ code: code, name: _cName(code), lat: c[0], lon: c[1] })) out.push(_cName(code)); } catch (e) {}
+                });
+                return out.sort(function(a, b){ return a.localeCompare(b, "pl"); });
+            };
+            // Cwiartki globu (GEOGRAFIA EKSTREMALNA) - uniwersum jest stale (zawsze 4), wiec done+missing
+            // dziala tu tak samo bezpiecznie jak _regionProg dla malych list.
+            var _quadNames = { NE: "Północno-wschodnia (NE)", NW: "Północno-zachodnia (NW)", SE: "Południowo-wschodnia (SE)", SW: "Południowo-zachodnia (SW)" };
+            var _quadState = { NE: quadNE, NW: quadNW, SE: quadSE, SW: quadSW };
+            var _quadProg = function(min){
+                var done = [], missing = [];
+                Object.keys(_quadState).forEach(function(k){ (_quadState[k] ? done : missing).push(_quadNames[k]); });
+                return { have: done.length, need: min, done: done, missing: missing };
+            };
             // Liczone RAZ i podstawiane nizej jako citiesStats. Wczesniej szlo inline
             // (citiesStats: _computeCityStats()), ale helper _cliCities musi widziec ten sam wynik,
             // a drugie wywolanie oznaczaloby drugie pelne przejscie po ~6000 miast.
             var _cityStats = _computeCityStats();
             var _ctx = {
                 _visaProg: _visaProg, _costProg: _costProg, _riskProg: _riskProg,
+                _visCountriesIntel: _visCountriesIntel, _visCountriesCost: _visCountriesCost,
+                _visCountriesSafety: _visCountriesSafety, _quadProg: _quadProg,
+                _visCountriesGeo: _visCountriesGeo,
+                maxDistCountry: maxDistId ? _cName(maxDistId) : null,
                 regionDone: regionDone, continentsTouched: continentsTouched, totalCountries: totalCountries, visitedSet: visitedSet,
                 regionCounts: regionCounts, regionTotals: regionTotals,
                 _missingInRegion: _missingInRegion, _visitedInRegion: _visitedInRegion,
@@ -453,6 +515,33 @@
                     });
                     return out.sort(function(a, b){ return a.localeCompare(b, "pl"); });
                 },
+                // MIASTA: gotowy prog() dla osi "min. N miast w POJEDYNCZYM kraju" (maxInOneCountry).
+                // BLAD, KTORY TO NAPRAWIA (2026-07-19): te kafelki wolaly _visCityCountries(1), czyli
+                // wypisywaly KAZDY kraj z choc jednym miastem i malowaly go na ZIELONO - "Albania (1) ✔"
+                // przy progu 25. Zielone musi znaczyc "ten kraj spelnia warunek", a warunek dotyczy
+                // JEDNEGO kraju z >= N miastami, nie sumy krajow. Dlatego:
+                //   done    = kraje, ktore SAME przekraczaja prog (przy 25 to samo "Polska (36)"),
+                //   missing = najblizsi kandydaci ponizej progu (top 6 wg licznika, malejaco) - czerwone
+                //             sa "do wyboru", dokladnie jak przy progach kontynentow, i dzieki nim
+                //             kafelek zostaje klikalny takze wtedy, gdy zadem kraj jeszcze nie doszedl.
+                // have zostaje = maxInOneCountry (rekordzista), bo to jego pasek opisuje.
+                _cityCountryProg: function(need){
+                    var P = (_cityStats && _cityStats.perCountry) ? _cityStats.perCountry : {};
+                    var nameOf = function(cc){
+                        return ((typeof FACTBOOK !== 'undefined' && FACTBOOK[cc] && FACTBOOK[cc].name)
+                                ? FACTBOOK[cc].name.common : cc) + " (" + P[cc] + ")";
+                    };
+                    var done = [], below = [];
+                    Object.keys(P).forEach(function(cc){ (P[cc] >= need ? done : below).push(cc); });
+                    done.sort(function(a, b){ return nameOf(a).localeCompare(nameOf(b), "pl"); });
+                    below.sort(function(a, b){ return P[b] - P[a]; });
+                    return {
+                        have: (_cityStats && _cityStats.maxInOneCountry) ? _cityStats.maxInOneCountry : 0,
+                        need: need,
+                        done: done.map(nameOf),
+                        missing: below.slice(0, 6).map(nameOf)
+                    };
+                },
                 _cliCities: function(fn){
                     var L = (_cityStats && _cityStats.cliCityList) ? _cityStats.cliCityList : [];
                     var out = [];
@@ -504,6 +593,27 @@
                 _iddList: Object.keys(iddSet).sort(),
                 adapterCount: adapterCount, noAdapterCount: noAdapterCount, tapSafeCount: tapSafeCount, bottledOnlyCount: bottledOnlyCount,
                 hasMandatoryTip: hasMandatoryTip, hasNoTipCulture: hasNoTipCulture, voltageCount: Object.keys(voltageSet).length,
+                // Napiecia WYPISANE (np. "230V") - done dla LOGISTYKA "min. N roznych napiec", tym samym
+                // wzorcem co _currencyList/_iddList wyzej.
+                _voltageList: Object.keys(voltageSet).sort(function(a, b){ return (+a) - (+b); }).map(function(v){ return v + "V"; }),
+                // LINIE I MASZYNY: pelne listy nazw (nie tylko top3 jak w panelu Flights) - done dla
+                // "leć min. N roznymi liniami/typami". Faworyt (topAirlineFlights/topAircraftFlights) to
+                // pojedynczy warunek "jedna linia/typ >= N lotow", wiec done to JEDNA nazwa (ta z najwiekszym
+                // n), analogicznie do "SASIEDZKIE STOLICE" z missing:[].
+                flightsAirlineList: fs ? (fs.airlineNames || []) : [],
+                flightsAircraftList: fs ? (fs.aircraftNames || []) : [],
+                topAirlineName: (fs && fs.topAirlines && fs.topAirlines[0]) ? fs.topAirlines[0].name : null,
+                topAircraftName: (fs && fs.topAircraft && fs.topAircraft[0]) ? fs.topAircraft[0].name : null,
+                // MIASTA: nazwy kontynentow dotknietych przez ODWIEDZONE MIASTA (nie kraje) - done/missing
+                // dla "miasta na N kontynentach". Zrodlo: citiesStats.continentIds (klucze REGION_MAP).
+                _visCityContinents: function(want){
+                    var ids = (_cityStats && _cityStats.continentIds) ? _cityStats.continentIds : [];
+                    var idSet = {}; ids.forEach(function(i){ idSet[i] = true; });
+                    return (typeof CONTINENT_DATA !== 'undefined' ? CONTINENT_DATA : [])
+                        .filter(function(c){ return !!idSet[c.id] === want; })
+                        .map(function(c){ return c.name; })
+                        .sort(function(a, b){ return a.localeCompare(b); });
+                },
                 citiesStats: _cityStats
             };
             window._achCtxCache = _ctx;
@@ -599,7 +709,7 @@
                 visitedCount: totalVisited, countriesTouched: Object.keys(countriesWithVisit).length,
                 fullCoverageCountries: fullCoverageCountries, capitalsVisited: capitalsVisited, hasNonCapital: hasNonCapital,
                 hasMega1M: hasMega1M, hasMega5M: hasMega5M, hasMega10M: hasMega10M, hasTiny: hasTiny,
-                continentsTouched: Object.keys(continentsTouched).length, maxInOneCountry: maxInOneCountry,
+                continentsTouched: Object.keys(continentsTouched).length, continentIds: Object.keys(continentsTouched), maxInOneCountry: maxInOneCountry,
                 // KLIMAT - zera, gdy zadne odwiedzone miasto nie trafilo w CLIMATE_DB (albo defer jeszcze
                 // nie dojechal). Sentinele (-999/999/1e9) zerujemy TUTAJ, zeby check() w katalogu nie musial
                 // ich znac i zeby "min. -20°C" nie zapalalo sie od wartownika 999.
@@ -621,9 +731,17 @@
                 perCountry: perCountryCount
             };
         }
+        // Ustawiane przez _passportOpenTier/_passportGoToAch: panel osiagniec otwarty jako "wycinek"
+        // paszportu (ktory sam zamknal sie przy otwieraniu). Dzieki temu zamkniecie panelu (X albo
+        // klik w tlo) wraca do paszportu zamiast zamykac wszystko - patrz hideAchievementsPanel nizej.
+        window._achOpenedFromPassport = false;
         window.hideAchievementsPanel = function(){
             var el = document.getElementById("achievements-overlay");
             if (el) el.style.display = "none";
+            if (window._achOpenedFromPassport) {
+                window._achOpenedFromPassport = false;
+                if (window.showPassportPanel) window.showPassportPanel();
+            }
         };
         // Separator tysiecy w licznikach osiagniec (dystanse potrafia miec 6 cyfr: "384 400 / 384 400").
         window._achNum = function(n){ return Number(n).toLocaleString('pl-PL'); };
@@ -954,12 +1072,15 @@
         // --- POZIOM TRUDNOSCI ODZNAKI (dane: achievements-tiers-data.js) ---
         // Zwraca wpis z ACH_TIER_DEFS albo null. NULL = brak pliku danych -> panel renderuje sie
         // dokladnie jak przed ta zmiana (zaden wywolujacy nie musi znac wartownika).
-        // DWA ZRODLA (patrz db-schema.md): kwintyl prog().need W OBREBIE KATEGORII dla 442 odznak,
-        // reczna tablica ACH_TIERS_MANUAL dla 86 binarnych. Progi sa nieporownywalne MIEDZY
-        // kategoriami (REGIONY licza kraje, LOTY kilometry, KLIMAT milimetry) - stad podzial per cat.
+        // DWA ZRODLA, ALE NIEROWNORZEDNE OD 2026-07-19c (patrz db-schema.md):
+        //   - ACH_TIERS_MANUAL jest JEDYNYM zrodlem diamentu i platyny w calym katalogu - kazda
+        //     pozycja to osobna, reczna decyzja o realnej trudnosci.
+        //   - Percentyl prog().need W OBREBIE PULI (poolOf(a.cat), patrz ACH_TIER_POOL w
+        //     achievements-tiers-data.js) rzadzi TYLKO brazem/srebrem/zlotem dla reszty katalogu -
+        //     sufit puli (ACH_CAT_CEILING) go tam zatrzymuje, patrz ceilOf nizej.
         // REMISY: indexOf zwraca pozycje PIERWSZEGO wystapienia, wiec odznaki o identycznym progu
         // dostaja ten sam poziom. To zamierzone (rowna trudnosc = rowna ranga), kosztem rownych
-        // koszykow: przy 528 pozycjach wychodzi braz 143 / srebro 98 / zloto 110 / platyna 97 / diament 80.
+        // koszykow - aktualny rozklad kontrolny patrz db-schema.md.
         // pr = juz policzony wynik a.prog(ctx) - podaj go, jesli masz, zeby nie liczyc drugi raz.
         window._achTierOf = (function(){
             var cacheCtx = null, needByCat = null;
@@ -967,57 +1088,78 @@
                 if (typeof a.prog !== 'function') return null;
                 try { var p = a.prog(ctx); return (p && p.need > 0) ? p.need : null; } catch (e) { return null; }
             }
+            // Pula percentyla NIE musi pokrywac sie z kategoria widoczna w UI (a.cat zostaje
+            // nietkniete - panel/filtr/spis tresci dalej widza oryginalne kategorie). Patrz
+            // ACH_TIER_POOL w achievements-tiers-data.js: KRAJE/KONTYNENTY/REGIONY licza to samo
+            // (kraje z listy), wiec dzielą wspolna pule - inaczej "27 z 27 UE" (sufit REGIONY)
+            // wypadalo na diament, a "45 z 45 Europy" - twardszy NADZBIOR tego samego warunku
+            // (kto ma cala Europe, ma automatycznie cala UE) - na zwykla platyne.
+            function poolOf(cat){
+                return (typeof ACH_TIER_POOL !== 'undefined' && ACH_TIER_POOL[cat]) || cat;
+            }
             function build(ctx){
                 needByCat = {};
                 window.ACHIEVEMENTS.forEach(function(a){
                     // Odznaki z RECZNYM poziomem nie wchodza do rozkladu percentyla - ich prog()
                     // istnieje tylko po to, by miec liste `done` (have = ile spelnia, need = 1),
-                    // wiec wrzucone do puli zanizalyby prog pozostalym pozycjom kategorii.
+                    // wiec wrzucone do puli zanizalyby prog pozostalym pozycjom.
                     if (typeof ACH_TIERS_MANUAL !== 'undefined' && ACH_TIERS_MANUAL[a.id]) return;
                     var n = needOf(a, ctx);
-                    if (n !== null) (needByCat[a.cat] || (needByCat[a.cat] = [])).push(n);
+                    var pool = poolOf(a.cat);
+                    if (n !== null) (needByCat[pool] || (needByCat[pool] = [])).push(n);
                 });
                 Object.keys(needByCat).forEach(function(c){
                     needByCat[c].sort(function(x, y){ return x - y; });
                 });
                 cacheCtx = ctx;
             }
-            // Sufit kategorii - patrz ACH_CAT_CEILING. Brak wpisu = pelna skala.
-            function ceilOf(cat){
+            // Sufit puli - patrz ACH_CAT_CEILING (kluczowany nazwa PULI, nie zawsze a.cat). Brak
+            // wpisu = pelna skala.
+            function ceilOf(pool){
                 if (typeof ACH_CAT_CEILING === 'undefined') return ACH_TIER_DEFS.length - 1;
-                var c = ACH_CAT_CEILING[cat];
+                var c = ACH_CAT_CEILING[pool];
                 return (c === undefined) ? ACH_TIER_DEFS.length - 1 : c;
             }
             return function(a, ctx, pr){
                 if (typeof ACH_TIER_DEFS === 'undefined') return null;
                 if (ctx !== cacheCtx || !needByCat) build(ctx);
-                var top = ceilOf(a.cat), idx;
-                // RECZNY POZIOM MA PIERWSZENSTWO PRZED PERCENTYLEM (naprawione 2026-07-19).
-                // Wczesniej reczna tablica byla sprawdzana DOPIERO gdy odznaka nie miala prog().
-                // Gdy 2026-07-19 dopisalismy prog() odznakom binarnym (KLIMAT/MIASTA/CIEKAWOSTKI -
-                // po to, by mialy listy `done`), wszystkie one wypadly ze sciezki recznej i poszly
-                // na percentyl. A tam ich need = 1, czyli MINIMUM w kategorii -> ladowaly na brazie
-                // i kasowaly cale reczne wywazenie (diament 10 -> 11, platyna 39 -> 36, braz 226 -> 238).
-                // Reczny wpis to JAWNA DECYZJA czlowieka i musi bic wyliczenie, niezaleznie od prog().
+                var idx;
+                // RECZNY POZIOM JEST OSTATECZNY (2026-07-19c) - NIE przycina go juz sufit puli.
+                // Do 2026-07-19b sufit obcinal TAKZE reczne wpisy (zeby tablica nie omijala
+                // reguly tylnymi drzwiami), ale to samo cichcem obcinalo WLASNY reczny osad
+                // autora (KLIMAT "-5 st." i PIENIADZE "maks. ryzyko" byly recznie diamentem, a
+                // sufit kategorii ciagle ciagnal je do platyny/zlota - nikt tego nie widzial).
+                // Teraz percentyl moze dac co najwyzej zloto (patrz ceilOf), a diament/platyna
+                // pochodza WYLACZNIE stad - jesli reczny wpis wyjdzie za wysoko, poprawia sie
+                // WARTOSC w ACH_TIERS_MANUAL, a nie ten sufit.
                 var key = (typeof ACH_TIERS_MANUAL !== 'undefined') ? ACH_TIERS_MANUAL[a.id] : null;
                 if (key) {
                     idx = -1;
                     for (var i = 0; i < ACH_TIER_DEFS.length; i++) {
                         if (ACH_TIER_DEFS[i].key === key) { idx = i; break; }
                     }
-                    // Sufit kategorii obowiazuje TAK SAMO - inaczej reczna tablica obchodzilaby
-                    // regule tylnymi drzwiami.
-                    if (idx >= 0) return ACH_TIER_DEFS[Math.min(idx, top)];
+                    if (idx >= 0) return ACH_TIER_DEFS[idx];
                 }
+                var pool = poolOf(a.cat);
+                var top = ceilOf(pool);
                 var n = (pr === undefined) ? needOf(a, ctx) : ((pr && pr.need > 0) ? pr.need : null);
                 if (n === null) return null;   // brak progu i brak wpisu recznego - bez poziomu
-                var arr = needByCat[a.cat];
+                var arr = needByCat[pool];
                 if (!arr || !arr.length) return null;
-                // Percentyl progu W OBREBIE KATEGORII -> poziom wg krzywej (piramida, nie kwintyle).
+                // Percentyl progu W OBREBIE PULI -> poziom wg krzywej DOBRANEJ DO SUFITU (patrz
+                // ACH_TIER_CURVE_BY_CEILING w achievements-tiers-data.js). NIE uzywaj tu uniwersalnej
+                // 5-poziomowej ACH_TIER_CURVE wprost: przy sufit=2 (zloto) pochlonelaby ona zakres
+                // 0.68-1.00 (bylo zlota+platyny+diamentu razem, 32%) w JEDNO zlote wiadro, podczas
+                // gdy srebro zostaje przy swoich oryginalnych 26% - zloto wychodzilo wtedy WIEKSZE
+                // niz srebro w niemal kazdej puli (naprawione 2026-07-19d, zglosil uzytkownik).
+                // Krzywa dla danego sufitu ma dokladnie `top` progow (bronz/srebro/.../ostatni
+                // realny poziom PRZED sufitem) i sama w sobie jest juz malejaca piramida.
                 var pct = arr.indexOf(n) / arr.length;
-                var curve = (typeof ACH_TIER_CURVE !== 'undefined') ? ACH_TIER_CURVE : [0.2, 0.4, 0.6, 0.8, 1];
-                idx = ACH_TIER_DEFS.length - 1;
-                for (var j = 0; j < curve.length && j < ACH_TIER_DEFS.length; j++) {
+                var curve = (typeof ACH_TIER_CURVE_BY_CEILING !== 'undefined' && ACH_TIER_CURVE_BY_CEILING[top])
+                    ? ACH_TIER_CURVE_BY_CEILING[top]
+                    : ((typeof ACH_TIER_CURVE !== 'undefined') ? ACH_TIER_CURVE : [0.2, 0.4, 0.6, 0.8, 1]);
+                idx = top;
+                for (var j = 0; j < curve.length; j++) {
                     if (pct < curve[j]) { idx = j; break; }
                 }
                 return ACH_TIER_DEFS[Math.max(0, Math.min(idx, top))];
@@ -1220,6 +1362,16 @@
                 if (fs.minutes) h += row("W POWIETRZU", window._fmtHm ? window._fmtHm(fs.minutes) : (fs.minutes + " min"));
                 if (fs.first) h += row("PIERWSZY → OSTATNI LOT", fs.first + " → " + fs.last);
                 h += row("DO KSIĘŻYCA", (fs.totalKm / 384400 * 100).toFixed(1).replace(".", ",") + " % drogi");
+                // Przycisk do panelu linii. Rysujemy go tylko, gdy log faktycznie ma czym go wypelnic -
+                // przy imporcie bez kolumny Airline (pole 4 puste w kazdym wierszu) otwieralby pustke.
+                var _al = window._airlineStats ? window._airlineStats() : [];
+                if (_al.length) {
+                    h += '<div onclick="window.showAirlinesPanel(true)" title="Pokaż linie, którymi latałeś"'
+                       + ' style="margin-top:14px; padding:9px 12px; text-align:center; cursor:pointer; border:1px solid rgba(0,204,255,0.4);'
+                       + ' border-radius:5px; font-family:\'JetBrains Mono\',monospace; font-size:0.76rem; letter-spacing:2px; color:#00ccff;"'
+                       + ' onmouseover="this.style.background=\'rgba(0,204,255,0.1)\'" onmouseout="this.style.background=\'transparent\'">'
+                       + 'LINIE LOTNICZE — ' + _al.length + '</div>';
+                }
             }
 
             h += '</div>';
@@ -1235,10 +1387,12 @@
         // ODFILTROWANY do tego poziomu (np. same zlote). Powrot do pelnej listy jest w tytule panelu.
         window._passportOpenTier = function(key){
             if (window.hidePassportPanel) window.hidePassportPanel();
-            window.showAchievementsPanel({ tier: key });
+            window._achOpenedFromPassport = true;
+            window.showAchievementsPanel({ tier: key, status: 'unlocked' });
         };
         window._passportGoToAch = function(id){
             if (window.hidePassportPanel) window.hidePassportPanel();
+            window._achOpenedFromPassport = true;
             window.showAchievementsPanel();
             var tile = document.querySelector('#achievements-body [data-ach="' + id + '"]');
             if (!tile) return;
@@ -1252,35 +1406,147 @@
                 ], { duration: 1600, easing: "ease-out" });
             }
         };
-        // Klik w kafelek spisu tresci: przewija modal do naglowka danej kategorii.
-        // NIE uzywamy scrollIntoView - naglowki sa position:sticky, wiec cel wyladowalby DOKLADNIE
-        // pod przyklejonym naglowkiem poprzedniej sekcji. Liczymy pozycje recznie i odejmujemy
-        // wysokosc naglowka, zeby tytul kategorii byl widoczny.
-        window._achGoToCat = function(cat){
-            var mod = document.getElementById("achievements-modal");
-            var sec = document.querySelector('#achievements-body [data-cat="' + cat + '"]');
-            if (!mod || !sec) return;
-            var head = sec.querySelector('div[style*="position:sticky"]');
-            var h = head ? head.getBoundingClientRect().height : 0;
-            mod.scrollTop += sec.getBoundingClientRect().top - mod.getBoundingClientRect().top - h;
+
+        // --- LINIE LOTNICZE: agregat z FLIGHTS_LOG, malejaco po liczbie lotow ---
+        // Kod ICAO (pole 6 logu) dopisuje importer w admin.php dopiero od 2026-07-19. Log
+        // zaimportowany WCZESNIEJ tego pola nie ma - wtedy nie ma czym zaadresowac pliku
+        // fr24_banners/XXX.png i kazdy wiersz spada na sam tekst. Lekarstwem jest dowolny
+        // nowy import CSV, nie zmiana tutaj.
+        window._airlineStats = function(){
+            if (typeof FLIGHTS_LOG === 'undefined' || !FLIGHTS_LOG.length) return [];
+            var map = {}, kolejnosc = [];
+            FLIGHTS_LOG.forEach(function(L){
+                var nazwa = L[4] || "";
+                if (!nazwa) return;   // " ()" w CSV = lot bez linii; nie robimy z tego pozycji "brak"
+                var k = nazwa.toLowerCase();
+                if (!map[k]) { map[k] = { name: nazwa, icao: L[6] || "", n: 0 }; kolejnosc.push(k); }
+                map[k].n++;
+                // ICAO bierzemy z pierwszego lotu, ktory je ma: ta sama linia potrafi miec w CSV
+                // raz pelny nawias "(W6/WZZ)", a raz samo " ()" (starsze wpisy z FR24).
+                if (!map[k].icao && L[6]) map[k].icao = L[6];
+            });
+            // Dopiero na koniec, i TYLKO dla linii bez kodu z importu: reczne uzupelnienia z
+            // airlines-data.js (FR24 nie podaje kodow paru nieistniejacych przewoznikow, wiec bez
+            // tego nie da sie wskazac banera - patrz komentarz w tamtym pliku). Import ZAWSZE wygrywa.
+            if (typeof AIRLINE_ICAO_FIX !== 'undefined') {
+                for (var kk in map) { if (!map[kk].icao && AIRLINE_ICAO_FIX[kk]) map[kk].icao = AIRLINE_ICAO_FIX[kk]; }
+            }
+            var out = kolejnosc.map(function(k){ return map[k]; });
+            out.sort(function(a, b){
+                if (b.n !== a.n) return b.n - a.n;
+                return a.name.localeCompare(b.name, "pl");
+            });
+            return out;
         };
+
+        // Panel ma DWA wejscia: przycisk w paszporcie i przycisk w boxie FLIGHTS (HUD). Z paszportu
+        // jest "wycinkiem" (paszport sam zamyka sie przy otwieraniu) i zamkniecie MUSI do niego wrocic;
+        // z HUD-u zadnego paszportu nie bylo, wiec powrot do niego otwieralby okno znikad. Rozroznia
+        // je ten flag - dokladnie ta sama mechanika co _achOpenedFromPassport w panelu osiagniec.
+        window._airlinesFromPassport = false;
+        window.hideAirlinesPanel = function(){
+            var el = document.getElementById("airlines-overlay");
+            if (el) el.style.display = "none";
+            if (window._airlinesFromPassport) {
+                window._airlinesFromPassport = false;
+                if (window.showPassportPanel) window.showPassportPanel();
+            }
+        };
+        window.showAirlinesPanel = function(fromPassport){
+            window._airlinesFromPassport = !!fromPassport;
+            if (fromPassport && window.hidePassportPanel) window.hidePassportPanel();
+            var el = document.getElementById("airlines-overlay");
+            if (!el) {
+                el = document.createElement("div");
+                el.id = "airlines-overlay";
+                el.style.cssText = "position:fixed; inset:0; background:rgba(0,0,0,0.72); z-index:10001; display:flex; align-items:center; justify-content:center;";
+                el.innerHTML =
+                    '<div style="background:rgba(8,8,10,0.96); border:1px solid rgba(0,204,255,0.4); border-radius:8px; width:min(620px,94vw); max-height:88vh; overflow-y:auto; box-shadow:0 8px 40px rgba(0,0,0,0.6); font-family:\'Rajdhani\',sans-serif;">'
+                  +   '<div style="display:flex; justify-content:space-between; align-items:center; padding:14px 18px; border-bottom:1px solid rgba(255,255,255,0.12);">'
+                  +     '<span style="font-family:\'JetBrains Mono\',monospace; font-size:0.8rem; letter-spacing:2.5px; color:#c6cfd9; font-weight:700;">LINIE LOTNICZE</span>'
+                  +     '<span id="airlines-close" style="cursor:pointer; font-size:1.4rem; color:#8f9ba8; line-height:1;">✕</span>'
+                  +   '</div>'
+                  +   '<div id="airlines-body" style="padding:14px 18px;"></div>'
+                  + '</div>';
+                document.body.appendChild(el);
+                el.addEventListener("click", function(e){ if (e.target === el) window.hideAirlinesPanel(); });
+                document.getElementById("airlines-close").onclick = window.hideAirlinesPanel;
+            }
+            var lst = window._airlineStats();
+            var h = '';
+            if (!lst.length) {
+                h = '<div style="font-family:\'JetBrains Mono\',monospace; font-size:0.78rem; color:#8f9ba8;">Brak danych o liniach w logu lotów.</div>';
+            } else {
+                h = '<div style="font-family:\'JetBrains Mono\',monospace; font-size:0.72rem; color:#8f9ba8; letter-spacing:1.5px; margin-bottom:12px;">'
+                  + lst.length + ' PRZEWOŹNIKÓW</div>';
+                lst.forEach(function(a){
+                    // Baner nie ma stalych proporcji (typowo ~98x45, ale kazdy przewoznik inne), wiec
+                    // ramka jest stala, a obrazek wpisuje sie w nia przez object-fit. onerror lapie dwa
+                    // przypadki naraz: brak kodu ICAO w logu i kod, ktorego nie ma w fr24_banners (linie
+                    // nieistniejace, np. Eurolot czy OLT Express - FR24 ich banerow nie trzyma).
+                    // BEZ loading="lazy": przy 18 plikach po ~5 KB nie ma czego odraczac, a lazy potrafi
+                    // zawiesic obrazki w stanie "nieukonczony" wewnatrz swiezo pokazanego overlaya.
+                    var baner = a.icao
+                        ? '<img src="fr24_banners/' + a.icao + '.png" alt="' + a.name + '"'
+                          // BIALE TLO POD BANEREM jest konieczne, nie kosmetyczne: banery FR24 sa robione
+                          // pod jasne tlo serwisu, wiec czesc z nich (Ryanair, Air Serbia, Brussels,
+                          // Azores) ma ciemny granat/czern jako kolor liter i na naszym #08080a znikala.
+                          + ' style="width:100px; height:34px; flex:0 0 100px; object-fit:contain;'
+                          + ' background:#fff; border-radius:4px; padding:3px; box-sizing:border-box;"'
+                          + ' onerror="this.style.display=\'none\'; this.nextElementSibling.style.display=\'flex\';">'
+                        : '';
+                    h += '<div style="display:flex; align-items:center; gap:12px; padding:8px 0; border-bottom:1px solid rgba(255,255,255,0.05);">'
+                       +   baner
+                       +   '<span style="width:100px; height:34px; flex:0 0 100px; display:' + (a.icao ? 'none' : 'flex') + '; align-items:center; justify-content:center;'
+                       +     ' font-family:\'JetBrains Mono\',monospace; font-size:0.72rem; letter-spacing:1.5px; color:#6b7684;'
+                       +     ' border:1px dashed rgba(255,255,255,0.15); border-radius:4px;">' + (a.icao || '—') + '</span>'
+                       +   '<span style="flex:1; min-width:0; color:#e6ecf2; font-size:1.05rem; font-weight:700; letter-spacing:0.5px;">' + a.name + '</span>'
+                       +   '<span style="font-family:\'JetBrains Mono\',monospace; font-size:0.82rem; color:#fff;">' + a.n + '</span>'
+                       + '</div>';
+                });
+            }
+            document.getElementById("airlines-body").innerHTML = h;
+            el.style.display = "flex";
+        };
+
         // opts.tier = klucz z ACH_TIER_DEFS ("gold") -> panel pokazuje TYLKO odznaki tego poziomu.
         // Wolane bez argumentu (wiekszosc miejsc) dziala jak dotad: pelna lista.
         window.showAchievementsPanel = function(opts){
             var _tierFilter = (opts && opts.tier) ? opts.tier : null;
+            // status: 'all' (domyslny) | 'unlocked' | 'locked' - filtr wedlug tego, czy odznaka jest
+            // juz zdobyta. _passportOpenTier startuje od 'unlocked' (klik w pasek poziomu w paszporcie
+            // ma pokazac WYLACZNIE to, co juz masz z tego poziomu). Chipy statusu w samym panelu
+            // (patrz statusChip() nizej) daja przelaczanie rowniez w widoku ogolnym (bez tier). Tier-
+            // chip WSZYSTKIE/BRAZ/... i status-chip przekazuja sobie nawzajem swoj biezacy stan w
+            // onclick, wiec przelaczenie jednego filtra NIE resetuje drugiego (np. bedac w "zdobyte"
+            // i klikajac inny poziom, dalej widac tylko zdobyte tego poziomu).
+            var _status = (opts && opts.status) ? opts.status : 'all';
+            // cat: nazwa kategorii (z a.cat) - spis tresci w belce dziala jak trzeci filtr, laczacy
+            // sie z tier/status dokladnie tak samo (patrz _achArgsStr). null = wszystkie kategorie.
+            var _catFilter = (opts && opts.cat) ? opts.cat : null;
             var el = document.getElementById("achievements-overlay");
             if (!el) {
                 el = document.createElement("div");
                 el.id = "achievements-overlay";
                 el.style.cssText = "display:none; position:fixed; inset:0; z-index:200; background:rgba(0,0,0,0.75); backdrop-filter:blur(4px); align-items:center; justify-content:center;";
+                // #achievements-modal jest flex-column z overflow:hidden - header/progress/#achievements-toc
+                // NIE naleza do przewijanego obszaru. Przewija sie WYLACZNIE #achievements-scroll (flex:1,
+                // min-height:0 - bez tego flex-dziecko nie chce sie skurczyc ponizej wysokosci tresci i
+                // scroll nie dziala), dzieki czemu spis tresci + filtr poziomu (budowane w #achievements-toc)
+                // zostaja stala, nieprzewijalna belka nad lista. Naglowki KATEGORII w #achievements-body
+                // zostaja position:sticky (patrz nizej) - te maja przewijac sie WRAZ z lista i tylko
+                // przyklejac sie przy mijaniu, w odroznieniu od belki, ktora nie rusza sie wcale.
                 el.innerHTML =
-                    '<div id="achievements-modal" style="background:rgba(8,8,10,0.96); border:1px solid rgba(250,204,21,0.4); border-radius:8px; padding:22px; width:min(920px,92vw); max-height:85vh; overflow-y:auto; box-shadow:0 8px 40px rgba(0,0,0,0.6); font-family:\'Rajdhani\',sans-serif;">'
-                  +   '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">'
+                    '<div id="achievements-modal" style="background:rgba(8,8,10,0.96); border:1px solid rgba(250,204,21,0.4); border-radius:8px; padding:22px; width:min(920px,92vw); max-height:85vh; display:flex; flex-direction:column; overflow:hidden; box-shadow:0 8px 40px rgba(0,0,0,0.6); font-family:\'Rajdhani\',sans-serif;">'
+                  +   '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; flex:0 0 auto;">'
                   +     '<h1 id="achievements-title" style="margin:0; border:none; padding:0; font-size:1.3rem;">🏆 OSIĄGNIĘCIA</h1>'
                   +     '<span id="achievements-close" style="cursor:pointer; font-size:1.5rem; color:#8f9ba8; line-height:1;">✕</span>'
                   +   '</div>'
-                  +   '<div id="achievements-progress" style="font-family:\'JetBrains Mono\',monospace; font-size:0.8rem; color:#facc15; margin-bottom:14px;"></div>'
-                  +   '<div id="achievements-body"></div>'
+                  +   '<div id="achievements-progress" style="font-family:\'JetBrains Mono\',monospace; font-size:0.8rem; color:#facc15; margin-bottom:14px; flex:0 0 auto;"></div>'
+                  +   '<div id="achievements-toc" style="flex:0 0 auto;"></div>'
+                  +   '<div id="achievements-scroll" style="flex:1 1 auto; min-height:0; overflow-y:auto; overflow-x:hidden;">'
+                  +     '<div id="achievements-body"></div>'
+                  +   '</div>'
                   + '</div>';
                 document.body.appendChild(el);
                 el.addEventListener("click", function(e){ if (e.target === el) window.hideAchievementsPanel(); });
@@ -1290,6 +1556,10 @@
             var persisted = _persistedAchSet();
             var unlocked = 0;
             var byCat = {}, catOrder = [], catDone = {}, total = 0;
+            // catStatsAll/grandDone/grandTotal: liczone POD filtrem tier+status, ale NIEZALEZNIE od
+            // _catFilter - zeby spis tresci w belce zawsze pokazywal WSZYSTKIE kategorie (z ich d/t
+            // pod biezacym tier/status), niezaleznie od tego, ktora kategoria jest akurat wybrana.
+            var catStatsAll = {}, catOrderAll = [], grandDone = 0, grandTotal = 0;
             window.ACHIEVEMENTS.forEach(function(a){
                 var on = !!a.check(ctx) || !!persisted[a.id];
                 // FILTR POZIOMU: liczymy prog() RAZ i przekazujemy do _achTierOf, zeby nie odpalac
@@ -1300,6 +1570,12 @@
                     var _tf = window._achTierOf ? window._achTierOf(a, ctx, pr) : null;
                     if (!_tf || _tf.key !== _tierFilter) return;   // nie ten poziom - pomijamy calkiem
                 }
+                if (_status === 'unlocked' && !on) return;
+                if (_status === 'locked' && on) return;
+                if (!catStatsAll[a.cat]) { catStatsAll[a.cat] = { done: 0, total: 0 }; catOrderAll.push(a.cat); }
+                catStatsAll[a.cat].total++; grandTotal++;
+                if (on) { catStatsAll[a.cat].done++; grandDone++; }
+                if (_catFilter && a.cat !== _catFilter) return;   // nie ta kategoria - pomijamy budowe kafelka
                 total++;
                 if (on) unlocked++;
                 if (!byCat[a.cat]) { byCat[a.cat] = []; catOrder.push(a.cat); catDone[a.cat] = 0; }
@@ -1346,34 +1622,102 @@
                   + '</div>'
                 );
             });
-            // --- SPIS TRESCI: kafelki kategorii ze statusem, klik przewija do sekcji ---
-            // Renderowany tylko w widoku PELNYM: przy filtrze poziomu kategorii bywa 2-3 i spis
-            // dublowalby to, co i tak widac na ekranie.
-            var toc = "";
-            if (!_tierFilter && catOrder.length > 1) {
-                toc = '<div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(190px,1fr)); gap:7px; margin-bottom:6px;">'
-                    + catOrder.map(function(cat){
-                        var d = catDone[cat] || 0, t = byCat[cat].length;
-                        var pct = t ? Math.round(d / t * 100) : 0;
-                        // Kolor licznika sygnalizuje postep: komplet na zielono, zero na szaro.
-                        var col = (d === t) ? "#4ade80" : (d === 0 ? "#6b7684" : "#facc15");
-                        return '<div onclick="window._achGoToCat(\'' + cat.replace(/'/g, "\\'") + '\')"'
-                             + ' style="cursor:pointer; padding:7px 9px; border-radius:5px;'
-                             + ' background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.1);'
-                             + ' display:flex; justify-content:space-between; align-items:baseline; gap:8px;"'
-                             + ' onmouseover="this.style.background=\'rgba(250,204,21,0.12)\'"'
-                             + ' onmouseout="this.style.background=\'rgba(255,255,255,0.04)\'">'
-                             +   '<span style="font-family:\'JetBrains Mono\',monospace; font-size:0.68rem; letter-spacing:1px; color:#c6cfd9;">' + cat + '</span>'
-                             +   '<span style="font-family:\'JetBrains Mono\',monospace; font-size:0.66rem; color:' + col + ';">' + d + '/' + t + '</span>'
-                             + '</div>';
-                      }).join('')
+            // Buduje argument wywolania showAchievementsPanel(...) jako string literalu obiektu -
+            // uzywane przez WSZYSTKIE TRZY paski filtrow ponizej (poziom/status/kategoria), zeby klik
+            // w jeden pasek zawsze przenosil biezacy stan pozostalych DWOCH, zamiast je resetowac.
+            function _achArgsStr(tier, status, cat){
+                var parts = [];
+                if (tier) parts.push("tier:'" + tier + "'");
+                if (status && status !== 'all') parts.push("status:'" + status + "'");
+                if (cat) parts.push("cat:'" + cat.replace(/'/g, "\\'") + "'");
+                return '{' + parts.join(',') + '}';
+            }
+            // --- FILTR POZIOMU: chipy WSZYSTKIE + 5x ACH_TIER_DEFS w stalej belce ---
+            // Klik przeladowuje caly panel przez showAchievementsPanel({tier,status}) - ten sam
+            // mechanizm, ktorym paszport juz otwiera panel odfiltrowany (_passportOpenTier), wiec
+            // dodatkowy stan nie jest potrzebny: _tierFilter/_status i tak sa przeliczane od nowa z
+            // opts przy kazdym wywolaniu. Aktywny chip dostaje wypelnione tlo swoim kolorem; reszta
+            // zostaje przygaszona, ale kolorowa (widac od razu, ktory poziom jest ktory, bez najezdzania).
+            var tierBar = "";
+            if (typeof ACH_TIER_DEFS !== 'undefined') {
+                function chip(key, label, rgb){
+                    var active = _tierFilter === key;
+                    var col = 'rgb(' + rgb + ')';
+                    return '<span onclick="window.showAchievementsPanel(' + _achArgsStr(key, _status, _catFilter) + ')"'
+                         + ' style="cursor:pointer; padding:5px 13px; border-radius:20px;'
+                         + ' font-family:\'JetBrains Mono\',monospace; font-size:0.68rem; font-weight:700; letter-spacing:1.5px;'
+                         + ' color:' + col + '; background:' + (active ? 'rgba(' + rgb + ',0.28)' : 'rgba(255,255,255,0.04)') + ';'
+                         + ' border:1px solid ' + (active ? col : 'rgba(' + rgb + ',0.4)') + ';">' + label + '</span>';
+                }
+                tierBar = '<div style="display:flex; flex-wrap:wrap; gap:7px; margin-bottom:8px;">'
+                        + chip(null, 'WSZYSTKIE', '250,204,21')
+                        + ACH_TIER_DEFS.map(function(d){ return chip(d.key, d.label, d.markRgb || d.rgb); }).join('')
+                        + '</div>';
+            }
+            // --- FILTR STATUSU: WSZYSTKIE / ZDOBYTE / NIEZDOBYTE, ta sama belka co poziom ---
+            // Kolory neutralne wzgledem poziomow trudnosci (zeby nie sugerowac zwiazku z konkretnym
+            // poziomem): zielony dla zdobytych (jak komplet w spisie tresci kategorii), ciemnoszary
+            // dla niezdobytych, jasnoszary dla "wszystkie".
+            var statusBar = "";
+            (function(){
+                function statusChip(key, label, rgb){
+                    var active = _status === key;
+                    var col = 'rgb(' + rgb + ')';
+                    return '<span onclick="window.showAchievementsPanel(' + _achArgsStr(_tierFilter, key, _catFilter) + ')"'
+                         + ' style="cursor:pointer; padding:5px 13px; border-radius:20px;'
+                         + ' font-family:\'JetBrains Mono\',monospace; font-size:0.68rem; font-weight:700; letter-spacing:1.5px;'
+                         + ' color:' + col + '; background:' + (active ? 'rgba(' + rgb + ',0.22)' : 'rgba(255,255,255,0.04)') + ';'
+                         + ' border:1px solid ' + (active ? col : 'rgba(' + rgb + ',0.35)') + ';">' + label + '</span>';
+                }
+                statusBar = '<div style="display:flex; flex-wrap:wrap; gap:7px; margin-bottom:10px;">'
+                          + statusChip('all', 'WSZYSTKIE', '198,207,217')
+                          + statusChip('unlocked', 'ZDOBYTE', '74,222,128')
+                          + statusChip('locked', 'NIEZDOBYTE', '107,118,132')
+                          + '</div>';
+            })();
+            // --- SPIS TRESCI: kafelki kategorii, TRZECI FILTR (2026-07-19g) ---
+            // Dawniej klik przewijal do sekcji (_achGoToCat); teraz zaweza cala liste do TEJ kategorii
+            // (trzeci filtr obok tier/status - patrz _achArgsStr), a doszedl kafelek "WSZYSTKIE" jako
+            // reset. d/t licza sie z catStatsAll/grandDone/grandTotal (pod tier+status, ALE niezaleznie
+            // od _catFilter), zeby belka zawsze pokazywala WSZYSTKIE kategorie z ich pelnymi licznikami,
+            // nawet gdy akurat jedna z nich jest wybrana. Widoczna, dopoki jest przynajmniej 1 kategoria.
+            var catGrid = "";
+            if (catOrderAll.length >= 1) {
+                function catTile(cat, d, t){
+                    var isAll = !cat;
+                    var active = isAll ? !_catFilter : (_catFilter === cat);
+                    // Kolor licznika sygnalizuje postep: komplet na zielono, zero na szaro.
+                    var col = (t > 0 && d === t) ? "#4ade80" : (d === 0 ? "#6b7684" : "#facc15");
+                    var bg = active ? "rgba(250,204,21,0.16)" : "rgba(255,255,255,0.04)";
+                    var bd = active ? "rgba(250,204,21,0.55)" : "rgba(255,255,255,0.1)";
+                    return '<div onclick="window.showAchievementsPanel(' + _achArgsStr(_tierFilter, _status, cat) + ')"'
+                         + ' style="cursor:pointer; padding:7px 9px; border-radius:5px;'
+                         + ' background:' + bg + '; border:1px solid ' + bd + ';'
+                         + ' display:flex; justify-content:space-between; align-items:baseline; gap:8px;"'
+                         + ' onmouseover="this.style.background=\'rgba(250,204,21,0.12)\'"'
+                         + ' onmouseout="this.style.background=\'' + bg + '\'">'
+                         +   '<span style="font-family:\'JetBrains Mono\',monospace; font-size:0.68rem; letter-spacing:1px; color:#c6cfd9;">' + (isAll ? "WSZYSTKIE" : cat) + '</span>'
+                         +   '<span style="font-family:\'JetBrains Mono\',monospace; font-size:0.66rem; color:' + col + ';">' + d + '/' + t + '</span>'
+                         + '</div>';
+                }
+                catGrid = '<div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(190px,1fr)); gap:7px;">'
+                    + catTile(null, grandDone, grandTotal)
+                    + catOrderAll.map(function(cat){ var s = catStatsAll[cat]; return catTile(cat, s.done, s.total); }).join('')
                     + '</div>';
             }
-            document.getElementById("achievements-body").innerHTML = toc + catOrder.map(function(cat){
+            // Belka zyje POZA #achievements-scroll (patrz budowa modala wyzej), wiec nie przewija sie
+            // wcale. Krawedz-do-krawedzi jak naglowki kategorii nizej (margin -22px kasuje padding
+            // modala, padding 22px oddaje go z powrotem tresci) - dzieki temu dolna linia siega calej
+            // szerokosci okna, tak samo jak przy sekcjach.
+            document.getElementById("achievements-toc").innerHTML = (tierBar || statusBar || catGrid)
+                ? ('<div style="margin:0 -22px; padding:0 22px 12px; border-bottom:1px solid rgba(255,255,255,0.12);">' + tierBar + statusBar + catGrid + '</div>')
+                : '';
+            document.getElementById("achievements-body").innerHTML = catOrder.map(function(cat){
                 var items = byCat[cat];
-                // NAGLOWEK KATEGORII: position:sticky wzgledem #achievements-modal (to on ma overflow-y
-                // i jest najblizszym przodkiem przewijanym). top:0 przykleja go do gornej krawedzi, wiec
-                // przy dlugiej liscie zawsze wiadomo, ktora to kategoria.
+                // NAGLOWEK KATEGORII: position:sticky wzgledem #achievements-scroll (to on ma
+                // overflow-y i jest najblizszym przodkiem przewijanym - #achievements-modal sam juz
+                // sie NIE przewija, patrz budowa w showAchievementsPanel). top:0 przykleja go do
+                // gornej krawedzi, wiec przy dlugiej liscie zawsze wiadomo, ktora to kategoria.
                 // TLO MUSI BYC NIEPRZEZROCZYSTE (#0a0a0c, nie rgba modala) - inaczej kafelki przewijaja
                 // sie widocznie POD napisem. z-index nad kafelkami, ktore maja position:relative.
                 // Marginesy ujemne + padding: pasek tla ma siegac krawedzi modala mimo jego paddingu 22px.
@@ -1393,24 +1737,40 @@
             // Licznik liczy z `total` (po filtrze), nie z calego katalogu - inaczej widok jednego
             // poziomu pokazywalby "25 / 528" przy 114 wyswietlonych kafelkach.
             document.getElementById("achievements-progress").innerText = unlocked + " / " + total + " ODBLOKOWANYCH";
-            // Tytul: w widoku filtrowanym mowi WPROST, ze to wycinek, i daje powrot do pelnej listy.
+            // Tytul: w widoku filtrowanym (poziom i/lub status) mowi WPROST, ze to wycinek, i daje
+            // powrot do pelnej listy. Link "← WSZYSTKIE" resetuje OBA filtry naraz - to swiadomie inny
+            // przycisk niz chip "WSZYSTKIE" w kazdym z dwoch pasków (ten resetuje tylko swoj filtr,
+            // zachowujac drugi - patrz _achArgsStr).
             var _ttl = document.getElementById("achievements-title");
             if (_ttl) {
+                var _anyFilter = !!_tierFilter || _status !== 'all' || !!_catFilter;
+                var _backLink = _anyFilter
+                    ? '<span onclick="window.showAchievementsPanel()" style="cursor:pointer; font-size:0.72rem; color:#8f9ba8; letter-spacing:1.5px; margin-left:14px; font-family:\'JetBrains Mono\',monospace;">← WSZYSTKIE</span>'
+                    : '';
+                var _mainHtml;
                 if (_tierFilter) {
                     var _td = null;
                     if (typeof ACH_TIER_DEFS !== 'undefined') {
                         ACH_TIER_DEFS.forEach(function(d){ if (d.key === _tierFilter) _td = d; });
                     }
                     var _tc = _td ? ("rgb(" + (_td.markRgb || _td.rgb) + ")") : "#facc15";
-                    _ttl.innerHTML = '<span style="color:' + _tc + ';">'
-                                   + (_td ? ('<svg viewBox="0 0 24 24" fill="' + _tc + '" style="width:20px;height:20px;min-width:20px;vertical-align:-3px;margin-right:7px;">' + _td.mark + '</svg>') : '')
-                                   + 'POZIOM ' + (_td ? _td.label : _tierFilter) + '</span>'
-                                   + '<span onclick="window.showAchievementsPanel()" style="cursor:pointer; font-size:0.72rem; color:#8f9ba8; letter-spacing:1.5px; margin-left:14px; font-family:\'JetBrains Mono\',monospace;">← WSZYSTKIE</span>';
+                    _mainHtml = '<span style="color:' + _tc + ';">'
+                              + (_td ? ('<svg viewBox="0 0 24 24" fill="' + _tc + '" style="width:20px;height:20px;min-width:20px;vertical-align:-3px;margin-right:7px;">' + _td.mark + '</svg>') : '')
+                              + 'POZIOM ' + (_td ? _td.label : _tierFilter) + '</span>';
                 } else {
-                    _ttl.innerHTML = "🏆 OSIĄGNIĘCIA";
+                    _mainHtml = '🏆 OSIĄGNIĘCIA';
                 }
+                // Kategoria i status dokladaja sie jako neutralny dopisek NIEZALEZNIE od tego, czy
+                // poziom jest akurat filtrowany - wszystkie trzy filtry sa rownorzedne i mozna je
+                // dowolnie laczyc (patrz _achArgsStr).
+                var _extra = [];
+                if (_catFilter) _extra.push(_catFilter);
+                if (_status === 'unlocked') _extra.push('ZDOBYTE');
+                if (_status === 'locked') _extra.push('NIEZDOBYTE');
+                var _extraHtml = _extra.length ? ('<span style="font-size:1rem; color:#8f9ba8;"> · ' + _extra.join(' · ') + '</span>') : '';
+                _ttl.innerHTML = _mainHtml + _extraHtml + _backLink;
             }
-            document.getElementById("achievements-modal").scrollTop = 0;
+            document.getElementById("achievements-scroll").scrollTop = 0;
             el.style.display = "flex";
         };
 
@@ -2666,6 +3026,7 @@
             });
             // Czas w powietrzu, staty roczne, linie i samoloty - tylko z logu (CSV: kolumna Duration).
             var minutes = 0, byYear = {}, airlines = {}, aircraft = {}, first = null, last = null, longestT = null;
+            var acByCode = {};   // kod typu ICAO -> nazwa juz uzyta dla tego kodu (patrz petla nizej)
             // --- RYTM LOTOW (2026-07-17): wszystko z kolumny Date, ale WYLACZNIE rzeczy, ktore trzeba ZROBIC.
             // Zadnego "stazu" ani "przerwy miedzy lotami" - to byla cala kategoria KALENDARZ LOTOW i wyleciala,
             // bo rosla sama z uplywem czasu. Tu licza sie tylko intensywnosc i pokrycie kalendarza.
@@ -2694,7 +3055,31 @@
                         if (dayLegs[date][x[2] + ">" + x[1]]) hasSameDayReturn = true;
                     }
                     if (al) airlines[al] = (airlines[al] || 0) + 1;
-                    if (ac) aircraft[ac] = (aircraft[ac] || 0) + 1;
+                    // TYPY MASZYN: grupujemy po KODZIE ICAO (pole 7), a nie po nazwie. FR24 zapisuje
+                    // ten sam typ roznie ("Airbus A321" vs "Airbus A321-200"), przez co jedna maszyna
+                    // liczyla sie dwa razy - zawyzalo to aircraftCount i rozbijalo topAircraft.
+                    // Kluczem mapy zostaje NAZWA (aircraftNames idzie wprost na listy w odznakach),
+                    // ale nazwa jest teraz KANONICZNA dla kodu. Kolejnosc zrodel nazwy:
+                    //   1. AIRCRAFT_TYPE_NAMES  - reczna, ladna nazwa z aircraft-data.js,
+                    //   2. pierwsza nazwa napotkana w logu dla tego kodu - dzieki temu NOWY typ
+                    //      z przyszlego importu tez sie nie zduplikuje, choc nikt go nie dopisal,
+                    //   3. surowa nazwa z logu - gdy kodu brak (import sprzed 2026-07-19).
+                    if (ac) {
+                        var acCode = x[7] || '';
+                        if (acCode && typeof AIRCRAFT_CODE_ALIAS !== 'undefined' && AIRCRAFT_CODE_ALIAS[acCode]) {
+                            acCode = AIRCRAFT_CODE_ALIAS[acCode];
+                        }
+                        var acLabel = ac;
+                        if (acCode) {
+                            if (typeof AIRCRAFT_TYPE_NAMES !== 'undefined' && AIRCRAFT_TYPE_NAMES[acCode]) {
+                                acLabel = AIRCRAFT_TYPE_NAMES[acCode];
+                            } else if (acByCode[acCode]) {
+                                acLabel = acByCode[acCode];
+                            }
+                            acByCode[acCode] = acLabel;
+                        }
+                        aircraft[acLabel] = (aircraft[acLabel] || 0) + 1;
+                    }
                     if (mn && (!longestT || mn > longestT.m)) longestT = { m: mn, from: x[1], to: x[2] };
                 });
             }
@@ -2761,6 +3146,9 @@
                 last: last,
                 topAirlines: byCount(airlines, 3),
                 topAircraft: byCount(aircraft, 3),
+                // Pelne nazwy (nie tylko top3) - zrodlo listy `done` dla LINIE I MASZYNY w prog().
+                airlineNames: Object.keys(airlines).sort(),
+                aircraftNames: Object.keys(aircraft).sort(),
                 // Ponizsze pola sa dla osiagniec (kategoria LOTY / LINIE I MASZYNY / KALENDARZ) - panel
                 // Flights ich nie rysuje, ale licza sie z tego samego przejscia FLIGHTS_LOG, wiec sa tu,
                 // a nie w drugim, rownoleglym liczydle w computeAchievementContext.
@@ -5052,7 +5440,7 @@
         // --- KLIK W PASEK ACHIEVEMENTS -> panel osiagniec/odznak (przeniesione z nazwy rangi) ---
         (function(){
             var achRow = document.getElementById("ach-label-row");
-            if (achRow) achRow.onclick = function(){ if (window.showAchievementsPanel) window.showAchievementsPanel(); };
+            if (achRow) achRow.onclick = function(){ window._achOpenedFromPassport = false; if (window.showAchievementsPanel) window.showAchievementsPanel(); };
         })();
         
         function startSystemLog(count) {
