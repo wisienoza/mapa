@@ -389,6 +389,10 @@
                 if (typeof SAFETY_OVERRIDE !== 'undefined') Object.keys(SAFETY_OVERRIDE).forEach(function(c){ if (SAFETY_OVERRIDE[c] >= minLevel) l.push(c); });
                 return _dictProg(l, min);
             };
+            // Liczone RAZ i podstawiane nizej jako citiesStats. Wczesniej szlo inline
+            // (citiesStats: _computeCityStats()), ale helper _cliCities musi widziec ten sam wynik,
+            // a drugie wywolanie oznaczaloby drugie pelne przejscie po ~6000 miast.
+            var _cityStats = _computeCityStats();
             var _ctx = {
                 _visaProg: _visaProg, _costProg: _costProg, _riskProg: _riskProg,
                 regionDone: regionDone, continentsTouched: continentsTouched, totalCountries: totalCountries, visitedSet: visitedSet,
@@ -396,6 +400,16 @@
                 _missingInRegion: _missingInRegion, _visitedInRegion: _visitedInRegion,
                 _untouchedContinents: _untouchedContinents, _touchedContinents: _touchedContinents,
                 _regionProg: _regionProg, _wonderProg: _wonderProg,
+                // KLIMAT: nazwy odwiedzonych miast spelniajacych warunek. fn dostaje wpis
+                // z citiesStats.cliCityList ({name, cc, hi, lo, amp, ann, wet, annPrec}).
+                // Uzywane przez prog() kategorii KLIMAT do zbudowania listy `done` - agregaty
+                // (cliColdest itd.) mowia ILE, to mowi KTORE. Sortowane A-Z, jak reszta list w panelu.
+                _cliCities: function(fn){
+                    var L = (_cityStats && _cityStats.cliCityList) ? _cityStats.cliCityList : [];
+                    var out = [];
+                    L.forEach(function(c){ try { if (fn(c)) out.push(c.name); } catch (e) {} });
+                    return out.sort(function(a, b){ return a.localeCompare(b, "pl"); });
+                },
                 hasSouth: hasSouth, hasArctic: hasArctic, hasDeepSouth: hasDeepSouth, hasEast: hasEast, hasWest: hasWest,
                 hasTropical: hasTropical, hasNearEquator: hasNearEquator,
                 quadrants: (quadNE?1:0) + (quadNW?1:0) + (quadSE?1:0) + (quadSW?1:0), maxDistKm: maxDistKm,
@@ -432,7 +446,7 @@
                 religionCount: Object.keys(religionSet).length, iddCount: Object.keys(iddSet).length,
                 adapterCount: adapterCount, noAdapterCount: noAdapterCount, tapSafeCount: tapSafeCount, bottledOnlyCount: bottledOnlyCount,
                 hasMandatoryTip: hasMandatoryTip, hasNoTipCulture: hasNoTipCulture, voltageCount: Object.keys(voltageSet).length,
-                citiesStats: _computeCityStats()
+                citiesStats: _cityStats
             };
             window._achCtxCache = _ctx;
             return _ctx;
@@ -452,6 +466,7 @@
             // climate-data.js jest 'defer', wiec przy braku CLIMATE_DB cala kategoria stoi na zerze - tak ma byc.
             var cliN = 0, cliHottest = -999, cliColdest = 999, cliMaxAnnT = -999, cliMinAnnT = 999;
             var cliMinAmp = 999, cliMaxAmp = 0, cliWettest = 0, cliMaxAnnPrec = 0, cliMinAnnPrec = 1e9;
+            var cliList = [];   // komplet odwiedzonych miast z klimatem - patrz push nizej
             var _cliKey = function(lat, lon){ return (Math.round(lat * 4) / 4) + "," + (Math.round(lon * 4) / 4); };
             if (typeof CITIES_DB !== "undefined") {
                 for (var cc in CITIES_DB) {
@@ -487,13 +502,25 @@
                                 var amp = hi - lo;
                                 if (amp < cliMinAmp) cliMinAmp = amp;
                                 if (amp > cliMaxAmp) cliMaxAmp = amp;
+                                var wet = null, annP = null;
                                 if (cl.precip && cl.precip.length === 12) {
-                                    var wet = Math.max.apply(null, cl.precip);
-                                    var annP = cl.precip.reduce(function(a, b){ return a + b; }, 0);
+                                    wet = Math.max.apply(null, cl.precip);
+                                    annP = cl.precip.reduce(function(a, b){ return a + b; }, 0);
                                     if (wet > cliWettest) cliWettest = wet;
                                     if (annP > cliMaxAnnPrec) cliMaxAnnPrec = annP;
                                     if (annP < cliMinAnnPrec) cliMinAnnPrec = annP;
                                 }
+                                // TABLICA MIAST Z KLIMATEM (dla prog() w katalogu - patrz cliCityList
+                                // w db-schema.md). Same agregaty (cliColdest itd.) mowia TYLKO ile,
+                                // nigdy KTORE - a panel rozpiski potrzebuje nazw. Trzymamy komplet
+                                // metryk per miasto, zeby kazdy prog() mogl sobie odfiltrowac swoj prog
+                                // bez dokladania kolejnego pola do ctx przy kazdej nowej odznace.
+                                cliList.push({
+                                    name: ci[0], cc: cc,
+                                    hi: hi, lo: lo, amp: amp,
+                                    ann: (typeof cl.annT === "number") ? cl.annT : null,
+                                    wet: wet, annPrec: annP
+                                });
                             }
                         }
                     }
@@ -519,7 +546,11 @@
                 cliMinAmp: cliN ? cliMinAmp : 0, cliMaxAmp: cliN ? cliMaxAmp : 0,
                 cliWettest: cliN ? cliWettest : 0,
                 cliMaxAnnPrec: cliN ? cliMaxAnnPrec : 0, cliMinAnnPrec: cliN ? cliMinAnnPrec : 0,
-                cliSpread: cliN ? (cliHottest - cliColdest) : 0
+                cliSpread: cliN ? (cliHottest - cliColdest) : 0,
+                // Lista odwiedzonych miast z metrykami klimatu (name, cc, hi, lo, amp, ann, wet, annPrec).
+                // Zrodlo list done/missing dla kategorii KLIMAT w prog() - agregaty wyzej mowia ILE,
+                // ta tablica mowi KTORE. Pusta, gdy CLIMATE_DB jeszcze nie dojechalo (defer).
+                cliCityList: cliList
             };
         }
         window.hideAchievementsPanel = function(){
