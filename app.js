@@ -736,7 +736,10 @@
         // pointer-events:none jest KONIECZNE: klik gdziekolwiek ma isc do overlaya (nastepna pozycja
         // z kolejki albo zamkniecie), a konfetti przykrywa caly ekran i inaczej polykaloby klikniecia.
         // Kolory biora sie z akcentu okna, wiec awans rangi sypie cyjanem, a odznaka zoltem.
-        window._achConfetti = function(accent){
+        // tier: wpis z ACH_TIER_DEFS - jego pole `conf` steruje gestoscia i czasem salwy, wiec diament
+        // swietuje mocniej niz braz. Brak tiera (AWANS RANGI) dostaje mocne ustawienie domyslne:
+        // awans jest rzadszy niz pojedyncza odznaka, wiec nie ma powodu, zeby byl skromniejszy.
+        window._achConfetti = function(accent, tier){
             var host = document.getElementById("ach-splash-overlay");
             if (!host) return;
             // Szanuj systemowe ograniczenie animacji - wtedy nie sypiemy niczym.
@@ -751,7 +754,8 @@
             var acc = "rgb(" + ((accent && accent.rgb) || "250,204,21") + ")";
             var cols = [acc, acc, "#ffffff", "#facc15", "#4ade80", "#00ccff"];
             var H = window.innerHeight || 800;
-            for (var i = 0; i < 70; i++) {
+            var cfg = (tier && tier.conf) || { n: 120, ms: 2400 };   // domyslka = awans rangi
+            for (var i = 0; i < cfg.n; i++) {
                 var p = document.createElement("i");
                 var w = 5 + Math.random() * 6, h = 7 + Math.random() * 9;
                 p.style.cssText = "position:absolute; top:-8%; left:" + (Math.random() * 100).toFixed(2) + "%;"
@@ -765,15 +769,18 @@
                     { transform: "translate3d(" + (Math.random() * 170 - 85).toFixed(0) + "px," + (H * 1.2).toFixed(0) + "px,0)"
                                  + " rotate(" + (360 + Math.random() * 720).toFixed(0) + "deg)", opacity: 0.85 }
                 ], {
-                    duration: 1500 + Math.random() * 1300,
+                    duration: cfg.ms + Math.random() * cfg.ms * 0.5,
                     delay: Math.random() * 260,
                     easing: "cubic-bezier(0.25,0.6,0.35,1)",
                     fill: "forwards"
                 });
             }
-            // Sprzatanie po najdluzszej mozliwej animacji (2800 + zapas). Bez tego kolejne okna
-            // z kolejki dokladalyby po 70 wezlow, ktore juz nic nie robia.
-            window.setTimeout(function(){ if (wrap.parentNode) wrap.parentNode.removeChild(wrap); }, 3100);
+            // Sprzatanie po NAJDLUZSZYM mozliwym przypadku: ms * 1.5 (gorna granica losowania)
+            // + 260 ms maksymalnego opoznienia + zapas. Musi skalowac sie razem z cfg.ms, inaczej
+            // przy diamencie (2900 ms) kontener znikalby w polowie lotu skrawkow.
+            // Bez sprzatania kolejne okna z kolejki dokladalyby setki martwych wezlow.
+            window.setTimeout(function(){ if (wrap.parentNode) wrap.parentNode.removeChild(wrap); },
+                              cfg.ms * 1.5 + 260 + 400);
         };
         window._achSplashNext = function(){
             var el = document.getElementById("ach-splash-overlay");
@@ -843,7 +850,7 @@
             if (box && box.animate) box.animate([{ opacity: 0, transform: "scale(0.86)" }, { opacity: 1, transform: "scale(1)" }], { duration: 220, easing: "ease-out" });
             // Konfetti leci przy KAZDEJ pozycji z kolejki (5 odznak pod rzad = 5 salw), bo kazda jest
             // osobnym zdobyciem. Musi byc PO el.style.display="flex" - kontener liczy wymiary z overlaya.
-            if (window._achConfetti) window._achConfetti(ac);
+            if (window._achConfetti) window._achConfetti(ac, a.tier);
         };
         // --- POZIOM TRUDNOSCI ODZNAKI (dane: achievements-tiers-data.js) ---
         // Zwraca wpis z ACH_TIER_DEFS albo null. NULL = brak pliku danych -> panel renderuje sie

@@ -38,24 +38,28 @@ const ACH_TIER_DEFS = [
     // markRgb jasniejszy od rgb: rgb jest CELOWO ciemny (tlo kafelka ma byc najskromniejsze z piatki),
     // ale ten sam kolor uzyty na znaczku i w splashu wychodzil przygaszony - kontrast nazwy w oknie
     // splasha 3.69 przy 8.5-14 na pozostalych poziomach. markRgb rozdziela te dwa zastosowania.
-    { key: "bronze",   label: "BRĄZ",    rgb: "150,92,48", markRgb: "205,132,74", glow: false, bg: [0.05, 0.02],
+    // conf: salwa konfetti przy splashu - { n: liczba skrawkow, ms: bazowy czas opadania }.
+    // Rosnie razem z ranga, zeby brazowa drobnica nie swietowala tak samo jak diament.
+    // Realny czas kazdego skrawka to ms + losowo do polowy ms, a sprzatanie kontenera liczy sie
+    // z najdluzszego mozliwego przypadku (patrz _achConfetti w app.js).
+    { key: "bronze",   label: "BRĄZ",    rgb: "150,92,48", markRgb: "205,132,74", glow: false, bg: [0.05, 0.02], conf: { n: 28, ms: 1200 },
       mark: '<path d="M3 7 L12 15 L21 7 L21 12 L12 20 L3 12 Z"/>' },
-    { key: "silver",   label: "SREBRO",  rgb: "169,178,186", glow: false, bg: [0.25, 0.03],
+    { key: "silver",   label: "SREBRO",  rgb: "169,178,186", glow: false, bg: [0.25, 0.03], conf: { n: 45, ms: 1450 },
       mark: '<path d="M3 4 L12 11 L21 4 L21 8 L12 15 L3 8 Z"/>'
           + '<path d="M6 14 L12 18.5 L18 14 L18 17.5 L12 22 L6 17.5 Z"/>' },
-    { key: "gold",     label: "ZŁOTO",   rgb: "245,199,45",  glow: false, bg: [0.40, 0.06],
+    { key: "gold",     label: "ZŁOTO",   rgb: "245,199,45",  glow: false, bg: [0.40, 0.06], conf: { n: 70, ms: 1750 },
       mark: '<path d="M5 7 L12 14 L19 7 L19 12 L12 19 L5 12 Z"/>'
           + '<path d="M1.5 4 L4 4 L4 13 L1.5 10.5 Z"/><path d="M22.5 4 L20 4 L20 13 L22.5 10.5 Z"/>' },
     // bg bylo 0.99 - tlo wychodzilo wtedy prawie biale (205,216,226) i ZJADALO TEKST: bialy opis
     // miał kontrast 1.45, bursztynowa nazwa 1.06 (progi czytelnosci zaczynaja sie od 4.5).
     // 0.42 zostawia platyne najjasniejszym kafelkiem w panelu, ale napisy wracaja.
-    { key: "platinum", label: "PLATYNA", rgb: "207,218,228", glow: true,  bg: [0.42, 0.08],
+    { key: "platinum", label: "PLATYNA", rgb: "207,218,228", glow: true,  bg: [0.42, 0.08], conf: { n: 105, ms: 2200 },
       mark: '<path d="M12 2.5 L19 5.5 V11 C19 15.5 12 20 12 20 C12 20 5 15.5 5 11 V5.5 Z"/>'
           + '<path d="M2 5 L4.2 5 L4.2 14 L2 11.5 Z"/><path d="M22 5 L19.8 5 L19.8 14 L22 11.5 Z"/>' },
     // markRgb: kolor ZNACZKA, gdy rgb tla nie nadaje sie na znaczek. Diament ma bg 0.99, wiec tlo
     // kafelka jest praktycznie tym samym kolorem co rgb - znaczek rysowany domyslnie mial kontrast
     // 1.01, czyli byl niewidoczny. Jasny fiolet odcina sie od ciemnego tla i zostaje w rodzinie koloru.
-    { key: "diamond",  label: "DIAMENT", rgb: "72,34,124", markRgb: "186,150,255", glow: true, bg: [0.99, 0.27],
+    { key: "diamond",  label: "DIAMENT", rgb: "72,34,124", markRgb: "186,150,255", glow: true, bg: [0.99, 0.27], conf: { n: 160, ms: 2900 },
       mark: '<path d="M12 1.5 L21.5 9 L12 22.5 L2.5 9 Z"/>'
           + '<path d="M12 1.5 L12 22.5 M2.5 9 L21.5 9 M7.2 9 L12 22.5 L16.8 9"'
           + ' stroke="#08080a" stroke-width="1.1" fill="none" opacity="0.55"/>' }
