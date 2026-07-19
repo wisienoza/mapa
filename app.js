@@ -696,10 +696,20 @@
         window.showAchievementSplash = function(ids){
             if (!ids || !ids.length) return;
             var out = [];
+            // ctx do wyliczenia poziomu odznaki. computeAchievementContext jest memoizowane
+            // (window._achCtxCache), wiec to nie jest drugie pelne przejscie po CITIES_DB.
+            var ctx = window.computeAchievementContext ? window.computeAchievementContext() : null;
             ids.forEach(function(id){
                 var a = window.ACHIEVEMENTS.find(function(x){ return x.id === id; });
                 if (!a) return;   // katalog sie zmienil - pomijamy cicho, nie wieszamy kolejki
-                out.push({ kicker: "★ NOWA ODZNAKA ★", icon: a.icon, name: a.name, cat: a.cat, desc: a.desc, accent: _SPLASH_ACCENT_ACH });
+                var t = (ctx && window._achTierOf) ? window._achTierOf(a, ctx) : null;
+                // AKCENT Z POZIOMU ODZNAKI: splash swieci tym samym kolorem, co kafelek w panelu.
+                // Bierzemy markRgb || rgb, bo rgb bywa CIEMNE (diament to gleboki fiolet) - jako kolor
+                // napisu i ramki na czarnym tle byloby nieczytelne, a markRgb jest wlasnie jasnym
+                // wariantem rodziny. Brak poziomu (np. brak pliku danych) -> stary zolty akcent.
+                var acc = t ? { hex: "rgb(" + (t.markRgb || t.rgb) + ")", rgb: (t.markRgb || t.rgb) } : _SPLASH_ACCENT_ACH;
+                out.push({ kicker: "★ NOWA ODZNAKA ★", icon: a.icon, name: a.name, cat: a.cat,
+                           desc: a.desc, accent: acc, tier: t });
             });
             window._achSplashPush(out);
         };
@@ -783,6 +793,7 @@
                   +   '<div id="ach-splash-icon" style="font-size:4.2rem; line-height:1; margin-bottom:12px;"></div>'
                   +   '<div id="ach-splash-name" style="font-size:1.5rem; font-weight:700; letter-spacing:1px; color:#facc15; line-height:1.2;"></div>'
                   +   '<div id="ach-splash-cat" style="font-family:\'JetBrains Mono\',monospace; font-size:0.65rem; letter-spacing:2px; color:#8f9ba8; margin-top:8px;"></div>'
+                  +   '<div id="ach-splash-tier" style="display:none; align-items:center; justify-content:center; gap:7px; margin-top:11px; font-family:\'JetBrains Mono\',monospace; font-size:0.62rem; letter-spacing:2.5px;"></div>'
                   +   '<div id="ach-splash-desc" style="font-family:\'JetBrains Mono\',monospace; font-size:0.72rem; color:#c6cfd9; margin-top:14px; line-height:1.5;"></div>'
                   +   '<div id="ach-splash-more" style="font-family:\'JetBrains Mono\',monospace; font-size:0.62rem; color:#8f9ba8; margin-top:18px;"></div>'
                   + '</div>';
@@ -806,6 +817,21 @@
             }
             _kick.style.color = ac.hex;
             _nm.style.color = ac.hex;
+            // WIERSZ POZIOMU: ten sam znaczek co na kafelku w panelu + nazwa poziomu. Rysowany tylko
+            // dla odznak - awans rangi nie ma poziomu, wiec wiersz sie chowa (a overlay jest jeden
+            // i recyklowany, wiec MUSI byc chowany jawnie, inaczej zostalby po poprzednim oknie).
+            var _tr = document.getElementById("ach-splash-tier");
+            if (_tr) {
+                if (a.tier) {
+                    _tr.innerHTML = '<svg viewBox="0 0 24 24" fill="' + ac.hex + '" style="width:15px; height:15px;">'
+                                  + a.tier.mark + '</svg><span>POZIOM: ' + a.tier.label + '</span>';
+                    _tr.style.color = ac.hex;
+                    _tr.style.display = "flex";
+                } else {
+                    _tr.innerHTML = "";
+                    _tr.style.display = "none";
+                }
+            }
             window._achSplashMore();
             el.style.display = "flex";
             window._achSplashOpen = true;
