@@ -1622,6 +1622,11 @@
                   + '</div>'
                 );
             });
+            // Kafelki spisu tresci (catGrid nizej) w kolejnosci ALFABETYCZNEJ (locale PL: Ś/Ż/Ą po swojemu).
+            // catOrderAll napedza TYLKO grid kafelkow; kafelek "WSZYSTKIE" jest doklejany osobno z przodu
+            // (catTile(null,...)), wiec sort go nie rusza - zostaje pierwszy. Sekcje w tresci (catOrder)
+            // celowo NIE sa sortowane - zachowuja kolejnosc katalogu ACHIEVEMENTS.
+            catOrderAll.sort(function(a, b){ return a.localeCompare(b, 'pl'); });
             // Buduje argument wywolania showAchievementsPanel(...) jako string literalu obiektu -
             // uzywane przez WSZYSTKIE TRZY paski filtrow ponizej (poziom/status/kategoria), zeby klik
             // w jeden pasek zawsze przenosil biezacy stan pozostalych DWOCH, zamiast je resetowac.
