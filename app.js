@@ -5236,7 +5236,20 @@
                     // miasto to dojazd (ciagla zielen, wlasna seria). Drugi odcinek powstaje tylko, gdy
                     // miasto realnie lezy gdzie indziej niz lotnisko - przy zwyklych danych lotnisko stoi
                     // przy miescie (OKA i Naha dzieli ~5 km), wiec linia bylaby niewidocznym punktem.
-                    var _maxRangeClick = function() {
+                    var _maxRangeClick = function(ev) {
+                        // Klik w SAM wiersz MIASTO (.mr-city): zamiast rysowac trase robimy MAX ZOOM na najdalsze
+                        // miasto + jego intel. Sprawdzamy realny cel klika przez closest() - dziala tak samo, czy
+                        // klik wpadl w div, czy w span "MIASTO:" wewnatrz, i BEZ wyscigu z bubbling (dawny osobny
+                        // handler + stopPropagation nie lapal i klik spadal tutaj, rysujac trase bez zoomu).
+                        if (_fc && ev && ev.target && ev.target.closest && ev.target.closest(".mr-city")) {
+                            stopRot();                    // pauzuje rotacje ORAZ ubija samolot MAX RANGE (_clearMaxRangePlane)
+                            lineSeries.data.clear();      // skasuj luk WAW -> lotnisko...
+                            groundLegSeries.data.clear(); // ...i odcinek naziemny lotnisko -> miasto
+                            rotateGlobe(_fc.lat, _fc.lon, 1000, true);
+                            chart.animate({ key: "zoomLevel", to: 6, duration: 1000, easing: am5.ease.out(am5.ease.cubic) });
+                            if (window.showCityIntel && window.resolveCityIntel) window.showCityIntel(window.resolveCityIntel(_fc.name, _fc.lat, _fc.lon));
+                            return;
+                        }
                         var start = CAPITAL_COORDS["PL"];
                         if (!start || (!_fa && !_fc)) return;
                         var air = _fa ? [_fa.lat, _fa.lon] : null;
@@ -5277,23 +5290,11 @@
                         el.title = _act ? ("Pokaż trasę i profil: " + (_fa ? _fa.name.toUpperCase() + " (" + _fa.iata + ")" : _fc.name.toUpperCase())) : "";
                         el.onclick = _act ? _maxRangeClick : null;
                     });
-                    // Klik w SAM wiersz MIASTO (nie caly box): max zoom na najdalsze miasto zamiast rysowania
-                    // trasy. stopPropagation dusi handler boxa (_maxRangeClick). Jesli lecial samolot MAX RANGE
-                    // (po wczesniejszym kliknieciu w box) - ubijamy go, zeby nie krazyl nad niczym po zoomie.
+                    // Podpowiedz na wierszu MIASTO: klik = zoom na miasto (sama obsluga jest w _maxRangeClick
+                    // powyzej, po closest(".mr-city") - dlatego tu tylko kursor "zoom-in" + wlasny tooltip).
                     if (_fc) {
                         var _mrCityEl = telemetryBox.querySelector(".mr-city");
-                        if (_mrCityEl) {
-                            _mrCityEl.style.cursor = "pointer";
-                            _mrCityEl.title = "Powiększ na miasto: " + _fc.name.toUpperCase();
-                            _mrCityEl.onclick = function(e){
-                                e.stopPropagation();
-                                if (window._clearMaxRangePlane) window._clearMaxRangePlane();   // ubij samolot MAX RANGE, jesli leci
-                                stopRot();
-                                rotateGlobe(_fc.lat, _fc.lon, 1000, true);
-                                chart.animate({ key: "zoomLevel", to: 6, duration: 1000, easing: am5.ease.out(am5.ease.cubic) });
-                                if (window.showCityIntel && window.resolveCityIntel) window.showCityIntel(window.resolveCityIntel(_fc.name, _fc.lat, _fc.lon));
-                            };
-                        }
+                        if (_mrCityEl) { _mrCityEl.style.cursor = "zoom-in"; _mrCityEl.title = "Powiększ na miasto: " + _fc.name.toUpperCase(); }
                     }
 
                     var ws = document.getElementById("wonders-stats");
