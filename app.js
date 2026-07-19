@@ -4345,6 +4345,130 @@
                     };
                 } catch(_ve) { console.warn("Visa init failed:", _ve); }
 
+                // --- TRYB KLIMATYCZNY "GDZIE W <miesiac>": kolor krajow wg komfortu temperaturowego; DOMYSLNIE OFF ---
+                // Rozlewa skale travelTier() (z panelu klimatu miasta) na caly glob. Reprezentacyjnym punktem
+                // kraju jest jego STOLICA (CAPITAL_COORDS z intel.js), a temperatura miesiaca pochodzi z
+                // prekompilowanych normalnych CLIMATE_DB (klucz round(lat*4)/4, tak samo jak _climateCache).
+                // Progi 12/18/27/32 sa DOKLADNIE te same co travelTier, tylko rozbite na strone zimna/cieplo,
+                // zeby mapa odrozniala "za zimno" od "za goraco" (travelTier zwija oba w tier 0 - nierozroznialne
+                // na mapie decyzyjnej "gdzie mi w lutym cieplo"). Tryb WYKLUCZAJACY sie z VISA/ZONES/NIGHT (_modes).
+                try {
+                    var _cliMonthNames = ["styczniu","lutym","marcu","kwietniu","maju","czerwcu","lipcu","sierpniu","wrześniu","październiku","listopadzie","grudniu"];
+                    var _cliMonAbbr    = ["STY","LUT","MAR","KWI","MAJ","CZE","LIP","SIE","WRZ","PAŹ","LIS","GRU"];
+                    var _cliBandCols = [0x2563eb, 0x38bdf8, 0x22c55e, 0xf59e0b, 0xdc2626];
+                    var _cliBandLbl  = ["zimno","chłodno","idealnie","ciepło","upał"];
+                    function _cliBand(t){ if(t<12) return 0; if(t<18) return 1; if(t<=27) return 2; if(t<=32) return 3; return 4; }
+                    var _cliMonth = (new Date()).getMonth();     // domyslnie biezacy miesiac
+                    var _cliCountryTemp = null;                  // { id: [12 x temp] }, budowane leniwie
+                    function _cliKeyOf(lat, lon){ return (Math.round(lat*4)/4)+","+(Math.round(lon*4)/4); }
+                    function _cliTempAt(lat, lon){
+                        if (typeof CLIMATE_DB === "undefined") return null;
+                        var d = CLIMATE_DB[_cliKeyOf(lat, lon)];
+                        if (d && d.temp) return d.temp;
+                        // fallback: obwody komorek 0.25° wokol stolicy - stolica moze nie lezec dokladnie na
+                        // punkcie z CITIES_DB, z ktorego zbudowano CLIMATE_DB (albo tuz nad woda/pominietym punktem)
+                        for (var r = 1; r <= 4; r++){
+                            for (var dy = -r; dy <= r; dy++){ for (var dx = -r; dx <= r; dx++){
+                                if (Math.abs(dy) !== r && Math.abs(dx) !== r) continue;   // tylko obwod pierscienia
+                                var e = CLIMATE_DB[_cliKeyOf(lat + dy*0.25, lon + dx*0.25)];
+                                if (e && e.temp) return e.temp;
+                            }}
+                        }
+                        return null;
+                    }
+                    function _cliBuild(){
+                        if (_cliCountryTemp) return;
+                        if (typeof CLIMATE_DB === "undefined" || typeof CAPITAL_COORDS === "undefined") return;   // defer jeszcze nie dojechal -> sprobuj przy nastepnym wl.
+                        var m = {};
+                        for (var id in CAPITAL_COORDS){
+                            var c = CAPITAL_COORDS[id]; if (!c) continue;
+                            var t = _cliTempAt(c[0], c[1]);   // CAPITAL_COORDS = [Lat, Lon]
+                            if (t) m[id] = t;
+                        }
+                        _cliCountryTemp = m;   // ustawiane DOPIERO po sukcesie -> null zostaje, gdy CLIMATE_DB pusty (ponowna proba)
+                    }
+                    function _cliColor(id){
+                        var arr = _cliCountryTemp && _cliCountryTemp[id];
+                        if (!arr) return 0x2a2f36;   // brak danych = ciemny szary
+                        return _cliBandCols[_cliBand(arr[_cliMonth])];
+                    }
+                    function _cliTip(dc){
+                        var name = dc.name || dc.id;
+                        var arr = _cliCountryTemp && _cliCountryTemp[dc.id];
+                        if (!arr) return name + "\nbrak danych klimatycznych";
+                        var t = arr[_cliMonth];
+                        return name + "\nw " + _cliMonthNames[_cliMonth] + ": ⌀" + Math.round(t) + "°C — " + _cliBandLbl[_cliBand(t)] + " (wg stolicy)";
+                    }
+                    var _cliSeries = null;
+                    function _cliRepaint(){
+                        if (!_cliSeries) return;
+                        _cliSeries.mapPolygons.each(function(mp){
+                            var dc = mp.dataItem && mp.dataItem.dataContext;
+                            mp.set("fill", am5.color(_cliColor(dc ? dc.id : null)));
+                        });
+                    }
+                    window._climateOn = false;
+                    window.setClimateMode = function(on){
+                        window._climateOn = !!on;
+                        if (on){
+                            if (window.stopRot) window.stopRot();   // stop auto-rotacji -> brak reprojekcji co klatke
+                            _cliBuild();
+                            if (!_cliSeries){
+                                _cliSeries = chart.series.push(am5map.MapPolygonSeries.new(root, { geoJSON: WORLD_GEO, exclude: ["AQ"] }));
+                                _cliSeries.mapPolygons.template.setAll({ fillOpacity: 1, stroke: am5.color(0x0a0a0a), strokeOpacity: 0.55, strokeWidth: 0.5, interactive: true, tooltipText: "{name}" });
+                                _cliSeries.mapPolygons.template.states.create("hover", { stroke: am5.color(0xffffff), strokeOpacity: 0.95, strokeWidth: 1.6 });
+                                _cliSeries.mapPolygons.template.adapters.add("tooltipText", function(t, target){ var dc=target.dataItem&&target.dataItem.dataContext; return dc?_cliTip(dc):t; });
+                                _cliSeries.events.on("datavalidated", _cliRepaint);   // polygony buduja sie async -> pomaluj gdy gotowe
+                            }
+                            _cliSeries.set("visible", true);
+                            _cliRepaint();
+                            _cliClimateLegend(true);
+                        } else {
+                            if (_cliSeries) _cliSeries.set("visible", false);
+                            _cliClimateLegend(false);
+                        }
+                    };
+                    // --- pasek wyboru miesiaca + skala kolorow (u gory-srodka; INTERAKTYWNY, jak legenda wizowa) ---
+                    function _cliPaintMonthChips(){
+                        var el = document.getElementById("climate-legend"); if (!el) return;
+                        Array.prototype.forEach.call(el.querySelectorAll(".cli-mon"), function(ch){
+                            var act = parseInt(ch.getAttribute("data-m"),10) === _cliMonth;
+                            ch.style.background  = act ? "#f0883e" : "transparent";
+                            ch.style.color       = act ? "#111" : "#c6cfd9";
+                            ch.style.fontWeight  = act ? "700" : "400";
+                            ch.style.borderColor = act ? "#f0883e" : "rgba(255,255,255,0.18)";
+                        });
+                    }
+                    function _cliClimateLegend(on){
+                        var el = document.getElementById("climate-legend");
+                        if (!el){
+                            el = document.createElement("div");
+                            el.id = "climate-legend";
+                            el.style.cssText = "position:fixed; top:12px; left:50%; transform:translateX(-50%); z-index:101; background:rgba(0,0,0,0.85); border:1px solid rgba(255,255,255,0.15); border-radius:8px; padding:8px 16px; backdrop-filter:blur(8px); display:flex; gap:12px; align-items:center; font-family:'JetBrains Mono',monospace; font-size:0.8rem; color:#c6cfd9; box-shadow:0 4px 15px rgba(0,0,0,0.5); opacity:0; transition:opacity 0.25s ease; white-space:nowrap; flex-wrap:wrap; justify-content:center; max-width:94vw;";
+                            var html = '<span style="color:#f0883e; letter-spacing:1px; font-weight:bold;">🌡 GDZIE W:</span>';
+                            html += '<span style="display:flex; gap:3px; flex-wrap:wrap;">';
+                            for (var i=0;i<12;i++){ html += '<span class="cli-mon" data-m="'+i+'" style="cursor:pointer; padding:2px 5px; border:1px solid rgba(255,255,255,0.18); border-radius:4px;">'+_cliMonAbbr[i]+'</span>'; }
+                            html += '</span>';
+                            html += '<span style="display:flex; gap:10px; align-items:center;">'
+                                  + '<span><span style="color:#2563eb;">■</span> zimno</span>'
+                                  + '<span><span style="color:#38bdf8;">■</span> chłodno</span>'
+                                  + '<span><span style="color:#22c55e;">■</span> idealnie</span>'
+                                  + '<span><span style="color:#f59e0b;">■</span> ciepło</span>'
+                                  + '<span><span style="color:#dc2626;">■</span> upał</span>'
+                                  + '</span>';
+                            html += '<span style="color:#8f9ba8;">wg stolicy · normalne 30-letnie</span>';
+                            el.innerHTML = html;
+                            document.body.appendChild(el);
+                            Array.prototype.forEach.call(el.querySelectorAll(".cli-mon"), function(ch){
+                                ch.onclick = function(){ _cliMonth = parseInt(ch.getAttribute("data-m"),10); _cliPaintMonthChips(); _cliRepaint(); };
+                            });
+                        }
+                        _cliPaintMonthChips();
+                        el.style.opacity = on ? "1" : "0";
+                        el.style.pointerEvents = on ? "auto" : "none";
+                    }
+                } catch(_cle) { console.warn("Climate mode init failed:", _cle); }
+
                 // --- RADAR PL: USUNIETY (2026-07) - pulsujacy geo-pierscien odswiezany co 60ms bez przerwy
                 // byl najwiekszym stalym kosztem CPU/GPU (reprojekcja linii ~16x/s na widoku "home"). ---
 
@@ -4696,7 +4820,8 @@
                     var _modes = [
                         { id:"night-toggle", on:function(){return window._terminatorOn;}, set:function(v){ if(window.setTerminator) window.setTerminator(v); }, lbl:"NIGHT" },
                         { id:"tz-toggle",    on:function(){return window._tzOn;},         set:function(v){ if(window.setTimezones) window.setTimezones(v); }, lbl:"ZONES" },
-                        { id:"visa-toggle",  on:function(){return window._visaOn;},        set:function(v){ if(window.setVisa) window.setVisa(v); }, lbl:"VISA" }
+                        { id:"visa-toggle",  on:function(){return window._visaOn;},        set:function(v){ if(window.setVisa) window.setVisa(v); }, lbl:"VISA" },
+                        { id:"climate-toggle", on:function(){return window._climateOn;},   set:function(v){ if(window.setClimateMode) window.setClimateMode(v); }, lbl:"CLIMATE" }
                     ];
                     function _paintMode(m, on){ var b=document.getElementById(m.id); if(b){ var lbl=b.querySelector(".rb-label"); if(lbl){ lbl.textContent=m.lbl+(on?": ON":": OFF"); } b.style.opacity=on?"1":"0.4"; } }
                     function _setMode(m, on){
