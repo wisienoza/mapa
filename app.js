@@ -404,6 +404,31 @@
                 // z citiesStats.cliCityList ({name, cc, hi, lo, amp, ann, wet, annPrec}).
                 // Uzywane przez prog() kategorii KLIMAT do zbudowania listy `done` - agregaty
                 // (cliColdest itd.) mowia ILE, to mowi KTORE. Sortowane A-Z, jak reszta list w panelu.
+                // CIEKAWOSTKI: nazwy odwiedzonych PANSTW spelniajacych warunek. fn dostaje
+                // { code, name, pop, area, dens, langs, caps } - wszystko wprost z FACTBOOK,
+                // wiec po odswiezeniu bazy listy same sie zaktualizuja.
+                // EXCLUDED_CODES odsiane, bo ta kategoria mowi o panstwach, nie terytoriach.
+                _visCountries: function(fn){
+                    if (typeof FACTBOOK === 'undefined') return [];
+                    var ex = (typeof EXCLUDED_CODES !== 'undefined') ? EXCLUDED_CODES : [];
+                    var out = [];
+                    Object.keys(visitedSet).forEach(function(code){
+                        if (ex.indexOf(code) >= 0) return;
+                        var f = FACTBOOK[code];
+                        if (!f) return;
+                        var pop = +f.population || 0, area = +f.area || 0;
+                        var rec = {
+                            code: code,
+                            name: (f.name && f.name.common) ? f.name.common : code,
+                            pop: pop, area: area,
+                            dens: area > 0 ? (pop / area) : 0,
+                            langs: f.languages ? Object.keys(f.languages).length : 0,
+                            caps: (f.capital && f.capital.length) ? f.capital.length : 0
+                        };
+                        try { if (fn(rec)) out.push(rec.name); } catch (e) {}
+                    });
+                    return out.sort(function(a, b){ return a.localeCompare(b, "pl"); });
+                },
                 // MIASTA: nazwy odwiedzonych miast spelniajacych warunek. fn dostaje wpis z
                 // citiesStats.cityList ({name, cc, pop, cap}). Nazwa doklejana krajem, bo miasta
                 // powtarzaja sie miedzy krajami ("Sajgon" i dziesiatki "San Jose").
