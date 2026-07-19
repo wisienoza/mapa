@@ -4340,6 +4340,14 @@
                                     return am5.color(b ? _visaCols[b] : 0x3a3a3a);
                                 });
                                 _visaSeries.mapPolygons.template.adapters.add("tooltipText", function(t, target){ var dc=target.dataItem&&target.dataItem.dataContext; return dc?_visaTip(dc):t; });
+                                // Klik w kraj w trybie VISA: wylacz tryb (+ przycisk) i otworz intel kraju jak w normalnym trybie.
+                                _visaSeries.mapPolygons.template.events.on("click", function(ev){
+                                    var dc = ev.target.dataItem && ev.target.dataItem.dataContext; if(!dc) return;
+                                    if (ev.target.hideTooltip) ev.target.hideTooltip();
+                                    if (window._exitActiveOverlayMode) window._exitActiveOverlayMode();   // nakladka znika -> highlight lezy na bazowej serii
+                                    var pItem = poly.getDataItemById(dc.id);
+                                    if (window._selectCountry) window._selectCountry(dc.id, (dc.name || dc.id).toUpperCase(), pItem ? pItem.get("mapPolygon") : null);
+                                });
                             }
                             _visaSeries.set("visible", true);
                             if (window.showVisaLegend) window.showVisaLegend(true);
@@ -4423,6 +4431,14 @@
                                 _cliSeries.mapPolygons.template.setAll({ fillOpacity: 1, stroke: am5.color(0x0a0a0a), strokeOpacity: 0.55, strokeWidth: 0.5, interactive: true, tooltipText: "{name}" });
                                 _cliSeries.mapPolygons.template.states.create("hover", { stroke: am5.color(0xffffff), strokeOpacity: 0.95, strokeWidth: 1.6 });
                                 _cliSeries.mapPolygons.template.adapters.add("tooltipText", function(t, target){ var dc=target.dataItem&&target.dataItem.dataContext; return dc?_cliTip(dc):t; });
+                                // Klik w kraj w trybie CLIMATE: wylacz tryb (+ przycisk) i otworz intel kraju jak w normalnym trybie.
+                                _cliSeries.mapPolygons.template.events.on("click", function(ev){
+                                    var dc = ev.target.dataItem && ev.target.dataItem.dataContext; if(!dc) return;
+                                    if (ev.target.hideTooltip) ev.target.hideTooltip();
+                                    if (window._exitActiveOverlayMode) window._exitActiveOverlayMode();   // nakladka znika -> highlight lezy na bazowej serii
+                                    var pItem = poly.getDataItemById(dc.id);
+                                    if (window._selectCountry) window._selectCountry(dc.id, (dc.name || dc.id).toUpperCase(), pItem ? pItem.get("mapPolygon") : null);
+                                });
                                 _cliSeries.events.on("datavalidated", _cliRepaint);   // polygony buduja sie async -> pomaluj gdy gotowe
                             }
                             _cliSeries.set("visible", true);
@@ -4608,16 +4624,17 @@
                     }
                 };
 
-                poly.mapPolygons.template.events.on("click", function(ev) {
-                    var dataItem = ev.target.dataItem;
-                    var id = dataItem.dataContext.id;
-                    var name = dataItem.dataContext.name.toUpperCase();
+                // Pelna selekcja kraju (podswietlenie + panele + obrot globu). Wydzielone z handlera klika,
+                // zeby moc ja wywolac takze z nakladek VISA/CLIMATE (klik w kraj w tych trybach wylacza tryb
+                // i otwiera intel kraju - patrz window._exitActiveOverlayMode + handlery klika w setVisa/
+                // setClimateMode). targetPoly = wielokat BAZOWEJ serii (nie nakladki) - po nim idzie highlight.
+                window._selectCountry = function(id, name, targetPoly) {
                     window._selectedCountryId = id;
-                    if (window.highlightCountry) window.highlightCountry(ev.target);
+                    if (window.highlightCountry) window.highlightCountry(targetPoly);
                     // Sprzezenie zwrotne w dwie strony: klik w kraj na globie podswietla tez jego flage
                     // w dolnym pasku (o ile kraj jest odwiedzony - inaczej po prostu nie ma tam czego zapalic).
                     if (window._setLootBarActive) window._setLootBarActive(id);
-                    if (ev.target.hideTooltip) ev.target.hideTooltip();
+                    if (targetPoly && targetPoly.hideTooltip) targetPoly.hideTooltip();
 
                     stopRot();
                     lineSeries.data.clear();
@@ -4636,6 +4653,10 @@
                             window.updateFactbookPanel(id, name);
                         }
                     }
+                };
+                poly.mapPolygons.template.events.on("click", function(ev) {
+                    var dataItem = ev.target.dataItem;
+                    window._selectCountry(dataItem.dataContext.id, dataItem.dataContext.name.toUpperCase(), ev.target);
                 });
 
                 pointSeries.bullets.push(function(root, series, dataItem) {
@@ -4799,6 +4820,13 @@
                         m.set(on); _paintMode(m, on);
                     }
                     _modes.forEach(function(m){ var b=document.getElementById(m.id); if(b){ b.onclick = function(){ _dropCountryFocus(); _setMode(m, !m.on()); }; } });
+                    // Wylacz aktywny tryb-nakladke (VISA/CLIMATE) WRAZ z przyciskiem - wolane przy kliknieciu
+                    // w kraj na nakladce. Tryby wykluczaja sie, wiec aktywny jest max jeden; gasimy kazdy "on".
+                    // NIE wola _dropCountryFocus (inaczej wyczyscilby wlasnie wybrany kraj), bo zaraz po nim
+                    // handler nakladki wola window._selectCountry i otwiera intel.
+                    window._exitActiveOverlayMode = function(){
+                        _modes.forEach(function(m){ if (m.on()) { m.set(false); _paintMode(m, false); } });
+                    };
                     // --- Przelacznik szczegolowosci globu (LOW/HIGH/ULTRA): zapis w localStorage + reload ---
                     // Przebudowa geometrii w locie jest ryzykowna przy tak zlozonym setupie mapy, wiec
                     // wybor jest utrwalany, a strona przeladowywana - loader w index.html zaciaga wtedy
