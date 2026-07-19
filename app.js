@@ -961,6 +961,10 @@
             function build(ctx){
                 needByCat = {};
                 window.ACHIEVEMENTS.forEach(function(a){
+                    // Odznaki z RECZNYM poziomem nie wchodza do rozkladu percentyla - ich prog()
+                    // istnieje tylko po to, by miec liste `done` (have = ile spelnia, need = 1),
+                    // wiec wrzucone do puli zanizalyby prog pozostalym pozycjom kategorii.
+                    if (typeof ACH_TIERS_MANUAL !== 'undefined' && ACH_TIERS_MANUAL[a.id]) return;
                     var n = needOf(a, ctx);
                     if (n !== null) (needByCat[a.cat] || (needByCat[a.cat] = [])).push(n);
                 });
@@ -979,18 +983,25 @@
                 if (typeof ACH_TIER_DEFS === 'undefined') return null;
                 if (ctx !== cacheCtx || !needByCat) build(ctx);
                 var top = ceilOf(a.cat), idx;
-                var n = (pr === undefined) ? needOf(a, ctx) : ((pr && pr.need > 0) ? pr.need : null);
-                if (n === null) {
-                    // Odznaka binarna: poziom z recznej tablicy, ale sufit obowiazuje TAK SAMO -
-                    // inaczej ACH_TIERS_MANUAL obchodzilaby regule tylnymi drzwiami.
-                    var key = (typeof ACH_TIERS_MANUAL !== 'undefined') ? ACH_TIERS_MANUAL[a.id] : null;
+                // RECZNY POZIOM MA PIERWSZENSTWO PRZED PERCENTYLEM (naprawione 2026-07-19).
+                // Wczesniej reczna tablica byla sprawdzana DOPIERO gdy odznaka nie miala prog().
+                // Gdy 2026-07-19 dopisalismy prog() odznakom binarnym (KLIMAT/MIASTA/CIEKAWOSTKI -
+                // po to, by mialy listy `done`), wszystkie one wypadly ze sciezki recznej i poszly
+                // na percentyl. A tam ich need = 1, czyli MINIMUM w kategorii -> ladowaly na brazie
+                // i kasowaly cale reczne wywazenie (diament 10 -> 11, platyna 39 -> 36, braz 226 -> 238).
+                // Reczny wpis to JAWNA DECYZJA czlowieka i musi bic wyliczenie, niezaleznie od prog().
+                var key = (typeof ACH_TIERS_MANUAL !== 'undefined') ? ACH_TIERS_MANUAL[a.id] : null;
+                if (key) {
                     idx = -1;
                     for (var i = 0; i < ACH_TIER_DEFS.length; i++) {
                         if (ACH_TIER_DEFS[i].key === key) { idx = i; break; }
                     }
-                    if (idx < 0) return null;
-                    return ACH_TIER_DEFS[Math.min(idx, top)];
+                    // Sufit kategorii obowiazuje TAK SAMO - inaczej reczna tablica obchodzilaby
+                    // regule tylnymi drzwiami.
+                    if (idx >= 0) return ACH_TIER_DEFS[Math.min(idx, top)];
                 }
+                var n = (pr === undefined) ? needOf(a, ctx) : ((pr && pr.need > 0) ? pr.need : null);
+                if (n === null) return null;   // brak progu i brak wpisu recznego - bez poziomu
                 var arr = needByCat[a.cat];
                 if (!arr || !arr.length) return null;
                 // Percentyl progu W OBREBIE KATEGORII -> poziom wg krzywej (piramida, nie kwintyle).
