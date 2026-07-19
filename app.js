@@ -850,6 +850,14 @@
                 newIds.push(a.id);
             });
             window.updateAchievementProgressBadge(ctx);
+            // SPLASH ZA ODZNAKI LOTNICZE Z IMPORTU FR24. Osobna sciezka niz "na zywo" ponizej, bo loty NIE
+            // maja klikalnego zdarzenia na stronie - zmienia je wylacznie import CSV w admin.php, wiec nigdy
+            // nie trafiaja na sciezke mark*/refreshVisitedUI i straznik _achSplashArmed ZAWSZE zjadalby ich
+            // splash (patrz db-schema.md, sekcja SPLASH). Diff liczony wzgledem localStorage TEJ przegladarki,
+            // wiec: dziala tez tam, gdzie zapis admin.php pada (GitHub Pages), i sam sie ogranicza (pierwszy
+            // kontakt zasiewa po cichu). `set` jest tu juz pelnym aktualnym zestawem zdobytych ID (persisted +
+            // swiezo policzone wyzej), wiec przekazujemy go wprost - bez drugiego przejscia po katalogu.
+            if (window._flightAchSplashCheck) window._flightAchSplashCheck(set);
             // SPLASH TYLKO ZA ZDOBYCIE NA ZYWO (klik "ODWIEDZONE" -> mark* -> refreshVisitedUI -> tutaj).
             // Pierwszy przebieg po wczytaniu strony leci CICHO i tylko uzbraja mechanizm, bo "nowe" liczy sie
             // wzgledem achievements-data.js: gdy ten plik jest pusty albo zostal w tyle za katalogiem, na
@@ -929,6 +937,50 @@
                            desc: a.desc, accent: acc, tier: t });
             });
             window._achSplashPush(out);
+        };
+        // --- SPLASH ZA ODZNAKI LOTNICZE Z IMPORTU FR24 ---
+        // Kategorie stojace WYLACZNIE na FLIGHTS_LOG + FLIGHTS_AP (patrz db-schema.md przy ACHIEVEMENTS).
+        // CELOWO tylko te: zmieniaja sie wylacznie importem CSV, wiec nie koliduja ze splashem "na zywo"
+        // (klik kraju/miasta). NIE dopisuj tu kategorii ladowych (KRAJE/MIASTA/REGIONY...) - te maja wlasna
+        // sciezke i wpadlyby w podwojny splash.
+        window._FLIGHT_ACH_CATS = { "LOTY":1, "CZAS W POWIETRZU":1, "LINIE I MASZYNY":1, "RYTM LOTÓW":1, "LOTNISKA":1 };
+        // Wolane na koncu checkAndPersistAchievements. Argument = mapa WSZYSTKICH aktualnie zdobytych ID
+        // (persisted + swiezo policzone). Porownuje biezacy zestaw odznak lotniczych ze snapshotem z
+        // localStorage (ostatnia wizyta TEJ przegladarki) i pokazuje splash za ROZNICE.
+        //  - brak/uszkodzony snapshot  -> cichy zasiew (zero splashy), jak "pierwszy przebieg uzbraja";
+        //  - roznica <= CAP            -> normalna kolejka splashy (po jednej, z licznikiem "jeszcze N");
+        //  - roznica >  CAP            -> jedno okno-podsumowanie (nie robimy pokazu 60 slajdow po duzym
+        //                                 imporcie / pierwszej wizycie na nowej przegladarce bez zasiewu).
+        // Snapshot zapisujemy ZAWSZE na koncu (tez po zasiewie i po pustej roznicy), wiec kolejne wywolania
+        // w tej samej sesji sa idempotentne - splash leci raz.
+        window._flightAchSeenKey = "flightAchSeen";
+        window._flightAchSplashCheck = function(earnedSet){
+            if (!window.ACHIEVEMENTS || !earnedSet) return;
+            var cur = [];
+            window.ACHIEVEMENTS.forEach(function(a){
+                if (a.id && earnedSet[a.id] && window._FLIGHT_ACH_CATS[a.cat]) cur.push(a.id);
+            });
+            var KEY = window._flightAchSeenKey;
+            var save = function(){ try { localStorage.setItem(KEY, JSON.stringify(cur)); } catch (e) {} };
+            var prevArr = null;
+            try { var raw = localStorage.getItem(KEY); if (raw) prevArr = JSON.parse(raw); } catch (e) { prevArr = null; }
+            if (!prevArr || !Array.isArray(prevArr)) { save(); return; }   // pierwszy kontakt = cichy zasiew
+            var prev = {};
+            prevArr.forEach(function(id){ prev[id] = true; });
+            var diff = cur.filter(function(id){ return !prev[id]; });
+            if (!diff.length) { save(); return; }
+            var CAP = 20;
+            if (diff.length > CAP && window._achSplashPush) {
+                var n = window._achNum ? window._achNum(diff.length) : String(diff.length);
+                window._achSplashPush([{
+                    kicker: "★ NOWE ODZNAKI LOTNICZE ★", icon: "✈️", name: n + " NOWYCH ODZNAK",
+                    cat: "IMPORT LOTÓW FR24", desc: "Otwórz panel osiągnięć (🏆), żeby je obejrzeć.",
+                    accent: _SPLASH_ACCENT_ACH
+                }]);
+            } else if (window.showAchievementSplash) {
+                window.showAchievementSplash(diff);
+            }
+            save();
         };
         // Awans rangi. RANKS[].title trzyma emoji na KONCU napisu ("CAPTAIN ⚓" - tak jest we wszystkich
         // 35 rangach), a splash chce ikone osobno: odcinamy koncowe znaki niebedace litera/cyfra.
