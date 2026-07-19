@@ -975,7 +975,14 @@
         // bez dotykania overlaya (i zeby funkcja budujaca okno zostala czytelna).
         window._passportHTML = function(){
             var ctx = window.computeAchievementContext ? window.computeAchievementContext() : null;
-            var rs = window._rankState || { score: 0, idx: 0, visited: [] };
+            // _rankState wypelnia refreshVisitedUI. Gdyby paszport otworzyl sie ZANIM ta poszla
+            // (albo gdyby padla), spadamy na ctx.score - to ta sama liczba, liczona niezaleznie -
+            // i range wyliczamy z niej przez _rankIndexFor. Bez tego panel pokazywal "NPC / 0 krajow".
+            var rs = window._rankState;
+            if (!rs || typeof rs.score !== 'number') {
+                var _sc = (ctx && typeof ctx.score === 'number') ? ctx.score : 0;
+                rs = { score: _sc, idx: window._rankIndexFor ? window._rankIndexFor(_sc) : 0, visited: [] };
+            }
             var rank = (typeof RANKS !== 'undefined' && RANKS[rs.idx]) ? RANKS[rs.idx] : null;
             var next = (typeof RANKS !== 'undefined') ? RANKS[rs.idx + 1] : null;
             var fs = window._flightStats ? window._flightStats() : null;
@@ -1063,17 +1070,17 @@
                     return x.a.name.localeCompare(y.a.name, "pl");
                 });
                 h += '<div style="margin-top:22px;"></div>' + naglowek("NAJRZADSZE ZDOBYTE — " + rare.length);
-                rare.slice(0, 12).forEach(function(r){
+                rare.slice(0, 14).forEach(function(r){
                     var col = "rgb(" + (r.t.markRgb || r.t.rgb) + ")";
-                    h += '<div style="display:flex; align-items:center; gap:9px; padding:5px 0; border-bottom:1px solid rgba(255,255,255,0.05);">'
+                    h += '<div onclick="window._passportGoToAch(\'' + r.a.id + '\')" style="display:flex; align-items:center; gap:9px; padding:5px 0; border-bottom:1px solid rgba(255,255,255,0.05); cursor:pointer;" title="Pokaż tę odznakę w panelu osiągnięć">'
                        +   '<svg viewBox="0 0 24 24" fill="' + col + '" style="width:14px; height:14px; min-width:14px; flex:0 0 auto;">' + r.t.mark + '</svg>'
                        +   '<span style="font-size:1.5rem; line-height:1;">' + r.a.icon + '</span>'
                        +   '<span style="flex:1; min-width:0; color:#e6ecf2; font-size:0.85rem; font-weight:700; letter-spacing:0.5px;">' + r.a.name + '</span>'
                        +   '<span style="font-family:\'JetBrains Mono\',monospace; font-size:0.55rem; color:#6b7684; letter-spacing:1px;">' + r.a.cat + '</span>'
                        + '</div>';
                 });
-                if (rare.length > 12) {
-                    h += '<div style="font-family:\'JetBrains Mono\',monospace; font-size:0.58rem; color:#6b7684; margin-top:7px;">…i jeszcze ' + (rare.length - 12) + '</div>';
+                if (rare.length > 14) {
+                    h += '<div style="font-family:\'JetBrains Mono\',monospace; font-size:0.58rem; color:#6b7684; margin-top:7px;">…i jeszcze ' + (rare.length - 14) + '</div>';
                 }
             }
 
@@ -1102,6 +1109,26 @@
             return h;
         };
 
+        // Klik w pozycje "NAJRZADSZE ZDOBYTE" w paszporcie: zamyka paszport, otwiera panel osiagniec
+        // i przewija do TEJ odznaki, podswietlajac ja na chwile.
+        // Celowo NIE wolamy showAchievementDetail: platyny i diamenty to czesto odznaki licznikowe
+        // bez list done/missing, wiec okienko rozpiski otworzyloby sie puste (patrz warunek
+        // klikalnosci kafelka). Skok do kafelka dziala dla KAZDEJ odznaki.
+        window._passportGoToAch = function(id){
+            if (window.hidePassportPanel) window.hidePassportPanel();
+            window.showAchievementsPanel();
+            var tile = document.querySelector('#achievements-body [data-ach="' + id + '"]');
+            if (!tile) return;
+            tile.scrollIntoView({ block: "center", behavior: "smooth" });
+            // Podswietlenie przez animacje obrysu - nie ruszamy inline'owego stylu kafelka
+            // (niesie kolor poziomu), wiec po animacji nie trzeba niczego przywracac.
+            if (tile.animate) {
+                tile.animate([
+                    { outline: "2px solid rgba(0,204,255,0.9)", outlineOffset: "3px" },
+                    { outline: "2px solid rgba(0,204,255,0)",   outlineOffset: "3px" }
+                ], { duration: 1600, easing: "ease-out" });
+            }
+        };
         window.showAchievementsPanel = function(){
             var el = document.getElementById("achievements-overlay");
             if (!el) {
@@ -1161,7 +1188,8 @@
                 // padding-right robi miejsce na znaczek poziomu; bez niego dluzsze nazwy wchodza pod niego.
                 var namePad = tier ? ' padding-right:22px;' : '';
                 byCat[a.cat].push(
-                    '<div' + clickAttr + ' style="display:flex; gap:10px; align-items:flex-start; padding:10px; border-radius:6px; position:relative; ' + window._achTierStyle(tier, on) + curs + '">'
+                    // data-ach: cel skoku z paszportu (window._passportGoToAch)
+                    '<div data-ach="' + a.id + '"' + clickAttr + ' style="display:flex; gap:10px; align-items:flex-start; padding:10px; border-radius:6px; position:relative; ' + window._achTierStyle(tier, on) + curs + '">'
                   +   window._achTierMark(tier, on)
                   +   '<div style="font-size:1.7rem; opacity:' + (on ? '1' : '0.22') + '; filter:' + (on ? 'none' : 'grayscale(1)') + ';">' + a.icon + '</div>'
                   +   '<div style="flex:1; min-width:0;">'
