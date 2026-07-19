@@ -4821,8 +4821,9 @@
 
                                 resetBtn.onclick = function() {
                     if (autoRot) autoRot.pause();
+                    if (window.clearCountrySearch) window.clearCountrySearch();   // wyczysc tez pole wyszukiwania kraju
                     window.resetIntelPanels();
-                    chart.goHome(); 
+                    chart.goHome();
                     chart.animate({ key: "rotationX", to: -20, duration: 1000, easing: am5.ease.out(am5.ease.cubic) });
                     chart.animate({ key: "rotationY", to: -15, duration: 1000, easing: am5.ease.out(am5.ease.cubic) });
                     lineSeries.data.clear();
@@ -5386,6 +5387,19 @@
 
             const searchInput = document.getElementById('country-search');
             const resultsDiv = document.getElementById('search-results');
+            const searchClearBtn = document.getElementById('country-search-clear');
+            // Przycisk "x" pokazuje sie tylko gdy w polu jest tekst (sync po wpisaniu ORAZ po
+            // programowym ustawieniu wartosci przy kliknieciu w wynik).
+            function _syncSearchClear(){ if (searchClearBtn) searchClearBtn.style.display = (searchInput && searchInput.value.length) ? 'block' : 'none'; }
+            // Globalny, zeby mogl go wolac przycisk RESET AND RESUME ORBIT (patrz resetBtn.onclick).
+            window.clearCountrySearch = function(){
+                if (searchInput) searchInput.value = '';
+                if (resultsDiv) resultsDiv.innerHTML = '';
+                _syncSearchClear();
+            };
+            if (searchClearBtn) {
+                searchClearBtn.addEventListener('click', function(){ window.clearCountrySearch(); if (searchInput) searchInput.focus(); });
+            }
 
             // --- Plaski, jednorazowo zbudowany indeks miast do wyszukiwarki (CITIES_DB pogrupowany
             // po kraju -> pojedyncza lista [cc, wpis, czyStolica, nazwaUpper]), zeby przy kazdym
@@ -5405,6 +5419,7 @@
 
             searchInput.addEventListener('input', function(e) {
                 const val = e.target.value.toUpperCase();
+                _syncSearchClear();
                 resultsDiv.innerHTML = '';
                 if (val.length < 2) return;
 
@@ -5445,6 +5460,7 @@
 
                             resultsDiv.innerHTML = '';
                             searchInput.value = name;
+                            _syncSearchClear();
                         }
                     };
                     resultsDiv.appendChild(d);
@@ -5507,6 +5523,7 @@
 
                         resultsDiv.innerHTML = '';
                         searchInput.value = ci[0].toUpperCase();
+                        _syncSearchClear();
                     };
                     resultsDiv.appendChild(d);
                 });

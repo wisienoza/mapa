@@ -519,8 +519,11 @@
             <h1>Search & Track</h1>
             <div class="hud-panel">
                 <div class="range-label">SATELLITE UPLINK / COUNTRY SEARCH</div>
-                <input type="text" id="country-search" placeholder="ENTER NAME..." 
-                       style="width: 100%; background: rgba(0,255,0,0.05); border: 1px solid #00ff00; color: #00ff00; padding: 10px; font-family: 'JetBrains Mono', monospace; margin-top: 10px; outline: none; box-sizing: border-box; border-radius: 4px;">
+                <div style="position: relative; margin-top: 10px;">
+                    <input type="text" id="country-search" placeholder="ENTER NAME..."
+                           style="width: 100%; background: rgba(0,255,0,0.05); border: 1px solid #00ff00; color: #00ff00; padding: 10px 34px 10px 10px; font-family: 'JetBrains Mono', monospace; outline: none; box-sizing: border-box; border-radius: 4px;">
+                    <span id="country-search-clear" title="Wyczyść" style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); display: none; cursor: pointer; color: #00ff00; font-size: 1.35rem; line-height: 1; padding: 0 5px; user-select: none;">&times;</span>
+                </div>
                 <div id="search-results" style="max-height: 200px; overflow-y: auto; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; background: rgba(0,0,0,0.6); margin-top: 5px; border-radius: 4px;"></div>
             </div>
             <!-- FLIGHTS: wczesniej position:absolute (left:325px; bottom:72px) wzgledem .left-wrapper.
