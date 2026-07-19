@@ -1084,8 +1084,13 @@
                          +   '<span style="color:#8f9ba8; letter-spacing:1px;">' + l + '</span><span style="color:#fff;">' + v + '</span></div>';
                 }
                 h += '<div style="margin-top:22px;"></div>' + naglowek("NALOT");
+                // UWAGA: liczba lotnisk i tras idzie z FLIGHTS_META, NIE z fs.topAirports.length -
+                // to lista TOP-N (6 pozycji), a nie komplet lotnisk (51). Pierwsza wersja podpisywala
+                // te szostke jako "LOTNISKA".
+                var _ap = (typeof FLIGHTS_META !== 'undefined') ? FLIGHTS_META.airports : "—";
+                var _rt = (typeof FLIGHTS_META !== 'undefined') ? FLIGHTS_META.routes : "—";
                 h += row(fs.hasLog ? "LOTY / LOTNISKA / TRASY" : "SUMA TRAS",
-                         fs.flights + " · " + fs.topAirports.length + " · " + (typeof FLIGHTS_META !== 'undefined' ? FLIGHTS_META.routes : "—"));
+                         fs.flights + " · " + _ap + " · " + _rt);
                 h += row(fs.hasLog ? "PRZELECIANE" : "SUMA TRAS (NIE NALOT)",
                          N(Math.round(fs.totalKm)) + " km  (" + fs.laps.toFixed(2).replace(".", ",") + " × dookoła Ziemi)");
                 if (fs.minutes) h += row("W POWIETRZU", window._fmtHm ? window._fmtHm(fs.minutes) : (fs.minutes + " min"));
