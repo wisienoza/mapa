@@ -4107,7 +4107,7 @@
                         <div class="fact-row" style="margin-top:-5px; margin-bottom:12px; display:block;"><div style="font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; color:${safeInfo.color}; width: 100%; text-align: right; white-space: normal; line-height: 1.2;">${safeInfo.desc}</div></div>
 
                         <div class="fact-row"><span class="fact-key">CODE:</span><span class="fact-val" style="color:#facc15">${cca2}</span></div>
-                        <div class="fact-row"><span class="fact-key">CAPITAL:</span><span class="fact-val">${capitalRaw.toUpperCase()}</span></div>
+                        <div class="fact-row" id="capital-row" style="cursor:pointer;" title="Pokaż profil stolicy"><span class="fact-key">CAPITAL:</span><span class="fact-val">${capitalRaw.toUpperCase()}</span></div>
                         <div class="fact-row"><span class="fact-key">DIST. WAW:</span><span class="fact-val" style="color:#00ccff">${distance}</span></div>
                         
                         <div class="fact-row"><span class="fact-key">POWER:</span><span class="fact-val" style="color:${pColor}"><a href="https://www.iec.ch/world-plugs" target="_blank" rel="noopener" title="Wtyczki i napięcia świata (IEC World Plugs) — kraj wybierasz z listy na stronie" style="color:inherit; text-decoration:none;">${intel.p}</a></span></div>
@@ -4192,6 +4192,24 @@
                     }
 
                     const coords = CAPITAL_COORDS[id];
+
+                    // CAPITAL: link WEWNETRZNY (nie URL) - klik otwiera profil miasta stolicy, dokladnie tak samo
+                    // jak klik w jej gwiazdke na globusie (cityDotSeries) czy w wynik wyszukiwarki miast:
+                    // resolveCityIntel dopasowuje capitalRaw do wiersza w CITIES_DB (z fallbackiem na syntetyczne
+                    // linki, gdy stolicy nie ma w bazie), showCityIntel renderuje panel. Bez rotacji globusa/zoomu -
+                    // uzytkownik juz patrzy na ten kraj (kliknal go, zeby zobaczyc ten profil).
+                    const _capRow = document.getElementById("capital-row");
+                    if (_capRow) {
+                        if (coords && window.resolveCityIntel && window.showCityIntel) {
+                            _capRow.onclick = function(){
+                                window.showCityIntel(window.resolveCityIntel(capitalRaw, coords[0], coords[1]));
+                            };
+                        } else {
+                            _capRow.style.cursor = "default";
+                            _capRow.title = "";
+                        }
+                    }
+
                     if(coords) {
                         window._fetchWeather(coords[0], coords[1])
                             .then(weatherData => {
