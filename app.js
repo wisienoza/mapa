@@ -5239,7 +5239,12 @@
                     }
 
                     // Kraje wyprawy (flag + nazwa + NEW/odwiedzone)
-                    var codes = window._missionCountries ? window._missionCountries(m) : (m.flag ? [m.flag] : []);
+                    // PL (dom) NIGDY na liscie krajow wyprawy - kazda misja startuje/konczy w Warszawie,
+                    // wiec Polska to nie "cel". Filtrujemy TU (warstwa okna), nie w _missionCountries,
+                    // zeby nie zmieniac panelu intelu. Kazdy kafelek klikalny -> focusRankTarget (obrot
+                    // globu + factbook/pogoda, ta sama akcja co wiersze krajow w panelu intelu).
+                    var codes = (window._missionCountries ? window._missionCountries(m) : (m.flag ? [m.flag] : []))
+                                .filter(function(c){ return c && c !== "PL"; });
                     if (codes.length) {
                         var vis = (typeof VISITED_COUNTRIES !== "undefined") ? VISITED_COUNTRIES : [];
                         html += '<div style="margin-bottom:16px;"><div style="font-size:0.66rem; color:#00ccff; letter-spacing:2px; margin-bottom:8px;">⚑ KRAJE WYPRAWY</div>'
@@ -5253,7 +5258,8 @@
                                            : '<span style="font-size:0.6rem; color:#00ff88; letter-spacing:1px;">NEW</span>';
                             var bg = seen ? "rgba(255,255,255,0.03)" : "rgba(0,255,136,0.06)";
                             var br = seen ? "rgba(255,255,255,0.1)" : "rgba(0,255,136,0.25)";
-                            html += '<div style="display:flex; align-items:center; gap:6px; background:' + bg + '; border:1px solid ' + br + '; border-radius:5px; padding:4px 8px;">'
+                            var cc = JSON.stringify(code);
+                            html += '<div onclick="window.hideMissionDossier(); if(window.focusRankTarget) window.focusRankTarget(' + cc + ');" title="Pokaż ' + esc(nm) + ' na globusie" style="display:flex; align-items:center; gap:6px; cursor:pointer; background:' + bg + '; border:1px solid ' + br + '; border-radius:5px; padding:4px 8px;">'
                                   + fimg + '<span style="font-size:0.76rem; color:' + (seen ? "#9aa5b1" : "#e6ecf2") + ';">' + esc(nm) + '</span>' + tag + '</div>';
                         });
                         html += '</div></div>';
