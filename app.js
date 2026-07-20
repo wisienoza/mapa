@@ -4001,11 +4001,10 @@
                     const mszUrl = getMszLink(id); 
                     const unsplashUrl = `https://unsplash.com/s/photos/${countryNameSlug}`;
                     const atlasUrl = (typeof ATLAS_LINKS !== 'undefined' && ATLAS_LINKS[id]) ? ATLAS_LINKS[id] : `https://www.atlasobscura.com/things-to-do/${countryNameSlug}`;
-                    // WATER: link do isthewatersafe.com. Slug jak reszta serwisów (countryNameSlug),
-                    // z tym samym mechanizmem korekt co TasteAtlas/Wikivoyage - WATER_SAFE_OVERRIDES (intel.js)
-                    // dla krajów, których serwis trzyma pod innym/zakodowanym slugiem (np. Myanmar->burma-(myanmar)).
-                    const waterSlug = (typeof WATER_SAFE_OVERRIDES !== 'undefined' && WATER_SAFE_OVERRIDES[id]) ? WATER_SAFE_OVERRIDES[id] : countryNameSlug;
-                    const waterUrl = `https://isthewatersafe.com/country/${waterSlug}`;
+                    // WATER: link do isthewatersafe.com WYŁĄCZNIE dla krajów z jawnej bazy WATER_SAFE_LINKS (intel.js).
+                    // Nie zgadujemy slugu generycznie - brak wpisu = brak linku (serwis nie ma tej strony), sam tekst.
+                    const waterSlug = (typeof WATER_SAFE_LINKS !== 'undefined' && WATER_SAFE_LINKS[id]) ? WATER_SAFE_LINKS[id] : null;
+                    const waterUrl = waterSlug ? `https://isthewatersafe.com/country/${waterSlug}` : null;
                     const safeLevel = (typeof SAFETY_OVERRIDE !== 'undefined' && SAFETY_OVERRIDE[id]) ? SAFETY_OVERRIDE[id] : 1;
                     const safeInfo = SAFETY_LABELS[safeLevel];
                     const tripUrl = `https://www.tripadvisor.com/Search?q=${countryNameSafe}`;
@@ -4079,7 +4078,7 @@
                         <div class="fact-row"><span class="fact-key">DIST. WAW:</span><span class="fact-val" style="color:#00ccff">${distance}</span></div>
                         
                         <div class="fact-row"><span class="fact-key">POWER:</span><span class="fact-val" style="color:${pColor}">${intel.p}</span></div>
-                        <div class="fact-row"><span class="fact-key">WATER:</span><span class="fact-val"><a href="${waterUrl}" target="_blank" rel="noopener" title="Sprawdź, czy woda z kranu jest bezpieczna (isthewatersafe.com)" style="color:${intel.w.includes('✅') ? '#00ff00' : '#dc2626'}; text-decoration:underline; text-underline-offset:2px;">${intel.w}</a></span></div>
+                        <div class="fact-row"><span class="fact-key">WATER:</span><span class="fact-val" style="color:${intel.w.includes('✅') ? '#00ff00' : '#dc2626'}">${waterUrl ? `<a href="${waterUrl}" target="_blank" rel="noopener" title="Sprawdź, czy woda z kranu jest bezpieczna (isthewatersafe.com)" style="color:inherit; text-decoration:none;">${intel.w}</a>` : intel.w}</span></div>
                         <div class="fact-row"><span class="fact-key">TIPPING:</span><span class="fact-val">${intel.t.toUpperCase()}</span></div>
 
                         ${countryVisitedRowHtml}
