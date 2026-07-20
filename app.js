@@ -4048,6 +4048,18 @@
                     const idd = (c.idd && c.idd.root) ? (c.idd.root + (c.idd.suffixes ? c.idd.suffixes[0] : "")) : "N/A";
 
                     const religionVal = (typeof RELIGIONS !== 'undefined' && RELIGIONS[id]) ? RELIGIONS[id] : "N/A";
+                    // Link RELIGION -> pl.wikipedia dominujacej wiary. Wartosci sa zlozone ("Islam (Szyizm)",
+                    // "Katolicyzm / Voodoo"), wiec bierzemy slowo-klucz o najmniejszym indeksie = pierwsza religia.
+                    // Bez klucza (np. "Brak (Nauka)") = brak linku. Baza: RELIGION_LINKS (intel.js).
+                    let relUrl = null;
+                    if (typeof RELIGION_LINKS !== 'undefined' && religionVal !== "N/A") {
+                        const _relLc = religionVal.toLowerCase();
+                        let _relBest = Infinity;
+                        for (const _kw in RELIGION_LINKS) {
+                            const _i = _relLc.indexOf(_kw);
+                            if (_i >= 0 && _i < _relBest) { _relBest = _i; relUrl = RELIGION_LINKS[_kw]; }
+                        }
+                    }
                     const costVal = (typeof COST_INDEX !== 'undefined' && COST_INDEX[id]) ? COST_INDEX[id] : "$$";
                     
                     let costColor = "#ffff00";
@@ -4093,7 +4105,7 @@
                         ${citiesRowHtml}
                         <div class="fact-row"><span class="fact-key">LANG:</span><span class="fact-val"><a href="https://www.localingual.com/?ISO=${id}" target="_blank" rel="noopener" title="Posłuchaj języków tego kraju (localingual.com)" style="color:inherit; text-decoration:none;">${languages.toUpperCase()}</a></span></div>
                         
-                        <div class="fact-row"><span class="fact-key">RELIGION:</span><span class="fact-val" style="color:#ddd;">${religionVal.toUpperCase()}</span></div>
+                        <div class="fact-row"><span class="fact-key">RELIGION:</span><span class="fact-val" style="color:#ddd;">${relUrl ? `<a href="${relUrl}" target="_blank" rel="noopener" title="O tej religii na Wikipedii" style="color:inherit; text-decoration:none;">${religionVal.toUpperCase()}</a>` : religionVal.toUpperCase()}</span></div>
                         <div class="fact-row"><span class="fact-key">COST INDEX:</span><span class="fact-val" style="color:${costColor}; letter-spacing: 2px;">${costVal}</span></div>
 
                         <div class="fact-row" id="live-rate-row" style="display:none;">

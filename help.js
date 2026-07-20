@@ -19,7 +19,8 @@ window.HELP_SECTIONS = [
         { icon: "💧", text: "Wiersz „WATER” w profilu kraju bywa klikalny — jeśli dany kraj ma swoją stronę w bazie isthewatersafe.com, kliknięcie otwiera ją w nowej karcie (informacja, czy woda z kranu nadaje się do picia). Kraje spoza tej bazy pokazują sam status wody, bez linku." },
         { icon: "💱", text: "W wierszu z kursem waluty (np. „1 PLN = 4,3 EUR”) sam kod lokalnej waluty jest linkiem — otwiera stronę tej waluty na redar.net w nowej karcie. Waluty spoza bazy pokazują sam kod, bez linku." },
         { icon: "🗣️", text: "Wiersz „LANG” (języki kraju) jest linkiem — otwiera ten kraj na localingual.com w nowej karcie, gdzie posłuchasz, jak brzmią jego języki i nazwy miejsc." },
-        { icon: "🔌", text: "Wiersz „POWER” (napięcie/wtyczki) jest linkiem — otwiera oficjalną bazę wtyczek świata IEC (iec.ch/world-plugs). Uwaga: ta strona nie umie od razu wskoczyć na dany kraj, więc kraj wybierasz tam ręcznie z listy." }
+        { icon: "🔌", text: "Wiersz „POWER” (napięcie/wtyczki) jest linkiem — otwiera oficjalną bazę wtyczek świata IEC (iec.ch/world-plugs). Uwaga: ta strona nie umie od razu wskoczyć na dany kraj, więc kraj wybierasz tam ręcznie z listy." },
+        { icon: "🛐", text: "Wiersz „RELIGION” jest linkiem — otwiera na Wikipedii artykuł o dominującej religii kraju. Gdy w polu jest kilka wyznań, link prowadzi do tego wymienionego pierwszego; kraje bez religii (bezludne, „Brak”) linku nie mają." }
     ]},
     { cat: "TWÓJ POSTĘP", items: [
         { icon: "🔢", text: "Liczba w lewym górnym rogu to Twój wynik — ile krajów odwiedziłeś. Kliknięcie w samą liczbę otwiera spis wszystkich tych państw, pogrupowany po kontynencie i z flagami; kliknij dowolne, żeby przenieść się do niego na globusie razem z profilem. Pasek pod liczbą pokazuje, ile brakuje do kolejnej rangi — kliknij go, żeby zobaczyć plan dojścia do niej. Kliknięcie w nazwę aktualnej rangi otwiera jej szczegóły." },
