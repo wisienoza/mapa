@@ -4048,16 +4048,31 @@
                     const idd = (c.idd && c.idd.root) ? (c.idd.root + (c.idd.suffixes ? c.idd.suffixes[0] : "")) : "N/A";
 
                     const religionVal = (typeof RELIGIONS !== 'undefined' && RELIGIONS[id]) ? RELIGIONS[id] : "N/A";
-                    // Link RELIGION -> pl.wikipedia dominujacej wiary. Wartosci sa zlozone ("Islam (Szyizm)",
-                    // "Katolicyzm / Voodoo"), wiec bierzemy slowo-klucz o najmniejszym indeksie = pierwsza religia.
-                    // Bez klucza (np. "Brak (Nauka)") = brak linku. Baza: RELIGION_LINKS (intel.js).
+                    // Link RELIGION -> pl.wikipedia. Wartosci sa zlozone ("Islam (Szyizm)", "Chrzescijanstwo
+                    // (Anglikanizm)", "Katolicyzm / Voodoo", "Brak (Nauka)"). Dwustopniowo (bazy w intel.js):
+                    //  1) PODGATUNEK (RELIGION_SUBLINKS) dookreslajacy DOMINUJACA wiare - liczony tylko w segmencie
+                    //     przed pierwszym '/', wiec "Chrzescijanstwo (Anglikanizm)"->Anglikanizm, ale
+                    //     "Katolicyzm / Anglikanizm" (Gibraltar) zostaje Katolicyzmem;
+                    //  2) inaczej religia-BAZA (RELIGION_LINKS) o najmniejszym indeksie = pierwsza wymieniona.
+                    // Bez trafienia (np. "Brak (Nauka)") = brak linku.
                     let relUrl = null;
-                    if (typeof RELIGION_LINKS !== 'undefined' && religionVal !== "N/A") {
+                    if (religionVal !== "N/A") {
                         const _relLc = religionVal.toLowerCase();
-                        let _relBest = Infinity;
-                        for (const _kw in RELIGION_LINKS) {
-                            const _i = _relLc.indexOf(_kw);
-                            if (_i >= 0 && _i < _relBest) { _relBest = _i; relUrl = RELIGION_LINKS[_kw]; }
+                        const _slash = _relLc.indexOf('/');
+                        const _domSeg = _slash >= 0 ? _relLc.slice(0, _slash) : _relLc;
+                        if (typeof RELIGION_SUBLINKS !== 'undefined') {
+                            let _subBest = Infinity;
+                            for (const _kw in RELIGION_SUBLINKS) {
+                                const _i = _domSeg.indexOf(_kw);
+                                if (_i >= 0 && _i < _subBest) { _subBest = _i; relUrl = RELIGION_SUBLINKS[_kw]; }
+                            }
+                        }
+                        if (!relUrl && typeof RELIGION_LINKS !== 'undefined') {
+                            let _relBest = Infinity;
+                            for (const _kw in RELIGION_LINKS) {
+                                const _i = _relLc.indexOf(_kw);
+                                if (_i >= 0 && _i < _relBest) { _relBest = _i; relUrl = RELIGION_LINKS[_kw]; }
+                            }
                         }
                     }
                     const costVal = (typeof COST_INDEX !== 'undefined' && COST_INDEX[id]) ? COST_INDEX[id] : "$$";

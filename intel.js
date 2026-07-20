@@ -2292,21 +2292,37 @@ const CURRENCY_LINKS = {
 
 // === RELIGION LINKS (pl.wikipedia) ===
 // Wiersz RELIGION w profilu kraju (app.js) linkuje do artykulu o DOMINUJACEJ wierze. Wartosci w RELIGIONS sa
-// zlozone ("Islam (Szyizm)", "Katolicyzm / Voodoo", "Ateizm panstwowy", "Brak (Nauka)"...), wiec app.js NIE mapuje
-// calego stringa: skanuje go i bierze slowo-klucz o NAJMNIEJSZYM indeksie (czyli pierwsza wymieniona religia).
-// Klucz = slowo religii malymi literami Z polskimi znakami (dopasowanie przez toLowerCase().indexOf, bez
-// stripDiacritics - bo 'ł' sie nie rozklada). Wartosc = pelny, zweryfikowany link pl.wikipedia (2026-07-20).
-// CELOWO tylko slowa, ktore realnie WYSTEPUJA JAKO PIERWSZE w ktorejs wartosci - podgatunki z nawiasow
-// (Sunnizm/Baptyzm/Metodyzm/Voodoo/Animizm/Taoizm...) zawsze poprzedza baza (Islam/Protestantyzm/...), wiec ich
-// nie ma. "Brak (...)" i bezludne terytoria nie maja slowa-klucza -> brak linku (i tak nie ma tam religii).
-// "Brak wyznania" swiadomie bez klucza: samo -> bez linku, a w zlozeniu linkuje sie realna religia obok.
+// zlozone ("Islam (Szyizm)", "Chrzescijanstwo (Anglikanizm)", "Katolicyzm / Voodoo", "Ateizm panstwowy",
+// "Brak (Nauka)"...). App.js NIE mapuje calego stringa - liczy sie DOMINUJACA (pierwsza) wiara oraz jej ewentualny
+// PODGATUNEK w nawiasie. Dwie bazy, dopasowanie przez toLowerCase().indexOf (bez stripDiacritics - 'ł' sie nie
+// rozklada, dlatego klucze maja polskie znaki). Zweryfikowane na pl.wikipedia 2026-07-20 (0 martwych).
+//
+// RELIGION_SUBLINKS - konkretne odlamy; WYGRYWAJA, gdy dookreslaja DOMINUJACA wiare (w nawiasie albo gdy sam odlam
+// jest pierwszy). App liczy je TYLKO w segmencie przed pierwszym '/', wiec "Chrzescijanstwo (Anglikanizm)" ->
+// Anglikanizm, ale "Katolicyzm / Anglikanizm" (Gibraltar, katolicki) zostaje Katolicyzmem. Odlamy pojawiajace sie
+// zawsze PO nawiasie/slashu bazy (Voodoo, Animizm, Santeria, Taoizm, Metodyzm-po-Protestantyzmie) nie musza tu byc.
+const RELIGION_SUBLINKS = {
+    "anglikanizm":"https://pl.wikipedia.org/wiki/Anglikanizm",
+    "szyizm":"https://pl.wikipedia.org/wiki/Szyizm",
+    "sunnizm":"https://pl.wikipedia.org/wiki/Sunnizm",
+    "wahhabizm":"https://pl.wikipedia.org/wiki/Wahhabizm",
+    "ibadatyzm":"https://pl.wikipedia.org/wiki/Ibadytyzm",
+    "baptyzm":"https://pl.wikipedia.org/wiki/Baptyzm",
+    "metodyzm":"https://pl.wikipedia.org/wiki/Metodyzm",
+    "kongregacjonizm":"https://pl.wikipedia.org/wiki/Kongregacjonalizm",
+    "ormiańskie":"https://pl.wikipedia.org/wiki/Apostolski_Kościół_Ormiański",
+};
+// RELIGION_LINKS - religie-bazy; uzywane, gdy w dominujacej grupie nie ma zadnego odlamu z SUBLINKS. Bierzemy
+// slowo-klucz o NAJMNIEJSZYM indeksie w calej wartosci (= pierwsza wymieniona wiara). "Brak (...)" / bezludne
+// terytoria nie maja klucza -> brak linku. "Brak wyznania" swiadomie bez klucza (samo -> bez linku; w zlozeniu
+// linkuje sie realna religia obok). Podgatunki-jako-przymiotniki/zarty ("Zlaicyzowany", "Bog i Pieniadz",
+// "Ekalesia Niue", "Prot./Kat.") nie sa kluczami -> spadaja na baze.
 const RELIGION_LINKS = {
     "katolicyzm":"https://pl.wikipedia.org/wiki/Katolicyzm",
     "chrześcijaństwo":"https://pl.wikipedia.org/wiki/Chrześcijaństwo",
     "prawosławie":"https://pl.wikipedia.org/wiki/Prawosławie",
     "luteranizm":"https://pl.wikipedia.org/wiki/Luteranizm",
     "protestantyzm":"https://pl.wikipedia.org/wiki/Protestantyzm",
-    "anglikanizm":"https://pl.wikipedia.org/wiki/Anglikanizm",
     "adwentyzm":"https://pl.wikipedia.org/wiki/Adwentyzm_dnia_siódmego",
     "islam":"https://pl.wikipedia.org/wiki/Islam",
     "judaizm":"https://pl.wikipedia.org/wiki/Judaizm",
