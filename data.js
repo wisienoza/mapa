@@ -1,8 +1,8 @@
 // === TWOJA BAZA OPERACYJNA ===
 
-const VISITED_COUNTRIES = ["AL","AD","AT","BE","BA","BG","CN","HR","ME","CZ","EE","FI","FR","GR","ES","JP","XK","LI","LT","LV","MK","MT","MD","DE","PL","PT","RO","SM","RS","SK","SI","CH","TH","UA","VA","HU","GB","IT","AE","PE"];
+const VISITED_COUNTRIES = ["AL","AD","AT","BE","BA","BG","CN","HR","ME","CZ","EE","FI","FR","GR","ES","JP","XK","LI","LT","LV","MK","MT","MD","DE","PL","PT","RO","SM","RS","SK","SI","CH","TH","UA","VA","HU","GB","IT","AE"];
 
-const VISITED_WONDERS = ["CN","IT","GR","JP","PE"];
+const VISITED_WONDERS = ["CN","IT","GR","JP"];
 
 const MISSIONS_DB = [
     {
