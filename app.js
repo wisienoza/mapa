@@ -4042,6 +4042,9 @@
 
                     const pop = c.population ? (c.population > 1000000 ? (c.population / 1000000).toFixed(1) + "M" : (c.population / 1000).toFixed(1) + "k") : "N/A";
                     const flagUrl = (typeof FLAGS !== 'undefined' && FLAGS[id]) ? FLAGS[id] : (c.flags ? c.flags.svg : "");
+                    // Flaga -> link do hymnu narodowego (nationalanthems.info), TYLKO gdy id jest w ANTHEM_LINKS
+                    // (intel.js). Brak wpisu (np. bezludne terytoria bez strony na serwisie) = sama flaga bez linku.
+                    const anthemUrl = (typeof ANTHEM_LINKS !== 'undefined' && ANTHEM_LINKS[id]) ? ANTHEM_LINKS[id] : null;
                     const cca2 = c.cca2 || "N/A";
                     const languages = Object.values(c.languages || {}).join(', ') || "N/A";
                     const area = c.area ? c.area.toLocaleString() + " km²" : "N/A";
@@ -4100,7 +4103,9 @@
                     }
 
                     fPanel.innerHTML = `
-                        <img src="${flagUrl}" class="fact-img" alt="Flag">
+                        ${anthemUrl
+                            ? `<a href="${anthemUrl}" target="_blank" rel="noopener" title="Posłuchaj hymnu narodowego (nationalanthems.info)"><img src="${flagUrl}" class="fact-img" alt="Flag" style="cursor:pointer;"></a>`
+                            : `<img src="${flagUrl}" class="fact-img" alt="Flag">`}
                         
                         <div class="fact-row" style="border: none;"><span class="fact-key">SAFETY:</span><span class="fact-val" style="color:${safeInfo.color}; font-weight:bold; text-shadow: 0 0 5px ${safeInfo.color}44;">${safeInfo.text}<span id="live-safety-badge" title="Sprawdzanie zgodności z danymi live..." style="margin-left:6px; font-size:0.85em; opacity:0.5;">⏳</span></span></div>
                         

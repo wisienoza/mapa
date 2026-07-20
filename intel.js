@@ -2312,6 +2312,69 @@ const RELIGION_SUBLINKS = {
     "kongregacjonizm":"https://pl.wikipedia.org/wiki/Kongregacjonalizm",
     "ormiańskie":"https://pl.wikipedia.org/wiki/Apostolski_Kościół_Ormiański",
 };
+
+// === ANTHEM LINKS (nationalanthems.info) ===
+// Obrazek flagi w profilu kraju (app.js, <img class="fact-img">) jest linkiem do hymnu narodowego -
+// TYLKO gdy iso2 jest w tej bazie (inaczej sama flaga, bez linku). Klucz = ISO2 z FACTBOOK/id; wartosc = PELNY,
+// zweryfikowany link (na sztywno, nie budowany ze sluga). Zrodlo: przejscie CAPITAL_COORDS (249 kodow, czyli
+// KAZDY kraj/terytorium ktore w apce w ogole moze pokazac flage - UM/UM-* NIE pokazuja flagi wcale, wiec ich
+// tu nie ma) zweryfikowane fetch-em 2026-07-20 -> 240 dzialajacych, 9 bez strony.
+// Domyslny wzorzec to nationalanthems.info/<lc(iso2)>.htm, ale DWA kraje maja slug inny niz ISO2 (sprawdzone w
+// menu strony): Kosowo (XK) -> "kos", Bonaire (BQ) -> "bnr" (Bonaire ma tam WLASNY wpis, nie NL/holenderski).
+// POMINIETE (bez strony na serwisie, sprawdzone w menu - naprawde brak wpisu, nie zla nazwa): TF (Franc. Terytoria
+// Płd.), HM (Heard), BV (Bouvet), AQ (Antarktyda) - bezludne/naukowe, brak hymnu z definicji; SJ (Svalbard),
+// GS (Georgia Płd.), IO (Bryt. Terytorium Oceanu Indyjskiego), CX (Wyspa Bożego Narodzenia), CC (Wyspy Kokosowe).
+// Gdy strona kiedys dorzuci ktoryś z tych - wystarczy dopisac kod tutaj.
+const ANTHEM_LINKS = {
+    "AF":"https://nationalanthems.info/af.htm", "AL":"https://nationalanthems.info/al.htm", "DZ":"https://nationalanthems.info/dz.htm", "AD":"https://nationalanthems.info/ad.htm", "AO":"https://nationalanthems.info/ao.htm",
+    "AG":"https://nationalanthems.info/ag.htm", "AR":"https://nationalanthems.info/ar.htm", "AM":"https://nationalanthems.info/am.htm", "AU":"https://nationalanthems.info/au.htm", "AT":"https://nationalanthems.info/at.htm",
+    "AZ":"https://nationalanthems.info/az.htm", "BS":"https://nationalanthems.info/bs.htm", "BH":"https://nationalanthems.info/bh.htm", "BD":"https://nationalanthems.info/bd.htm", "BB":"https://nationalanthems.info/bb.htm",
+    "BY":"https://nationalanthems.info/by.htm", "BE":"https://nationalanthems.info/be.htm", "BZ":"https://nationalanthems.info/bz.htm", "BJ":"https://nationalanthems.info/bj.htm", "BT":"https://nationalanthems.info/bt.htm",
+    "BO":"https://nationalanthems.info/bo.htm", "BA":"https://nationalanthems.info/ba.htm", "BW":"https://nationalanthems.info/bw.htm", "BR":"https://nationalanthems.info/br.htm", "BN":"https://nationalanthems.info/bn.htm",
+    "BG":"https://nationalanthems.info/bg.htm", "BF":"https://nationalanthems.info/bf.htm", "BI":"https://nationalanthems.info/bi.htm", "KH":"https://nationalanthems.info/kh.htm", "CM":"https://nationalanthems.info/cm.htm",
+    "CA":"https://nationalanthems.info/ca.htm", "CV":"https://nationalanthems.info/cv.htm", "CF":"https://nationalanthems.info/cf.htm", "TD":"https://nationalanthems.info/td.htm", "CL":"https://nationalanthems.info/cl.htm",
+    "CN":"https://nationalanthems.info/cn.htm", "CO":"https://nationalanthems.info/co.htm", "KM":"https://nationalanthems.info/km.htm", "CG":"https://nationalanthems.info/cg.htm", "CD":"https://nationalanthems.info/cd.htm",
+    "CR":"https://nationalanthems.info/cr.htm", "CI":"https://nationalanthems.info/ci.htm", "HR":"https://nationalanthems.info/hr.htm", "CU":"https://nationalanthems.info/cu.htm", "CY":"https://nationalanthems.info/cy.htm",
+    "CZ":"https://nationalanthems.info/cz.htm", "DK":"https://nationalanthems.info/dk.htm", "DJ":"https://nationalanthems.info/dj.htm", "DM":"https://nationalanthems.info/dm.htm", "DO":"https://nationalanthems.info/do.htm",
+    "EC":"https://nationalanthems.info/ec.htm", "EG":"https://nationalanthems.info/eg.htm", "SV":"https://nationalanthems.info/sv.htm", "GQ":"https://nationalanthems.info/gq.htm", "ER":"https://nationalanthems.info/er.htm",
+    "EE":"https://nationalanthems.info/ee.htm", "ET":"https://nationalanthems.info/et.htm", "FJ":"https://nationalanthems.info/fj.htm", "FI":"https://nationalanthems.info/fi.htm", "FR":"https://nationalanthems.info/fr.htm",
+    "GA":"https://nationalanthems.info/ga.htm", "GM":"https://nationalanthems.info/gm.htm", "GE":"https://nationalanthems.info/ge.htm", "DE":"https://nationalanthems.info/de.htm", "GH":"https://nationalanthems.info/gh.htm",
+    "GR":"https://nationalanthems.info/gr.htm", "GD":"https://nationalanthems.info/gd.htm", "GT":"https://nationalanthems.info/gt.htm", "GN":"https://nationalanthems.info/gn.htm", "GW":"https://nationalanthems.info/gw.htm",
+    "GY":"https://nationalanthems.info/gy.htm", "HT":"https://nationalanthems.info/ht.htm", "HN":"https://nationalanthems.info/hn.htm", "HU":"https://nationalanthems.info/hu.htm", "IS":"https://nationalanthems.info/is.htm",
+    "IN":"https://nationalanthems.info/in.htm", "ID":"https://nationalanthems.info/id.htm", "IR":"https://nationalanthems.info/ir.htm", "IQ":"https://nationalanthems.info/iq.htm", "IE":"https://nationalanthems.info/ie.htm",
+    "IL":"https://nationalanthems.info/il.htm", "IT":"https://nationalanthems.info/it.htm", "JM":"https://nationalanthems.info/jm.htm", "JP":"https://nationalanthems.info/jp.htm", "JO":"https://nationalanthems.info/jo.htm",
+    "KZ":"https://nationalanthems.info/kz.htm", "KE":"https://nationalanthems.info/ke.htm", "KI":"https://nationalanthems.info/ki.htm", "KP":"https://nationalanthems.info/kp.htm", "KR":"https://nationalanthems.info/kr.htm",
+    "KW":"https://nationalanthems.info/kw.htm", "KG":"https://nationalanthems.info/kg.htm", "LA":"https://nationalanthems.info/la.htm", "LV":"https://nationalanthems.info/lv.htm", "LB":"https://nationalanthems.info/lb.htm",
+    "LS":"https://nationalanthems.info/ls.htm", "LR":"https://nationalanthems.info/lr.htm", "LY":"https://nationalanthems.info/ly.htm", "LI":"https://nationalanthems.info/li.htm", "LT":"https://nationalanthems.info/lt.htm",
+    "LU":"https://nationalanthems.info/lu.htm", "MK":"https://nationalanthems.info/mk.htm", "MG":"https://nationalanthems.info/mg.htm", "MW":"https://nationalanthems.info/mw.htm", "MY":"https://nationalanthems.info/my.htm",
+    "MV":"https://nationalanthems.info/mv.htm", "ML":"https://nationalanthems.info/ml.htm", "MT":"https://nationalanthems.info/mt.htm", "MH":"https://nationalanthems.info/mh.htm", "MR":"https://nationalanthems.info/mr.htm",
+    "MU":"https://nationalanthems.info/mu.htm", "MX":"https://nationalanthems.info/mx.htm", "FM":"https://nationalanthems.info/fm.htm", "MD":"https://nationalanthems.info/md.htm", "MC":"https://nationalanthems.info/mc.htm",
+    "MN":"https://nationalanthems.info/mn.htm", "ME":"https://nationalanthems.info/me.htm", "MA":"https://nationalanthems.info/ma.htm", "MZ":"https://nationalanthems.info/mz.htm", "MM":"https://nationalanthems.info/mm.htm",
+    "NA":"https://nationalanthems.info/na.htm", "NR":"https://nationalanthems.info/nr.htm", "NP":"https://nationalanthems.info/np.htm", "NL":"https://nationalanthems.info/nl.htm", "NZ":"https://nationalanthems.info/nz.htm",
+    "NI":"https://nationalanthems.info/ni.htm", "NE":"https://nationalanthems.info/ne.htm", "NG":"https://nationalanthems.info/ng.htm", "NO":"https://nationalanthems.info/no.htm", "OM":"https://nationalanthems.info/om.htm",
+    "PK":"https://nationalanthems.info/pk.htm", "PW":"https://nationalanthems.info/pw.htm", "PA":"https://nationalanthems.info/pa.htm", "PG":"https://nationalanthems.info/pg.htm", "PY":"https://nationalanthems.info/py.htm",
+    "PE":"https://nationalanthems.info/pe.htm", "PH":"https://nationalanthems.info/ph.htm", "PL":"https://nationalanthems.info/pl.htm", "PT":"https://nationalanthems.info/pt.htm", "QA":"https://nationalanthems.info/qa.htm",
+    "RO":"https://nationalanthems.info/ro.htm", "RU":"https://nationalanthems.info/ru.htm", "RW":"https://nationalanthems.info/rw.htm", "KN":"https://nationalanthems.info/kn.htm", "LC":"https://nationalanthems.info/lc.htm",
+    "VC":"https://nationalanthems.info/vc.htm", "WS":"https://nationalanthems.info/ws.htm", "SM":"https://nationalanthems.info/sm.htm", "ST":"https://nationalanthems.info/st.htm", "SA":"https://nationalanthems.info/sa.htm",
+    "SN":"https://nationalanthems.info/sn.htm", "RS":"https://nationalanthems.info/rs.htm", "SC":"https://nationalanthems.info/sc.htm", "SL":"https://nationalanthems.info/sl.htm", "SG":"https://nationalanthems.info/sg.htm",
+    "SK":"https://nationalanthems.info/sk.htm", "SI":"https://nationalanthems.info/si.htm", "SB":"https://nationalanthems.info/sb.htm", "SO":"https://nationalanthems.info/so.htm", "ZA":"https://nationalanthems.info/za.htm",
+    "SS":"https://nationalanthems.info/ss.htm", "ES":"https://nationalanthems.info/es.htm", "LK":"https://nationalanthems.info/lk.htm", "SD":"https://nationalanthems.info/sd.htm", "SR":"https://nationalanthems.info/sr.htm",
+    "SZ":"https://nationalanthems.info/sz.htm", "SE":"https://nationalanthems.info/se.htm", "CH":"https://nationalanthems.info/ch.htm", "SY":"https://nationalanthems.info/sy.htm", "TW":"https://nationalanthems.info/tw.htm",
+    "TJ":"https://nationalanthems.info/tj.htm", "TZ":"https://nationalanthems.info/tz.htm", "TH":"https://nationalanthems.info/th.htm", "TL":"https://nationalanthems.info/tl.htm", "TG":"https://nationalanthems.info/tg.htm",
+    "TO":"https://nationalanthems.info/to.htm", "TT":"https://nationalanthems.info/tt.htm", "TN":"https://nationalanthems.info/tn.htm", "TR":"https://nationalanthems.info/tr.htm", "TM":"https://nationalanthems.info/tm.htm",
+    "TV":"https://nationalanthems.info/tv.htm", "UG":"https://nationalanthems.info/ug.htm", "UA":"https://nationalanthems.info/ua.htm", "AE":"https://nationalanthems.info/ae.htm", "GB":"https://nationalanthems.info/gb.htm",
+    "US":"https://nationalanthems.info/us.htm", "UY":"https://nationalanthems.info/uy.htm", "UZ":"https://nationalanthems.info/uz.htm", "VU":"https://nationalanthems.info/vu.htm", "VA":"https://nationalanthems.info/va.htm",
+    "VE":"https://nationalanthems.info/ve.htm", "VN":"https://nationalanthems.info/vn.htm", "YE":"https://nationalanthems.info/ye.htm", "ZM":"https://nationalanthems.info/zm.htm", "ZW":"https://nationalanthems.info/zw.htm",
+    "FO":"https://nationalanthems.info/fo.htm", "GI":"https://nationalanthems.info/gi.htm", "IM":"https://nationalanthems.info/im.htm", "JE":"https://nationalanthems.info/je.htm", "GG":"https://nationalanthems.info/gg.htm",
+    "AX":"https://nationalanthems.info/ax.htm", "GL":"https://nationalanthems.info/gl.htm", "PR":"https://nationalanthems.info/pr.htm", "BM":"https://nationalanthems.info/bm.htm", "KY":"https://nationalanthems.info/ky.htm",
+    "AW":"https://nationalanthems.info/aw.htm", "CW":"https://nationalanthems.info/cw.htm", "SX":"https://nationalanthems.info/sx.htm", "BL":"https://nationalanthems.info/bl.htm", "MF":"https://nationalanthems.info/mf.htm",
+    "PM":"https://nationalanthems.info/pm.htm", "AI":"https://nationalanthems.info/ai.htm", "VG":"https://nationalanthems.info/vg.htm", "VI":"https://nationalanthems.info/vi.htm", "TC":"https://nationalanthems.info/tc.htm",
+    "MS":"https://nationalanthems.info/ms.htm", "GP":"https://nationalanthems.info/gp.htm", "MQ":"https://nationalanthems.info/mq.htm", "GF":"https://nationalanthems.info/gf.htm", "FK":"https://nationalanthems.info/fk.htm",
+    "SH":"https://nationalanthems.info/sh.htm", "RE":"https://nationalanthems.info/re.htm", "YT":"https://nationalanthems.info/yt.htm", "EH":"https://nationalanthems.info/eh.htm", "HK":"https://nationalanthems.info/hk.htm",
+    "MO":"https://nationalanthems.info/mo.htm", "PS":"https://nationalanthems.info/ps.htm", "NC":"https://nationalanthems.info/nc.htm", "PF":"https://nationalanthems.info/pf.htm", "GU":"https://nationalanthems.info/gu.htm",
+    "MP":"https://nationalanthems.info/mp.htm", "AS":"https://nationalanthems.info/as.htm", "CK":"https://nationalanthems.info/ck.htm", "NU":"https://nationalanthems.info/nu.htm", "TK":"https://nationalanthems.info/tk.htm",
+    "WF":"https://nationalanthems.info/wf.htm", "NF":"https://nationalanthems.info/nf.htm", "PN":"https://nationalanthems.info/pn.htm", "XK":"https://nationalanthems.info/kos.htm", "BQ":"https://nationalanthems.info/bnr.htm",
+};
 // RELIGION_LINKS - religie-bazy; uzywane, gdy w dominujacej grupie nie ma zadnego odlamu z SUBLINKS. Bierzemy
 // slowo-klucz o NAJMNIEJSZYM indeksie w calej wartosci (= pierwsza wymieniona wiara). "Brak (...)" / bezludne
 // terytoria nie maja klucza -> brak linku. "Brak wyznania" swiadomie bez klucza (samo -> bez linku; w zlozeniu
