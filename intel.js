@@ -2179,19 +2179,68 @@ const AIRPORT_GUIDES = {
     "NR": "nauru-airport-guide", "CK": "rarotonga-airport-guide", "GU": "guam-airport-guide",
 };
 
-// === WATER SAFE OVERRIDES (isthewatersafe.com) ===
-// Slug wiersza WATER w profilu kraju (app.js). Domyslnie = countryNameSlug (jak TasteAtlas/Atlas Obscura).
-// Tu tylko kraje, ktore serwis trzyma pod slugiem zakodowanym URL-owo lub pod inna nazwa niz FACTBOOK.name.common.
-// Wartosci przepisane 1:1 z bazy linkow isthewatersafe (dlatego %28 = "(", %29 = ")", %C3%B4 = "ô", %27 = "'").
-// Brak wpisu = slug generyczny (dziala dla ~180 krajow). Override dla kodu bez profilu jest nieszkodliwy (nieuzywany).
-const WATER_SAFE_OVERRIDES = {
-    "MM": "burma-%28myanmar%29",              // FACTBOOK: Myanmar
-    "CG": "congo-%28brazzaville%29",          // Kongo (Brazzaville)
-    "CD": "congo-%28kinshasa%29",             // DR Konga (Kinszasa)
-    "CI": "c%C3%B4te-d%27ivoire",             // Côte d'Ivoire / Ivory Coast
-    "CW": "cura%C3%A7ao",                     // Curaçao
-    "FK": "falkland-islands-%28islas-malvinas%29", // Falklandy
-    "CV": "cabo-verde",                       // serwis: cabo-verde (FACTBOOK zwykle "Cape Verde")
+// === WATER SAFE LINKS (isthewatersafe.com) ===
+// PELNA baza slugow (iso2 -> slug) dla wiersza WATER w profilu kraju (app.js). NIE zgadujemy generycznie:
+// wpis w tej bazie = link, brak wpisu = zwykly tekst bez linku. Zrodlo: przejscie listy /countries na zywo
+// (2026-07-20) + weryfikacja KAZDEGO adresu fetch-em. Uwzglednione TYLKO strony, ktore realnie zwracaja profil.
+// CELOWO POMINIETE (serwis sam je 404-uje albo pokazuje "Country not found", brak dzialajacego alternatywnego slugu):
+//   MM Myanmar, CG Kongo(Brazzaville), CD DR Konga(Kinszasa), CW Curaçao, CI Côte d'Ivoire, FK Falklandy,
+//   GW Gwinea Bissau, TL Timor Wschodni, oraz "u.s.-virgin-islands" (dla VI uzywamy dzialajacego "virgin-islands").
+//   PS (serwis dzieli na gaza-strip / west-bank - brak jednego slugu, pomijamy). SJ Svalbard - pominiety na zyczenie,
+//   choc strona istnieje (gdyby mial wrocic: "SJ": "svalbard").
+// Wszystkie slugi sa czystym ASCII (kraje ze znakami spec. to akurat te zepsute u zrodla). Aktualizacja: gdy serwis
+// naprawi/dolozy kraj - dopisz tu iso2->slug (i tylko wtedy pojawi sie link). Konsument: app.js updateFactbookPanel.
+const WATER_SAFE_LINKS = {
+    // --- A-B ---
+    "AF":"afghanistan","AL":"albania","DZ":"algeria","AS":"american-samoa","AD":"andorra","AO":"angola",
+    "AI":"anguilla","AG":"antigua-and-barbuda","AR":"argentina","AM":"armenia","AW":"aruba","AU":"australia",
+    "AT":"austria","AZ":"azerbaijan","BS":"bahamas","BH":"bahrain","BD":"bangladesh","BB":"barbados",
+    "BY":"belarus","BE":"belgium","BZ":"belize","BJ":"benin","BM":"bermuda","BT":"bhutan","BO":"bolivia",
+    "BQ":"bonaire","BA":"bosnia-and-herzegovina","BW":"botswana","BR":"brazil","BN":"brunei","BG":"bulgaria",
+    "BF":"burkina-faso","BI":"burundi",
+    // --- C-D ---
+    "CV":"cabo-verde","KH":"cambodia","CM":"cameroon","CA":"canada","KY":"cayman-islands",
+    "CF":"central-african-republic","TD":"chad","CL":"chile","CN":"china","CX":"christmas-island","CO":"colombia",
+    "KM":"comoros","CK":"cook-islands","CR":"costa-rica","HR":"croatia","CU":"cuba","CY":"cyprus","CZ":"czechia",
+    "DK":"denmark","DJ":"djibouti","DM":"dominica","DO":"dominican-republic",
+    // --- E-G ---
+    "EC":"ecuador","EG":"egypt","SV":"el-salvador","GQ":"equatorial-guinea","ER":"eritrea","EE":"estonia",
+    "SZ":"eswatini","ET":"ethiopia","FO":"faroe-islands","FJ":"fiji","FI":"finland","FR":"france",
+    "GF":"french-guiana","PF":"french-polynesia","GA":"gabon","GM":"gambia","GE":"georgia","DE":"germany",
+    "GH":"ghana","GI":"gibraltar","GR":"greece","GL":"greenland","GD":"grenada","GP":"guadeloupe","GU":"guam",
+    "GT":"guatemala","GG":"guernsey","GN":"guinea","GY":"guyana",
+    // --- H-L ---
+    "HT":"haiti","HN":"honduras","HK":"hong-kong","HU":"hungary","IS":"iceland","IN":"india","ID":"indonesia",
+    "IR":"iran","IQ":"iraq","IE":"ireland","IM":"isle-of-man","IL":"israel","IT":"italy","JM":"jamaica",
+    "JP":"japan","JE":"jersey","JO":"jordan","KZ":"kazakhstan","KE":"kenya","KI":"kiribati","XK":"kosovo",
+    "KW":"kuwait","KG":"kyrgyzstan","LA":"laos","LV":"latvia","LB":"lebanon","LS":"lesotho","LR":"liberia",
+    "LY":"libya","LI":"liechtenstein","LT":"lithuania","LU":"luxembourg",
+    // --- M-O ---
+    "MO":"macau","MG":"madagascar","MW":"malawi","MY":"malaysia","MV":"maldives","ML":"mali","MT":"malta",
+    "MH":"marshall-islands","MQ":"martinique","MR":"mauritania","MU":"mauritius","YT":"mayotte","MX":"mexico",
+    "FM":"micronesia","MD":"moldova","MC":"monaco","MN":"mongolia","ME":"montenegro","MS":"montserrat",
+    "MA":"morocco","MZ":"mozambique","NA":"namibia","NR":"nauru","NP":"nepal","NL":"netherlands",
+    "NC":"new-caledonia","NZ":"new-zealand","NI":"nicaragua","NE":"niger","NG":"nigeria","NU":"niue",
+    "NF":"norfolk-island","KP":"north-korea","MK":"north-macedonia","MP":"northern-mariana-islands","NO":"norway",
+    "OM":"oman",
+    // --- P-R ---
+    "PK":"pakistan","PW":"palau","PA":"panama","PG":"papua-new-guinea","PY":"paraguay","PE":"peru",
+    "PH":"philippines","PN":"pitcairn-islands","PL":"poland","PT":"portugal","PR":"puerto-rico","QA":"qatar",
+    "RE":"reunion","RO":"romania","RU":"russia","RW":"rwanda",
+    // --- S ---
+    "BL":"saint-barthelemy","SH":"saint-helena","KN":"saint-kitts-and-nevis","LC":"saint-lucia",
+    "MF":"saint-martin","PM":"saint-pierre-and-miquelon","VC":"saint-vincent-and-the-grenadines","WS":"samoa",
+    "SM":"san-marino","ST":"sao-tome-and-principe","SA":"saudi-arabia","SN":"senegal","RS":"serbia",
+    "SC":"seychelles","SL":"sierra-leone","SG":"singapore","SX":"sint-maarten","SK":"slovakia","SI":"slovenia",
+    "SB":"solomon-islands","SO":"somalia","ZA":"south-africa","GS":"south-georgia-and-south-sandwich-islands",
+    "KR":"south-korea","SS":"south-sudan","ES":"spain","LK":"sri-lanka","SD":"sudan","SR":"suriname",
+    "SE":"sweden","CH":"switzerland","SY":"syria",
+    // --- T-Z ---
+    "TW":"taiwan","TJ":"tajikistan","TZ":"tanzania","TH":"thailand","TG":"togo","TO":"tonga",
+    "TT":"trinidad-and-tobago","TN":"tunisia","TR":"turkey","TM":"turkmenistan","TC":"turks-and-caicos-islands",
+    "TV":"tuvalu","UG":"uganda","UA":"ukraine","AE":"united-arab-emirates","GB":"united-kingdom",
+    "US":"united-states","UY":"uruguay","UZ":"uzbekistan","VU":"vanuatu","VA":"vatican-city","VE":"venezuela",
+    "VN":"vietnam","VI":"virgin-islands","WF":"wallis-and-futuna","YE":"yemen","ZM":"zambia","ZW":"zimbabwe",
 };
 
 // === WONDER INTEL (foto + opis + linki z YAML) ===
