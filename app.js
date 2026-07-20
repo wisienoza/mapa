@@ -4059,13 +4059,7 @@
                     let gmapsTarget = GMAPS_OVERRIDES[id] || countryNameSafe;
                     const gmapsUrl = `https://www.google.com/maps/place/${gmapsTarget}`;
 
-                    // --- GENEROWANIE LINKU DLA SLEEPING IN AIRPORTS ---
-                    // Znany slug glownego lotniska -> bezposredni guide; inaczej -> fallback wyszukiwania po stolicy.
-                    const airportCitySlug = stripDiacritics(capitalRaw).toLowerCase().replace(/['’]/g, "").replace(/ /g, "-");
-                    const airportSlug = (typeof AIRPORT_GUIDES !== 'undefined' && AIRPORT_GUIDES[id]) ? AIRPORT_GUIDES[id] : null;
-                    const airportsUrl = airportSlug
-                        ? `https://www.sleepinginairports.net/guides/${airportSlug}.htm`
-                        : `https://www.sleepinginairports.net/?s=${airportCitySlug}`;
+                    const vaccinationsUrl = "https://zagrozeniazdrowotne.gssewarszawa.pl/docs/Tabela_szczepien.pdf";
 
                     const intel = getIntel(id);
                     const pColor = intel.p.includes("NIE") ? "#00ff00" : "#dc2626";
@@ -4207,7 +4201,7 @@
                             <a href="${tripUrl}" target="_blank" class="windy-btn" style="background: rgba(52, 224, 161, 0.15); border: 1px solid #34e0a1; color: #34e0a1;">🦉 TRIP ADVISOR</a>
                             <a href="${wikiUrl}" target="_blank" class="windy-btn" style="background: rgba(0, 212, 255, 0.15); border: 1px solid #00d4ff; color: #00d4ff;">🌐 WIKIVOYAGE</a>
                             <a href="${gmapsUrl}" target="_blank" class="windy-btn" style="background: rgba(66, 133, 244, 0.15); border: 1px solid #4285F4; color: #4285F4;">🗺️ GOOGLE MAPS</a>
-                            <a href="${airportsUrl}" target="_blank" class="windy-btn" style="background: rgba(106, 27, 154, 0.15); border: 1px solid #8E24AA; color: #BA68C8;">🛬 AIRPORT GUIDE</a>
+                            <a href="${vaccinationsUrl}" target="_blank" class="windy-btn" style="background: rgba(106, 27, 154, 0.15); border: 1px solid #8E24AA; color: #BA68C8;">💉 SZCZEPIENIA</a>
                         </div>
                     `;
 
