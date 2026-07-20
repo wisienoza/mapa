@@ -2243,6 +2243,53 @@ const WATER_SAFE_LINKS = {
     "VN":"vietnam","VI":"virgin-islands","WF":"wallis-and-futuna","YE":"yemen","ZM":"zambia","ZW":"zimbabwe",
 };
 
+// === CURRENCY LINKS (redar.net) ===
+// Kod waluty ISO 4217 -> pelny link do redar.net. Zaszywany w wierszu kursu (app.js: "1 PLN = X <KOD>" oraz
+// "1 <KOD> ="), gdzie <KOD> staje sie linkiem. Klucz to kod waluty z FACTBOOK.currencies, wiec JEDNA waluta
+// obsluguje WIELE krajow (EUR, USD, XOF, XAF...). Wpis = link, brak = sam kod bez linku.
+// Zrodlo: lista z waluty.txt zweryfikowana na zywo (2026-07-20) - kazdy adres zwraca profil waluty.
+// POMINIETE: US1/US5/USo z pliku to NIE waluty (strony banknotow/wariantow), nie pasuja do ^[A-Z]{3}$.
+// PLN jest w bazie, ale wiersz kursu i tak pomija currKey==='PLN' (dom), wiec link dla Polski sie nie pokazuje.
+const CURRENCY_LINKS = {
+    "AED":"https://www.redar.net/waluta/AED","AFN":"https://www.redar.net/waluta/AFN","ALL":"https://www.redar.net/waluta/ALL","AMD":"https://www.redar.net/waluta/AMD",
+    "AOA":"https://www.redar.net/waluta/AOA","ARS":"https://www.redar.net/waluta/ARS","AUD":"https://www.redar.net/waluta/AUD","AWG":"https://www.redar.net/waluta/AWG",
+    "AZN":"https://www.redar.net/waluta/AZN","BAM":"https://www.redar.net/waluta/BAM","BBD":"https://www.redar.net/waluta/BBD","BDT":"https://www.redar.net/waluta/BDT",
+    "BGN":"https://www.redar.net/waluta/BGN","BHD":"https://www.redar.net/waluta/BHD","BIF":"https://www.redar.net/waluta/BIF","BND":"https://www.redar.net/waluta/BND",
+    "BOB":"https://www.redar.net/waluta/BOB","BRL":"https://www.redar.net/waluta/BRL","BSD":"https://www.redar.net/waluta/BSD","BTN":"https://www.redar.net/waluta/BTN",
+    "BWP":"https://www.redar.net/waluta/BWP","BYN":"https://www.redar.net/waluta/BYN","BZD":"https://www.redar.net/waluta/BZD","CAD":"https://www.redar.net/waluta/CAD",
+    "CDF":"https://www.redar.net/waluta/CDF","CHF":"https://www.redar.net/waluta/CHF","CLP":"https://www.redar.net/waluta/CLP","CNY":"https://www.redar.net/waluta/CNY",
+    "COP":"https://www.redar.net/waluta/COP","CRC":"https://www.redar.net/waluta/CRC","CUP":"https://www.redar.net/waluta/CUP","CVE":"https://www.redar.net/waluta/CVE",
+    "CZK":"https://www.redar.net/waluta/CZK","DJF":"https://www.redar.net/waluta/DJF","DKK":"https://www.redar.net/waluta/DKK","DOP":"https://www.redar.net/waluta/DOP",
+    "DZD":"https://www.redar.net/waluta/DZD","EGP":"https://www.redar.net/waluta/EGP","ERN":"https://www.redar.net/waluta/ERN","ETB":"https://www.redar.net/waluta/ETB",
+    "EUR":"https://www.redar.net/waluta/EUR","FJD":"https://www.redar.net/waluta/FJD","GBP":"https://www.redar.net/waluta/GBP","GEL":"https://www.redar.net/waluta/GEL",
+    "GHS":"https://www.redar.net/waluta/GHS","GIP":"https://www.redar.net/waluta/GIP","GMD":"https://www.redar.net/waluta/GMD","GNF":"https://www.redar.net/waluta/GNF",
+    "GTQ":"https://www.redar.net/waluta/GTQ","GYD":"https://www.redar.net/waluta/GYD","HKD":"https://www.redar.net/waluta/HKD","HNL":"https://www.redar.net/waluta/HNL",
+    "HTG":"https://www.redar.net/waluta/HTG","HUF":"https://www.redar.net/waluta/HUF","IDR":"https://www.redar.net/waluta/IDR","ILS":"https://www.redar.net/waluta/ILS",
+    "INR":"https://www.redar.net/waluta/INR","IQD":"https://www.redar.net/waluta/IQD","IRR":"https://www.redar.net/waluta/IRR","ISK":"https://www.redar.net/waluta/ISK",
+    "JMD":"https://www.redar.net/waluta/JMD","JOD":"https://www.redar.net/waluta/JOD","JPY":"https://www.redar.net/waluta/JPY","KES":"https://www.redar.net/waluta/KES",
+    "KGS":"https://www.redar.net/waluta/KGS","KHR":"https://www.redar.net/waluta/KHR","KMF":"https://www.redar.net/waluta/KMF","KRW":"https://www.redar.net/waluta/KRW",
+    "KWD":"https://www.redar.net/waluta/KWD","KZT":"https://www.redar.net/waluta/KZT","LAK":"https://www.redar.net/waluta/LAK","LBP":"https://www.redar.net/waluta/LBP",
+    "LKR":"https://www.redar.net/waluta/LKR","LRD":"https://www.redar.net/waluta/LRD","LSL":"https://www.redar.net/waluta/LSL","LYD":"https://www.redar.net/waluta/LYD",
+    "MAD":"https://www.redar.net/waluta/MAD","MDL":"https://www.redar.net/waluta/MDL","MGA":"https://www.redar.net/waluta/MGA","MKD":"https://www.redar.net/waluta/MKD",
+    "MMK":"https://www.redar.net/waluta/MMK","MNT":"https://www.redar.net/waluta/MNT","MOP":"https://www.redar.net/waluta/MOP","MRU":"https://www.redar.net/waluta/MRU",
+    "MUR":"https://www.redar.net/waluta/MUR","MVR":"https://www.redar.net/waluta/MVR","MWK":"https://www.redar.net/waluta/MWK","MXN":"https://www.redar.net/waluta/MXN",
+    "MYR":"https://www.redar.net/waluta/MYR","MZN":"https://www.redar.net/waluta/MZN","NAD":"https://www.redar.net/waluta/NAD","NGN":"https://www.redar.net/waluta/NGN",
+    "NIO":"https://www.redar.net/waluta/NIO","NOK":"https://www.redar.net/waluta/NOK","NPR":"https://www.redar.net/waluta/NPR","NZD":"https://www.redar.net/waluta/NZD",
+    "OMR":"https://www.redar.net/waluta/OMR","PEN":"https://www.redar.net/waluta/PEN","PGK":"https://www.redar.net/waluta/PGK","PHP":"https://www.redar.net/waluta/PHP",
+    "PKR":"https://www.redar.net/waluta/PKR","PLN":"https://www.redar.net/waluta/PLN","PYG":"https://www.redar.net/waluta/PYG","QAR":"https://www.redar.net/waluta/QAR",
+    "RON":"https://www.redar.net/waluta/RON","RSD":"https://www.redar.net/waluta/RSD","RUB":"https://www.redar.net/waluta/RUB","RWF":"https://www.redar.net/waluta/RWF",
+    "SAR":"https://www.redar.net/waluta/SAR","SBD":"https://www.redar.net/waluta/SBD","SCR":"https://www.redar.net/waluta/SCR","SDG":"https://www.redar.net/waluta/SDG",
+    "SEK":"https://www.redar.net/waluta/SEK","SGD":"https://www.redar.net/waluta/SGD","SOS":"https://www.redar.net/waluta/SOS","SRD":"https://www.redar.net/waluta/SRD",
+    "SSP":"https://www.redar.net/waluta/SSP","STN":"https://www.redar.net/waluta/STN","SYP":"https://www.redar.net/waluta/SYP","SZL":"https://www.redar.net/waluta/SZL",
+    "THB":"https://www.redar.net/waluta/THB","TJS":"https://www.redar.net/waluta/TJS","TMT":"https://www.redar.net/waluta/TMT","TND":"https://www.redar.net/waluta/TND",
+    "TOP":"https://www.redar.net/waluta/TOP","TRY":"https://www.redar.net/waluta/TRY","TTD":"https://www.redar.net/waluta/TTD","TWD":"https://www.redar.net/waluta/TWD",
+    "TZS":"https://www.redar.net/waluta/TZS","UAH":"https://www.redar.net/waluta/UAH","UGX":"https://www.redar.net/waluta/UGX","USD":"https://www.redar.net/waluta/USD",
+    "UYU":"https://www.redar.net/waluta/UYU","UZS":"https://www.redar.net/waluta/UZS","VES":"https://www.redar.net/waluta/VES","VND":"https://www.redar.net/waluta/VND",
+    "VUV":"https://www.redar.net/waluta/VUV","WST":"https://www.redar.net/waluta/WST","XAF":"https://www.redar.net/waluta/XAF","XCD":"https://www.redar.net/waluta/XCD",
+    "XOF":"https://www.redar.net/waluta/XOF","XPF":"https://www.redar.net/waluta/XPF","YER":"https://www.redar.net/waluta/YER","ZAR":"https://www.redar.net/waluta/ZAR",
+    "ZMW":"https://www.redar.net/waluta/ZMW",
+};
+
 // === WONDER INTEL (foto + opis + linki z YAML) ===
 const WONDER_INTEL = {
     "CN": { img: "foty/GREAT_WALL.jpg", desc: "Wielki Mur Chiński to potężny system starożytnych fortyfikacji, zbudowany w celu ochrony północnych granic Chin przed najazdami. Jego budowa trwała wiele stuleci, a poszczególne fragmenty wznoszono za panowania różnych dynastii. Całkowita długość muru przekracza 21 tysięcy kilometrów, co czyni go najdłuższą sztuczną strukturą na Ziemi. Jest to jeden z najbardziej rozpoznawalnych symboli ludzkiej wytrwałości i inżynierii.", unsplash: "https://unsplash.com/s/photos/GREAT-WALL", wiki: "https://pl.wikipedia.org/wiki/Wielki_Mur_Chi%C5%84ski" },

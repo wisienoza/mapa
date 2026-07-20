@@ -4033,6 +4033,12 @@
                     const pColor = intel.p.includes("NIE") ? "#00ff00" : "#dc2626";
                     
                     const currKey = Object.keys(c.currencies || {})[0] || "N/A";
+                    // Link waluty (redar.net) - TYLKO gdy kod jest w jawnej bazie CURRENCY_LINKS (intel.js).
+                    // Jedna waluta = wiele krajow (klucz to kod ISO 4217 z FACTBOOK). Brak wpisu = sam kod bez linku.
+                    const currUrl = (typeof CURRENCY_LINKS !== 'undefined' && CURRENCY_LINKS[currKey]) ? CURRENCY_LINKS[currKey] : null;
+                    const _currCodeHtml = currUrl
+                        ? `<a href="${currUrl}" target="_blank" rel="noopener" title="Waluta ${currKey} na redar.net" style="color:inherit; text-decoration:none;">${currKey}</a>`
+                        : currKey;
 
                     const pop = c.population ? (c.population > 1000000 ? (c.population / 1000000).toFixed(1) + "M" : (c.population / 1000).toFixed(1) + "k") : "N/A";
                     const flagUrl = (typeof FLAGS !== 'undefined' && FLAGS[id]) ? FLAGS[id] : (c.flags ? c.flags.svg : "");
@@ -4187,13 +4193,13 @@
                                     const rate = d.rates[currKey];
                                     if (rate) {
                                         let displayRate = rate > 100 ? rate.toFixed(0) : rate.toFixed(2);
-                                        rateVal.innerText = `${displayRate} ${currKey}`;
+                                        rateVal.innerHTML = `${displayRate} ${_currCodeHtml}`;
                                         rateRow.style.display = "flex";
 
                                         const revRate = 1 / rate;
                                         let displayRev = revRate < 0.1 ? revRate.toFixed(4) : revRate.toFixed(2);
-                                        
-                                        rateKeyRev.innerText = `1 ${currKey} =`;
+
+                                        rateKeyRev.innerHTML = `1 ${_currCodeHtml} =`;
                                         rateValRev.innerText = `${displayRev} PLN`;
                                         rateRowRev.style.display = "flex";
 
