@@ -2179,6 +2179,21 @@ const AIRPORT_GUIDES = {
     "NR": "nauru-airport-guide", "CK": "rarotonga-airport-guide", "GU": "guam-airport-guide",
 };
 
+// === WATER SAFE OVERRIDES (isthewatersafe.com) ===
+// Slug wiersza WATER w profilu kraju (app.js). Domyslnie = countryNameSlug (jak TasteAtlas/Atlas Obscura).
+// Tu tylko kraje, ktore serwis trzyma pod slugiem zakodowanym URL-owo lub pod inna nazwa niz FACTBOOK.name.common.
+// Wartosci przepisane 1:1 z bazy linkow isthewatersafe (dlatego %28 = "(", %29 = ")", %C3%B4 = "ô", %27 = "'").
+// Brak wpisu = slug generyczny (dziala dla ~180 krajow). Override dla kodu bez profilu jest nieszkodliwy (nieuzywany).
+const WATER_SAFE_OVERRIDES = {
+    "MM": "burma-%28myanmar%29",              // FACTBOOK: Myanmar
+    "CG": "congo-%28brazzaville%29",          // Kongo (Brazzaville)
+    "CD": "congo-%28kinshasa%29",             // DR Konga (Kinszasa)
+    "CI": "c%C3%B4te-d%27ivoire",             // Côte d'Ivoire / Ivory Coast
+    "CW": "cura%C3%A7ao",                     // Curaçao
+    "FK": "falkland-islands-%28islas-malvinas%29", // Falklandy
+    "CV": "cabo-verde",                       // serwis: cabo-verde (FACTBOOK zwykle "Cape Verde")
+};
+
 // === WONDER INTEL (foto + opis + linki z YAML) ===
 const WONDER_INTEL = {
     "CN": { img: "foty/GREAT_WALL.jpg", desc: "Wielki Mur Chiński to potężny system starożytnych fortyfikacji, zbudowany w celu ochrony północnych granic Chin przed najazdami. Jego budowa trwała wiele stuleci, a poszczególne fragmenty wznoszono za panowania różnych dynastii. Całkowita długość muru przekracza 21 tysięcy kilometrów, co czyni go najdłuższą sztuczną strukturą na Ziemi. Jest to jeden z najbardziej rozpoznawalnych symboli ludzkiej wytrwałości i inżynierii.", unsplash: "https://unsplash.com/s/photos/GREAT-WALL", wiki: "https://pl.wikipedia.org/wiki/Wielki_Mur_Chi%C5%84ski" },
