@@ -2290,6 +2290,33 @@ const CURRENCY_LINKS = {
     "ZMW":"https://www.redar.net/waluta/ZMW",
 };
 
+// === RELIGION LINKS (pl.wikipedia) ===
+// Wiersz RELIGION w profilu kraju (app.js) linkuje do artykulu o DOMINUJACEJ wierze. Wartosci w RELIGIONS sa
+// zlozone ("Islam (Szyizm)", "Katolicyzm / Voodoo", "Ateizm panstwowy", "Brak (Nauka)"...), wiec app.js NIE mapuje
+// calego stringa: skanuje go i bierze slowo-klucz o NAJMNIEJSZYM indeksie (czyli pierwsza wymieniona religia).
+// Klucz = slowo religii malymi literami Z polskimi znakami (dopasowanie przez toLowerCase().indexOf, bez
+// stripDiacritics - bo 'ł' sie nie rozklada). Wartosc = pelny, zweryfikowany link pl.wikipedia (2026-07-20).
+// CELOWO tylko slowa, ktore realnie WYSTEPUJA JAKO PIERWSZE w ktorejs wartosci - podgatunki z nawiasow
+// (Sunnizm/Baptyzm/Metodyzm/Voodoo/Animizm/Taoizm...) zawsze poprzedza baza (Islam/Protestantyzm/...), wiec ich
+// nie ma. "Brak (...)" i bezludne terytoria nie maja slowa-klucza -> brak linku (i tak nie ma tam religii).
+// "Brak wyznania" swiadomie bez klucza: samo -> bez linku, a w zlozeniu linkuje sie realna religia obok.
+const RELIGION_LINKS = {
+    "katolicyzm":"https://pl.wikipedia.org/wiki/Katolicyzm",
+    "chrześcijaństwo":"https://pl.wikipedia.org/wiki/Chrześcijaństwo",
+    "prawosławie":"https://pl.wikipedia.org/wiki/Prawosławie",
+    "luteranizm":"https://pl.wikipedia.org/wiki/Luteranizm",
+    "protestantyzm":"https://pl.wikipedia.org/wiki/Protestantyzm",
+    "anglikanizm":"https://pl.wikipedia.org/wiki/Anglikanizm",
+    "adwentyzm":"https://pl.wikipedia.org/wiki/Adwentyzm_dnia_siódmego",
+    "islam":"https://pl.wikipedia.org/wiki/Islam",
+    "judaizm":"https://pl.wikipedia.org/wiki/Judaizm",
+    "hinduizm":"https://pl.wikipedia.org/wiki/Hinduizm",
+    "buddyzm":"https://pl.wikipedia.org/wiki/Buddyzm",
+    "shinto":"https://pl.wikipedia.org/wiki/Shintō",
+    "religie ludowe":"https://pl.wikipedia.org/wiki/Religia_ludowa",
+    "ateizm":"https://pl.wikipedia.org/wiki/Ateizm",
+};
+
 // === WONDER INTEL (foto + opis + linki z YAML) ===
 const WONDER_INTEL = {
     "CN": { img: "foty/GREAT_WALL.jpg", desc: "Wielki Mur Chiński to potężny system starożytnych fortyfikacji, zbudowany w celu ochrony północnych granic Chin przed najazdami. Jego budowa trwała wiele stuleci, a poszczególne fragmenty wznoszono za panowania różnych dynastii. Całkowita długość muru przekracza 21 tysięcy kilometrów, co czyni go najdłuższą sztuczną strukturą na Ziemi. Jest to jeden z najbardziej rozpoznawalnych symboli ludzkiej wytrwałości i inżynierii.", unsplash: "https://unsplash.com/s/photos/GREAT-WALL", wiki: "https://pl.wikipedia.org/wiki/Wielki_Mur_Chi%C5%84ski" },
