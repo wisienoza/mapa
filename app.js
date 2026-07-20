@@ -4154,7 +4154,7 @@
                         ${citiesRowHtml}
                         <div class="fact-row"><span class="fact-key">LANG:</span><span class="fact-val">${_extVal(languages.toUpperCase(), `https://www.localingual.com/?ISO=${id}`, "Posłuchaj języków tego kraju (localingual.com)")}</span></div>
                         
-                        <div class="fact-row"><span class="fact-key">RELIGION:</span><span class="fact-val" style="color:#ddd;">${_extVal(religionVal.toUpperCase(), relUrl, "O tej religii na Wikipedii")}</span></div>
+                        <div class="fact-row"><span class="fact-key">RELIGION:</span><span class="fact-val" style="color:#ddd;">${religionHtml}</span></div>
                         <div class="fact-row"><span class="fact-key">COST INDEX:</span><span class="fact-val" style="color:${costColor}; letter-spacing: 2px;">${costVal}</span></div>
 
                         <div class="fact-row" id="live-rate-row" style="display:none;">
