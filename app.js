@@ -4736,9 +4736,9 @@
                         container.children.push(am5.Circle.new(root, { radius: 17, fill: am5.color(0xfacc15), fillOpacity: 0.15, stroke: am5.color(0xfacc15), strokeWidth: 1.5 }));
                         container.children.push(am5.Label.new(root, { text: dataItem.dataContext.icon || "⭐", fontSize: 24, centerX: am5.p50, centerY: am5.p50 }));
                     } else if (dataItem.dataContext.type === "target") {
-                        var l1 = container.children.push(am5.Line.new(root, { points: [{x:-15, y:0}, {x:15, y:0}], stroke: am5.color(0xfacc15), strokeWidth: 2 }));
-                        var l2 = container.children.push(am5.Line.new(root, { points: [{x:0, y:-15}, {x:0, y:15}], stroke: am5.color(0xfacc15), strokeWidth: 2 }));
-                        var circle = container.children.push(am5.Circle.new(root, { radius: 8, stroke: am5.color(0xfacc15), strokeWidth: 2, fillOpacity: 0 }));
+                        var l1 = container.children.push(am5.Line.new(root, { points: [{x:-26, y:0}, {x:26, y:0}], stroke: am5.color(0xfacc15), strokeWidth: 2.5 }));
+                        var l2 = container.children.push(am5.Line.new(root, { points: [{x:0, y:-26}, {x:0, y:26}], stroke: am5.color(0xfacc15), strokeWidth: 2.5 }));
+                        var circle = container.children.push(am5.Circle.new(root, { radius: 15, stroke: am5.color(0xfacc15), strokeWidth: 2.5, fillOpacity: 0 }));
                         container.animate({ key: "opacity", from: 1, to: 0.2, duration: 600, loops: Infinity, easing: am5.ease.yoyo(am5.ease.cubic) });
                     } else {
                         container.children.push(am5.Circle.new(root, { radius: 6, fill: am5.color(0x00ff00), stroke: am5.color(0xffffff), strokeWidth: 2, shadowColor: am5.color(0x00ff00), shadowBlur: 15 }));
