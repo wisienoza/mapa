@@ -3948,6 +3948,29 @@
             return `<a href="${url}" target="_blank" rel="noopener" title="${title}" style="color:inherit; text-decoration:none;">${text}<span class="ext-ico">↗</span></a>`;
         }
 
+        // Dwustopniowy lookup dla JEDNEGO segmentu wartosci RELIGION (patrz komentarz przy uzyciu w
+        // updateFactbookPanel): (1) PODGATUNEK z RELIGION_SUBLINKS w calym segmencie, (2) inaczej religia-BAZA
+        // z RELIGION_LINKS o najmniejszym indeksie. segLc juz lowercase. Brak trafienia -> null (segment
+        // zostaje plain textem, tak samo jak dawniej caly string bez dopasowania).
+        function _religionSegUrl(segLc) {
+            let url = null;
+            if (typeof RELIGION_SUBLINKS !== 'undefined') {
+                let best = Infinity;
+                for (const kw in RELIGION_SUBLINKS) {
+                    const i = segLc.indexOf(kw);
+                    if (i >= 0 && i < best) { best = i; url = RELIGION_SUBLINKS[kw]; }
+                }
+            }
+            if (!url && typeof RELIGION_LINKS !== 'undefined') {
+                let best = Infinity;
+                for (const kw in RELIGION_LINKS) {
+                    const i = segLc.indexOf(kw);
+                    if (i >= 0 && i < best) { best = i; url = RELIGION_LINKS[kw]; }
+                }
+            }
+            return url;
+        }
+
         window.updateFactbookPanel = function(id, name) {
             const fPanel = document.getElementById("factbook-content");
             const fTarget = document.getElementById("factbook-target");
@@ -4068,32 +4091,21 @@
                     const _iddHtml = _extVal(idd, dialUrl, `Kierunkowy ${id} na dialcode.org`);
 
                     const religionVal = (typeof RELIGIONS !== 'undefined' && RELIGIONS[id]) ? RELIGIONS[id] : "N/A";
-                    // Link RELIGION -> pl.wikipedia. Wartosci sa zlozone ("Islam (Szyizm)", "Chrzescijanstwo
-                    // (Anglikanizm)", "Katolicyzm / Voodoo", "Brak (Nauka)"). Dwustopniowo (bazy w intel.js):
-                    //  1) PODGATUNEK (RELIGION_SUBLINKS) dookreslajacy DOMINUJACA wiare - liczony tylko w segmencie
-                    //     przed pierwszym '/', wiec "Chrzescijanstwo (Anglikanizm)"->Anglikanizm, ale
-                    //     "Katolicyzm / Anglikanizm" (Gibraltar) zostaje Katolicyzmem;
-                    //  2) inaczej religia-BAZA (RELIGION_LINKS) o najmniejszym indeksie = pierwsza wymieniona.
-                    // Bez trafienia (np. "Brak (Nauka)") = brak linku.
-                    let relUrl = null;
+                    // Link(i) RELIGION -> pl.wikipedia. Wartosci bywaja ZLOZONE Z KILKU religii rozdzielonych
+                    // DOKLADNIE " / " (ze spacjami) - np. "Katolicyzm / Voodoo", "Islam / Chrzescijanstwo".
+                    // KAZDY segment dostaje WLASNY link (dwustopniowy lookup w _religionSegUrl: (1) PODGATUNEK
+                    // z RELIGION_SUBLINKS w tym segmencie - "Chrzescijanstwo (Anglikanizm)"->Anglikanizm;
+                    // (2) inaczej religia-BAZA z RELIGION_LINKS o najmniejszym indeksie), niezaleznie od
+                    // pozostalych segmentow. Dzielimy TYLKO po " / " ze spacjami - skroty-zarty typu "Prot./Kat."
+                    // maja "/" bez spacji, wiec zostaja JEDNYM segmentem; i tak nie sa kluczami w zadnym
+                    // slowniku (byly bez linku juz przed tym podzialem), wiec podzial ich nie psuje.
+                    // Segment bez trafienia (np. "Brak (Nauka)") zostaje plain textem, bez linku i bez strzalki.
+                    let religionHtml = religionVal.toUpperCase();
                     if (religionVal !== "N/A") {
-                        const _relLc = religionVal.toLowerCase();
-                        const _slash = _relLc.indexOf('/');
-                        const _domSeg = _slash >= 0 ? _relLc.slice(0, _slash) : _relLc;
-                        if (typeof RELIGION_SUBLINKS !== 'undefined') {
-                            let _subBest = Infinity;
-                            for (const _kw in RELIGION_SUBLINKS) {
-                                const _i = _domSeg.indexOf(_kw);
-                                if (_i >= 0 && _i < _subBest) { _subBest = _i; relUrl = RELIGION_SUBLINKS[_kw]; }
-                            }
-                        }
-                        if (!relUrl && typeof RELIGION_LINKS !== 'undefined') {
-                            let _relBest = Infinity;
-                            for (const _kw in RELIGION_LINKS) {
-                                const _i = _relLc.indexOf(_kw);
-                                if (_i >= 0 && _i < _relBest) { _relBest = _i; relUrl = RELIGION_LINKS[_kw]; }
-                            }
-                        }
+                        religionHtml = religionVal.split(' / ').map(function(seg){
+                            const segUrl = _religionSegUrl(seg.toLowerCase());
+                            return _extVal(seg.toUpperCase(), segUrl, "O tej religii na Wikipedii");
+                        }).join(' / ');
                     }
                     const costVal = (typeof COST_INDEX !== 'undefined' && COST_INDEX[id]) ? COST_INDEX[id] : "$$";
                     
