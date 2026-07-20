@@ -4165,8 +4165,8 @@
                         
                         <div class="fact-row" style="margin-top:-5px; margin-bottom:12px; display:block;"><div style="font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; color:${safeInfo.color}; width: 100%; text-align: right; white-space: normal; line-height: 1.2;">${safeInfo.desc}</div></div>
 
-                        <div class="fact-row"><span class="fact-key">DRIVING:</span><span class="fact-val">${drivingHtml}${conventionHtml}</span></div>
                         <div class="fact-row" id="capital-row" style="cursor:pointer;" title="Pokaż profil stolicy"><span class="fact-key">CAPITAL:</span><span class="fact-val">${capitalRaw.toUpperCase()}</span></div>
+                        <div class="fact-row"><span class="fact-key">DRIVING:</span><span class="fact-val">${drivingHtml}${conventionHtml}</span></div>
                         <div class="fact-row"><span class="fact-key">DIST. WAW:</span><span class="fact-val" style="color:#00ccff">${distance}</span></div>
                         
                         <div class="fact-row"><span class="fact-key">POWER:</span><span class="fact-val" style="color:${pColor}">${_extVal(intel.p, "https://www.iec.ch/world-plugs", "Wtyczki i napięcia świata (IEC World Plugs) — kraj wybierasz z listy na stronie")}</span></div>
