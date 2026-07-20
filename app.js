@@ -4007,6 +4007,11 @@
                     const waterUrl = waterSlug ? `https://isthewatersafe.com/country/${waterSlug}` : null;
                     const safeLevel = (typeof SAFETY_OVERRIDE !== 'undefined' && SAFETY_OVERRIDE[id]) ? SAFETY_OVERRIDE[id] : 1;
                     const safeInfo = SAFETY_LABELS[safeLevel];
+                    // SAFETY -> link do gov.uk/foreign-travel-advice (FCDO). Ten sam slug co live-safety-badge
+                    // nizej (FCDO_SLUGS z fallbackiem na countryNameSlug) - jedno zrodlo prawdy, zeby link i
+                    // sprawdzenie live NIGDY sie nie rozjechaly.
+                    const fcdoSlug = (typeof FCDO_SLUGS !== 'undefined' && FCDO_SLUGS[id]) ? FCDO_SLUGS[id] : countryNameSlug;
+                    const fcdoTravelUrl = `https://www.gov.uk/foreign-travel-advice/${fcdoSlug}`;
                     const tripUrl = `https://www.tripadvisor.com/Search?q=${countryNameSafe}`;
                     let wikiSlug = (typeof WIKIVOYAGE_OVERRIDES !== 'undefined' && WIKIVOYAGE_OVERRIDES[id]) ? WIKIVOYAGE_OVERRIDES[id] : countryNameWiki;
                     const wikiUrl = `https://en.wikivoyage.org/wiki/${wikiSlug}`;
@@ -4107,7 +4112,7 @@
                             ? `<a href="${anthemUrl}" target="_blank" rel="noopener" title="Posłuchaj hymnu narodowego (nationalanthems.info)"><img src="${flagUrl}" class="fact-img" alt="Flag" style="cursor:pointer;"></a>`
                             : `<img src="${flagUrl}" class="fact-img" alt="Flag">`}
                         
-                        <div class="fact-row" style="border: none;"><span class="fact-key">SAFETY:</span><span class="fact-val" style="color:${safeInfo.color}; font-weight:bold; text-shadow: 0 0 5px ${safeInfo.color}44;">${safeInfo.text}<span id="live-safety-badge" title="Sprawdzanie zgodności z danymi live..." style="margin-left:6px; font-size:0.85em; opacity:0.5;">⏳</span></span></div>
+                        <div class="fact-row" style="border: none;"><span class="fact-key">SAFETY:</span><span class="fact-val" style="color:${safeInfo.color}; font-weight:bold; text-shadow: 0 0 5px ${safeInfo.color}44;"><a href="${fcdoTravelUrl}" target="_blank" rel="noopener" title="Oficjalne ostrzeżenia dla podróżnych (gov.uk FCDO)" style="color:inherit; text-decoration:none;">${safeInfo.text}</a><span id="live-safety-badge" title="Sprawdzanie zgodności z danymi live..." style="margin-left:6px; font-size:0.85em; opacity:0.5;">⏳</span></span></div>
                         
                         <div class="fact-row" style="margin-top:-5px; margin-bottom:12px; display:block;"><div style="font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; color:${safeInfo.color}; width: 100%; text-align: right; white-space: normal; line-height: 1.2;">${safeInfo.desc}</div></div>
 
@@ -4173,7 +4178,6 @@
 
                     const safetyBadgeEl = document.getElementById("live-safety-badge");
                     if (safetyBadgeEl) {
-                        const fcdoSlug = (typeof FCDO_SLUGS !== 'undefined' && FCDO_SLUGS[id]) ? FCDO_SLUGS[id] : countryNameSlug;
                         window._fetchTimeout(`https://www.gov.uk/api/content/foreign-travel-advice/${fcdoSlug}`)
                             .then(r => { if (!r.ok) throw new Error("API Error"); return r.json(); })
                             .then(d => {
