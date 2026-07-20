@@ -4735,10 +4735,15 @@
                     } else if (dataItem.dataContext.type === "wonder") {
                         container.children.push(am5.Circle.new(root, { radius: 17, fill: am5.color(0xfacc15), fillOpacity: 0.15, stroke: am5.color(0xfacc15), strokeWidth: 1.5 }));
                         container.children.push(am5.Label.new(root, { text: dataItem.dataContext.icon || "⭐", fontSize: 24, centerX: am5.p50, centerY: am5.p50 }));
-                    } else if (dataItem.dataContext.type === "target") {
-                        var l1 = container.children.push(am5.Line.new(root, { points: [{x:-26, y:0}, {x:26, y:0}], stroke: am5.color(0xfacc15), strokeWidth: 2.5 }));
-                        var l2 = container.children.push(am5.Line.new(root, { points: [{x:0, y:-26}, {x:0, y:26}], stroke: am5.color(0xfacc15), strokeWidth: 2.5 }));
-                        var circle = container.children.push(am5.Circle.new(root, { radius: 15, stroke: am5.color(0xfacc15), strokeWidth: 2.5, fillOpacity: 0 }));
+                    } else if (dataItem.dataContext.type === "target" || dataItem.dataContext.type === "target-search") {
+                        // Wieksze ramiona/okrag TYLKO dla wynikow wyszukiwarki ("target-search") - tam celownik
+                        // musi wystawac spod znacznika miasta/stolicy. Zwykly "target" (MAX RANGE, zoom na miasto)
+                        // zostaje w oryginalnym rozmiarze.
+                        var _big = dataItem.dataContext.type === "target-search";
+                        var _arm = _big ? 26 : 15, _rad = _big ? 15 : 8, _sw = _big ? 2.5 : 2;
+                        var l1 = container.children.push(am5.Line.new(root, { points: [{x:-_arm, y:0}, {x:_arm, y:0}], stroke: am5.color(0xfacc15), strokeWidth: _sw }));
+                        var l2 = container.children.push(am5.Line.new(root, { points: [{x:0, y:-_arm}, {x:0, y:_arm}], stroke: am5.color(0xfacc15), strokeWidth: _sw }));
+                        var circle = container.children.push(am5.Circle.new(root, { radius: _rad, stroke: am5.color(0xfacc15), strokeWidth: _sw, fillOpacity: 0 }));
                         container.animate({ key: "opacity", from: 1, to: 0.2, duration: 600, loops: Infinity, easing: am5.ease.yoyo(am5.ease.cubic) });
                     } else {
                         container.children.push(am5.Circle.new(root, { radius: 6, fill: am5.color(0x00ff00), stroke: am5.color(0xffffff), strokeWidth: 2, shadowColor: am5.color(0x00ff00), shadowBlur: 15 }));
@@ -5553,7 +5558,7 @@
                             lineSeries.data.clear();
                             pointSeries.data.setAll([{
                                 geometry: { type: "Point", coordinates: [coords[1], coords[0]] },
-                                type: "target"
+                                type: "target-search"
                             }]);
 
                             rotateGlobe(coords[0], coords[1]);
@@ -5611,7 +5616,7 @@
                         // Reticle-podswietlenie na dokladnym punkcie miasta (jak przy trafieniu stolicy
                         // w wyszukiwarce krajow) - rysowane PO renderCountryPlaces, bo ta funkcja czysci
                         // pointSeries gdy stolica kraju jest jednoczesnie dopasowanym miastem.
-                        pointSeries.data.setAll([{ geometry: { type: "Point", coordinates: [ci[2], ci[1]] }, type: "target" }]);
+                        pointSeries.data.setAll([{ geometry: { type: "Point", coordinates: [ci[2], ci[1]] }, type: "target-search" }]);
 
                         // Obrot robi WYLACZNIE rotateGlobe (jak wszedzie indziej). Zoom ustawiamy animujac
                         // bezposrednio "zoomLevel" - NIE przez zoomToGeoPoint, bo ta metoda przy projekcji
