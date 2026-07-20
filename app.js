@@ -3960,7 +3960,7 @@
                 fPanel.innerHTML = `
                     <div class="fact-row" style="border: none;"><span class="fact-key">SAFETY:</span><span class="fact-val" style="color:#facc15; font-weight:bold;">🟡 CAUTION</span></div>
                     <div class="fact-row"><span class="fact-key">STATUS:</span><span class="fact-val" style="color:#ef4444">MILITARY / RESTRICTED</span></div>
-                    <div class="fact-row"><span class="fact-key">POWER:</span><span class="fact-val" style="color:${pColor}">${intel.p}</span></div>
+                    <div class="fact-row"><span class="fact-key">POWER:</span><span class="fact-val" style="color:${pColor}"><a href="https://www.iec.ch/world-plugs" target="_blank" rel="noopener" title="Wtyczki i napięcia świata (IEC World Plugs) — kraj wybierasz z listy na stronie" style="color:inherit; text-decoration:none;">${intel.p}</a></span></div>
                     <div class="fact-row"><span class="fact-key">WATER:</span><span class="fact-val" style="color:#dc2626">${intel.w}</span></div>
                     <div class="fact-row"><span class="fact-key">TIPPING:</span><span class="fact-val">${intel.t.toUpperCase()}</span></div>
                     <div class="fact-row"><span class="fact-key">INFO:</span><span class="fact-val">BRAK STAŁYCH MIESZKAŃCÓW</span></div>
@@ -4083,7 +4083,7 @@
                         <div class="fact-row"><span class="fact-key">CAPITAL:</span><span class="fact-val">${capitalRaw.toUpperCase()}</span></div>
                         <div class="fact-row"><span class="fact-key">DIST. WAW:</span><span class="fact-val" style="color:#00ccff">${distance}</span></div>
                         
-                        <div class="fact-row"><span class="fact-key">POWER:</span><span class="fact-val" style="color:${pColor}">${intel.p}</span></div>
+                        <div class="fact-row"><span class="fact-key">POWER:</span><span class="fact-val" style="color:${pColor}"><a href="https://www.iec.ch/world-plugs" target="_blank" rel="noopener" title="Wtyczki i napięcia świata (IEC World Plugs) — kraj wybierasz z listy na stronie" style="color:inherit; text-decoration:none;">${intel.p}</a></span></div>
                         <div class="fact-row"><span class="fact-key">WATER:</span><span class="fact-val" style="color:${intel.w.includes('✅') ? '#00ff00' : '#dc2626'}">${waterUrl ? `<a href="${waterUrl}" target="_blank" rel="noopener" title="Sprawdź, czy woda z kranu jest bezpieczna (isthewatersafe.com)" style="color:inherit; text-decoration:none;">${intel.w}</a>` : intel.w}</span></div>
                         <div class="fact-row"><span class="fact-key">TIPPING:</span><span class="fact-val">${intel.t.toUpperCase()}</span></div>
 
