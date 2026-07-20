@@ -32,6 +32,7 @@ window.HELP_SECTIONS = [
     { cat: "TWOJE PODRÓŻE", items: [
         { icon: "🛫", text: "Panel „Active Mission” odlicza czas do najbliższego wyjazdu. Jeśli masz zaplanowane więcej niż jedną podróż, strzałkami przełączysz się między nimi." },
         { icon: "🎯", text: "Kliknij cel misji, żeby zobaczyć całą zaplanowaną trasę narysowaną na globusie." },
+        { icon: "🗂️", text: "Kliknij sam licznik odliczania, żeby otworzyć pełny brief misji: daty wylotu i powrotu, długość pobytu, numery lotów (każdy klikalny do Flightradar24), planowaną trasę i listę krajów wyprawy (nowe vs już odwiedzone)." },
         { icon: "✈️", text: "Przycisk „Show on globe” w panelu Flights pokazuje Twoje realne, zrealizowane loty jako łuki na mapie, razem z ich liczbą i najdalej odwiedzonym krajem." },
         { icon: "🎯", text: "„MAX RANGE DETECTED” w panelu Flights to Twój rekord zasięgu. Duża liczba to dystans do najdalszego LOTNISKA, na jakim wylądowałeś — pod nią masz jego nazwę i kod IATA. Niżej, na zielono, najdalsze odwiedzone MIASTO wraz z krajem i własnym dystansem. Kliknij box, żeby zobaczyć całą drogę: żółta przerywana linia z Warszawy to lot na to lotnisko (leci nią samolot), a zielona ciągła — dalszy odcinek z lotniska do miasta. Zielona linia pojawia się tylko wtedy, gdy to miasto naprawdę leży dalej niż samo lotnisko; zwykle lotnisko stoi tuż przy mieście, więc jej nie zobaczysz i tak ma być." }
     ]},
