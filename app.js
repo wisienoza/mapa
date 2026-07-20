@@ -5026,10 +5026,18 @@
                 const navEl = document.getElementById("mission-nav");
                 const counterEl = document.getElementById("mission-counter");
 
+                // Klik w sam licznik -> pelny brief misji (okno: licznik, daty, loty->FR24, trasa, kraje).
+                if (display) {
+                    display.style.cursor = "pointer";
+                    display.title = "Kliknij: pełny brief misji";
+                    display.addEventListener("click", function(){ if (window.showMissionDossier) window.showMissionDossier(); });
+                }
+
                 function fmtCountdown(ms) {
                     const d = Math.floor(ms / (1000*60*60*24)), h = Math.floor((ms % (1000*60*60*24)) / (1000*60*60)), m = Math.floor((ms % (1000*60*60)) / (1000*60)), s = Math.floor((ms % (1000*60)) / 1000);
                     return `${d}d ${h.toString().padStart(2,'0')}h ${m.toString().padStart(2,'0')}m ${s.toString().padStart(2,'0')}s`;
                 }
+                window._fmtCountdown = fmtCountdown;   // udostepnione dla okna briefu misji (showMissionDossier)
 
                 window.cycleMission = function(delta) {
                     const missions = (typeof MISSIONS_DB !== 'undefined') ? MISSIONS_DB : [];
@@ -5119,6 +5127,202 @@
                     }
                 }
                 setInterval(updateMissionCountdown, 1000);
+
+                // ===== OKNO BRIEFU MISJI (klik w licznik #mission-countdown) =====
+                // Zwiezly "dossier" jednej misji: status+licznik na zywo, daty, dlugosc pobytu, loty (klik ->
+                // Flightradar24), planowana trasa i kraje wyprawy (NEW/odwiedzone). Nie dubluje sekcji "przy okazji"
+                // (_missionNearby/_missionWonders) - te zostaja w panelu intelu po kliknieciu linku TARGET.
+                // Czyta tylko MISSIONS_DB + helpery (_missionCountries/_flagSrc/displayMissionRoute) - zero zapisu.
+
+                // Pole flight jest wolnym tekstem w adminie. '/' dzieli kierunki (TAM/POWROT), a '&'/','/spacja
+                // lacza przesiadki w obrebie kierunku. Parser jest TOLERANCYJNY (regex wyciaga numery lotow),
+                // wiec nie wymaga sztywnego formatu - admin.saveData zapisuje caly data.js, twardy walidator
+                // pola kosmetycznego moglby zablokowac zapis realnego postepu.
+                window._parseFlights = function(str){
+                    if (!str) return [];
+                    return String(str).split("/").map(function(leg){
+                        var m = leg.match(/[A-Z][A-Z0-9]?\s?\d{1,4}[A-Z]?/gi) || [];
+                        return m.map(function(t){ return t.replace(/\s+/g, "").toUpperCase(); });
+                    }).filter(function(leg){ return leg.length; });
+                };
+                window._flightHref = function(code){
+                    return "https://www.flightradar24.com/data/flights/" + String(code).toLowerCase();
+                };
+
+                // Status + tekst licznika + kolor dla DOWOLNEJ misji (ta sama logika co panel Active Mission).
+                window._missionStatusLine = function(m){
+                    if (!m) return { status: "STANDBY", cd: "—", col: "#aab4c0" };
+                    var now = Date.now();
+                    var st = m.date ? new Date(m.date).getTime() : 0;
+                    var en = m.returnDate ? new Date(m.returnDate).getTime() : 0;
+                    if (st && now < st) return { status: "T-MINUS TO TAKEOFF", cd: window._fmtCountdown(st - now), col: "#facc15" };
+                    if (en && now >= st && now <= en) return { status: "MISSION IN PROGRESS", cd: "END IN: " + window._fmtCountdown(en - now), col: "#00ff00" };
+                    if (en && now > en) return { status: "OBJECTIVE COMPLETE", cd: "MISSION COMPLETED", col: "#00ccff" };
+                    return { status: "STANDBY", cd: "—", col: "#aab4c0" };
+                };
+
+                window._missionDossierHTML = function(m){
+                    var missions = (typeof MISSIONS_DB !== "undefined") ? MISSIONS_DB : [];
+                    var idx = window.selectedMissionIndex || 0;
+                    var nav = (missions.length > 1)
+                        ? '<span onclick="window._dossierGo(-1)" style="color:#8f9ba8; cursor:pointer; font-size:1rem;">◀</span>'
+                        + '<span onclick="window._dossierGo(1)" style="color:#8f9ba8; cursor:pointer; font-size:1rem;">▶</span>'
+                        + '<span style="color:#6b7480; font-size:0.72rem;">' + (idx + 1) + '/' + missions.length + '</span>'
+                        : '';
+                    var head = '<div style="display:flex; justify-content:space-between; align-items:center; padding:12px 16px; border-bottom:1px solid rgba(255,255,255,0.12); background:linear-gradient(90deg,rgba(250,204,21,0.14),transparent);">'
+                        + '<div style="display:flex; align-items:center; gap:10px;">' + nav
+                        + '<div style="font-weight:700; letter-spacing:3px; font-size:0.95rem; color:#fff;">MISSION DOSSIER</div></div>'
+                        + '<span onclick="window.hideMissionDossier()" style="cursor:pointer; font-size:1.2rem; color:#8f9ba8; line-height:1;">✕</span></div>';
+
+                    if (!m) {
+                        return head + '<div style="padding:28px 16px; text-align:center; color:#6b7480; letter-spacing:2px;">NO MISSIONS PLANNED</div>';
+                    }
+
+                    var sl = window._missionStatusLine(m);
+                    var esc = function(s){ return String(s == null ? "" : s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); };
+                    var fmtDT = function(iso){
+                        if (!iso) return "?";
+                        var d = new Date(iso);
+                        return d.toLocaleDateString("pl-PL", { day:"2-digit", month:"2-digit", year:"numeric" })
+                             + " · " + d.toLocaleTimeString("pl-PL", { hour:"2-digit", minute:"2-digit" });
+                    };
+                    var stayDays = (m.date && m.returnDate)
+                        ? Math.max(0, Math.round((new Date(m.returnDate).getTime() - new Date(m.date).getTime()) / 86400000)) + " dni"
+                        : "—";
+
+                    var flag = '<div style="width:40px; height:28px; border-radius:3px; overflow:hidden; flex:0 0 auto; display:flex; align-items:center; justify-content:center; background:rgba(255,255,255,0.05);">' + (window._flagHTML ? window._flagHTML(m.flag).replace('height:0.75em', 'height:28px') : esc(m.flag)) + '</div>';
+
+                    var html = head + '<div style="padding:14px 16px;">';
+
+                    // Naglowek misji + status
+                    html += '<div style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">' + flag
+                          + '<div><div style="font-size:1.15rem; font-weight:700; color:#fff; letter-spacing:1px;">' + esc(m.name) + '</div>'
+                          + '<div id="mdossier-status" style="font-size:0.7rem; letter-spacing:2px; color:' + sl.col + ';">' + sl.status + '</div></div></div>';
+
+                    // Wielki licznik (aktualizowany co sekunde przez _tickDossier)
+                    html += '<div style="border:1px solid ' + sl.col + '55; border-radius:6px; padding:8px 12px; margin-bottom:14px; text-align:center;">'
+                          + '<div id="mdossier-cd" style="font-size:1.4rem; font-weight:700; letter-spacing:1px; color:' + sl.col + ';">' + sl.cd + '</div></div>';
+
+                    // Metryki
+                    var metric = function(label, val, col){
+                        return '<div style="background:rgba(255,255,255,0.03); border-radius:5px; padding:7px 10px;">'
+                             + '<div style="font-size:0.62rem; color:#6b7480; letter-spacing:1px;">' + label + '</div>'
+                             + '<div style="font-size:0.86rem; color:' + (col || "#e6ecf2") + ';">' + val + '</div></div>';
+                    };
+                    html += '<div style="display:grid; grid-template-columns:repeat(2,1fr); gap:8px; margin-bottom:14px;">'
+                          + metric("WYLOT", fmtDT(m.date)) + metric("POWRÓT", fmtDT(m.returnDate))
+                          + metric("NA MIEJSCU", stayDays, "#00ff88") + metric("PRZYSTANKÓW", (m.route || []).length)
+                          + '</div>';
+
+                    // Loty -> chipy klikalne do FR24, pogrupowane po kierunku ('/')
+                    var legs = window._parseFlights(m.flight);
+                    if (legs.length) {
+                        var legLabel = function(i){ return legs.length === 1 ? "LOTY" : (i === 0 ? "TAM" : (i === 1 ? "POWRÓT" : "ODCINEK " + (i + 1))); };
+                        html += '<div style="margin-bottom:14px;"><div style="font-size:0.66rem; color:#00ccff; letter-spacing:2px; margin-bottom:6px;">✈ LOTY</div>';
+                        legs.forEach(function(leg, i){
+                            var chips = leg.map(function(code){
+                                return '<a href="' + window._flightHref(code) + '" target="_blank" rel="noopener" style="font-size:0.76rem; background:rgba(0,204,255,0.1); border:1px solid rgba(0,204,255,0.35); color:#7fd8ff; border-radius:4px; padding:3px 9px; text-decoration:none; white-space:nowrap;">' + esc(code) + '</a>';
+                            }).join('<span style="color:#4a5561; margin:0 2px;">→</span>');
+                            html += '<div style="display:flex; align-items:center; flex-wrap:wrap; gap:5px; margin-bottom:5px;">'
+                                  + '<span style="font-size:0.6rem; color:#6b7480; letter-spacing:1px; min-width:52px;">' + legLabel(i) + '</span>' + chips + '</div>';
+                        });
+                        html += '</div>';
+                    }
+
+                    // Planowana trasa (pelna, wraz z punktami domowymi)
+                    var route = (m.route || []);
+                    if (route.length) {
+                        var path = route.map(function(p){ return '<span style="color:#c6cfd9;">' + esc(p.city) + '</span>'; })
+                            .join('<span style="color:#4a5561;"> → </span>');
+                        html += '<div style="margin-bottom:14px;"><div style="font-size:0.66rem; color:#00ccff; letter-spacing:2px; margin-bottom:6px;">⇄ PLANOWANA TRASA</div>'
+                              + '<div style="font-size:0.82rem; line-height:1.6;">' + path + '</div></div>';
+                    }
+
+                    // Kraje wyprawy (flag + nazwa + NEW/odwiedzone)
+                    var codes = window._missionCountries ? window._missionCountries(m) : (m.flag ? [m.flag] : []);
+                    if (codes.length) {
+                        var vis = (typeof VISITED_COUNTRIES !== "undefined") ? VISITED_COUNTRIES : [];
+                        html += '<div style="margin-bottom:16px;"><div style="font-size:0.66rem; color:#00ccff; letter-spacing:2px; margin-bottom:8px;">⚑ KRAJE WYPRAWY</div>'
+                              + '<div style="display:flex; flex-wrap:wrap; gap:8px;">';
+                        codes.forEach(function(code){
+                            var seen = vis.indexOf(code) >= 0;
+                            var nm = (typeof FACTBOOK !== "undefined" && FACTBOOK[code]) ? FACTBOOK[code].name.common : code;
+                            var src = window._flagSrc ? window._flagSrc(code) : null;
+                            var fimg = src ? '<img src="' + String(src).replace(/"/g,"%22") + '" alt="' + esc(code) + '" style="width:22px; height:15px; border-radius:2px; object-fit:cover;">' : '';
+                            var tag = seen ? '<span style="font-size:0.6rem; color:#6b7480; letter-spacing:1px;">✓</span>'
+                                           : '<span style="font-size:0.6rem; color:#00ff88; letter-spacing:1px;">NEW</span>';
+                            var bg = seen ? "rgba(255,255,255,0.03)" : "rgba(0,255,136,0.06)";
+                            var br = seen ? "rgba(255,255,255,0.1)" : "rgba(0,255,136,0.25)";
+                            html += '<div style="display:flex; align-items:center; gap:6px; background:' + bg + '; border:1px solid ' + br + '; border-radius:5px; padding:4px 8px;">'
+                                  + fimg + '<span style="font-size:0.76rem; color:' + (seen ? "#9aa5b1" : "#e6ecf2") + ';">' + esc(nm) + '</span>' + tag + '</div>';
+                        });
+                        html += '</div></div>';
+                    }
+
+                    // Akcje
+                    html += '<div style="display:flex; gap:8px;">'
+                          + '<button onclick="window.hideMissionDossier(); if(window.displayMissionRoute) window.displayMissionRoute(' + JSON.stringify(m.name).replace(/"/g,"&quot;") + ');" style="flex:1; background:rgba(0,204,255,0.12); border:1px solid rgba(0,204,255,0.5); color:#7fd8ff; font-family:inherit; font-size:0.78rem; letter-spacing:1px; padding:9px; border-radius:5px; cursor:pointer;">POKAŻ TRASĘ NA GLOBIE</button>'
+                          + '<button onclick="window.hideMissionDossier()" style="background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.18); color:#9aa5b1; font-family:inherit; font-size:0.78rem; letter-spacing:1px; padding:9px 14px; border-radius:5px; cursor:pointer;">ZAMKNIJ</button>'
+                          + '</div>';
+
+                    html += '</div>';
+                    return html;
+                };
+
+                // Odswiezenie na zywo TYLKO linii licznika (nie przerysowujemy calego okna co sekunde -
+                // to zresetowaloby scroll i mignelo). Aktualizujemy tekst + kolor #mdossier-cd/#mdossier-status.
+                window._tickDossier = function(){
+                    var ov = document.getElementById("mission-dossier-overlay");
+                    if (!ov || ov.style.display === "none") return;
+                    var missions = (typeof MISSIONS_DB !== "undefined") ? MISSIONS_DB : [];
+                    var m = missions[window.selectedMissionIndex];
+                    if (!m) return;
+                    var sl = window._missionStatusLine(m);
+                    var cd = ov.querySelector("#mdossier-cd"), stt = ov.querySelector("#mdossier-status");
+                    if (cd) { cd.innerText = sl.cd; cd.style.color = sl.col; if (cd.parentElement) cd.parentElement.style.borderColor = sl.col + "55"; }
+                    if (stt) { stt.innerText = sl.status; stt.style.color = sl.col; }
+                };
+
+                // Nawigacja misji z wnetrza okna - synchronizuje sie z panelem Active Mission (ten sam index).
+                window._dossierGo = function(delta){
+                    var missions = (typeof MISSIONS_DB !== "undefined") ? MISSIONS_DB : [];
+                    if (missions.length < 2) return;
+                    window.missionManual = true;
+                    window.selectedMissionIndex = ((window.selectedMissionIndex || 0) + delta + missions.length) % missions.length;
+                    if (typeof updateMissionCountdown === "function") updateMissionCountdown();   // panel tez podaza
+                    window._renderDossier();
+                };
+
+                window._renderDossier = function(){
+                    var ov = document.getElementById("mission-dossier-overlay");
+                    if (!ov) return;
+                    var missions = (typeof MISSIONS_DB !== "undefined") ? MISSIONS_DB : [];
+                    var m = missions[window.selectedMissionIndex];
+                    var card = ov.querySelector("#mission-dossier-card");
+                    if (card) card.innerHTML = window._missionDossierHTML(m);
+                };
+
+                window.hideMissionDossier = function(){
+                    var ov = document.getElementById("mission-dossier-overlay");
+                    if (ov) ov.style.display = "none";
+                    if (window._dossierTimer) { clearInterval(window._dossierTimer); window._dossierTimer = null; }
+                };
+
+                window.showMissionDossier = function(){
+                    var ov = document.getElementById("mission-dossier-overlay");
+                    if (!ov) {
+                        ov = document.createElement("div");
+                        ov.id = "mission-dossier-overlay";
+                        ov.style.cssText = "display:none; position:fixed; inset:0; z-index:205; background:rgba(0,0,0,0.55); backdrop-filter:blur(4px); align-items:center; justify-content:center; font-family:'JetBrains Mono',monospace;";
+                        ov.innerHTML = '<div id="mission-dossier-card" style="width:min(560px,96vw); max-height:90vh; overflow-y:auto; background:rgba(8,8,10,0.97); border:1px solid rgba(250,204,21,0.45); border-radius:8px; box-shadow:0 8px 40px rgba(0,0,0,0.6); color:#c6cfd9;"></div>';
+                        document.body.appendChild(ov);
+                        ov.addEventListener("click", function(e){ if (e.target === ov) window.hideMissionDossier(); });
+                    }
+                    window._renderDossier();
+                    ov.style.display = "flex";
+                    if (window._dossierTimer) clearInterval(window._dossierTimer);
+                    window._dossierTimer = setInterval(window._tickDossier, 1000);
+                };
 
                 var visited = [];
                 if(typeof VISITED_COUNTRIES !== 'undefined') {
