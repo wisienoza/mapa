@@ -3938,6 +3938,16 @@
 
         window.liveClockInterval = null;
 
+        // Znaczek "to jest link zewnetrzny" (strzalka ↗, patrz .ext-ico w index.html) dopisywany PO wartosci
+        // wiersza fact-row. Jeden wspolny helper dla WSZYSTKICH takich wierszy (SAFETY/POWER/WATER/LANG/
+        // RELIGION/waluta/DIAL CODE), zeby znaczek wygladal identycznie wszedzie - NIE dotyczy flagi->hymn
+        // (to obrazek z cursor:pointer, nie tekstowy fact-val, strzalka by tam nie pasowala - celowo pominieta).
+        // url falsy (null/undefined/"") -> zwraca sam tekst bez linku i bez strzalki.
+        function _extVal(text, url, title) {
+            if (!url) return text;
+            return `<a href="${url}" target="_blank" rel="noopener" title="${title}" style="color:inherit; text-decoration:none;">${text}<span class="ext-ico">↗</span></a>`;
+        }
+
         window.updateFactbookPanel = function(id, name) {
             const fPanel = document.getElementById("factbook-content");
             const fTarget = document.getElementById("factbook-target");
@@ -3960,7 +3970,7 @@
                 fPanel.innerHTML = `
                     <div class="fact-row" style="border: none;"><span class="fact-key">SAFETY:</span><span class="fact-val" style="color:#facc15; font-weight:bold;">🟡 CAUTION</span></div>
                     <div class="fact-row"><span class="fact-key">STATUS:</span><span class="fact-val" style="color:#ef4444">MILITARY / RESTRICTED</span></div>
-                    <div class="fact-row"><span class="fact-key">POWER:</span><span class="fact-val" style="color:${pColor}"><a href="https://www.iec.ch/world-plugs" target="_blank" rel="noopener" title="Wtyczki i napięcia świata (IEC World Plugs) — kraj wybierasz z listy na stronie" style="color:inherit; text-decoration:none;">${intel.p}</a></span></div>
+                    <div class="fact-row"><span class="fact-key">POWER:</span><span class="fact-val" style="color:${pColor}">${_extVal(intel.p, "https://www.iec.ch/world-plugs", "Wtyczki i napięcia świata (IEC World Plugs) — kraj wybierasz z listy na stronie")}</span></div>
                     <div class="fact-row"><span class="fact-key">WATER:</span><span class="fact-val" style="color:#dc2626">${intel.w}</span></div>
                     <div class="fact-row"><span class="fact-key">TIPPING:</span><span class="fact-val">${intel.t.toUpperCase()}</span></div>
                     <div class="fact-row"><span class="fact-key">INFO:</span><span class="fact-val">BRAK STAŁYCH MIESZKAŃCÓW</span></div>
@@ -4041,9 +4051,7 @@
                     // Link waluty (redar.net) - TYLKO gdy kod jest w jawnej bazie CURRENCY_LINKS (intel.js).
                     // Jedna waluta = wiele krajow (klucz to kod ISO 4217 z FACTBOOK). Brak wpisu = sam kod bez linku.
                     const currUrl = (typeof CURRENCY_LINKS !== 'undefined' && CURRENCY_LINKS[currKey]) ? CURRENCY_LINKS[currKey] : null;
-                    const _currCodeHtml = currUrl
-                        ? `<a href="${currUrl}" target="_blank" rel="noopener" title="Waluta ${currKey} na redar.net" style="color:inherit; text-decoration:none;">${currKey}</a>`
-                        : currKey;
+                    const _currCodeHtml = _extVal(currKey, currUrl, `Waluta ${currKey} na redar.net`);
 
                     const pop = c.population ? (c.population > 1000000 ? (c.population / 1000000).toFixed(1) + "M" : (c.population / 1000).toFixed(1) + "k") : "N/A";
                     const flagUrl = (typeof FLAGS !== 'undefined' && FLAGS[id]) ? FLAGS[id] : (c.flags ? c.flags.svg : "");
@@ -4057,9 +4065,7 @@
                     // Link DIAL CODE -> dialcode.org, TYLKO gdy id jest w jawnej bazie DIAL_LINKS (intel.js;
                     // celowo ograniczona do "dostepnych panstw", nie calego swiata). Brak wpisu = sam kod bez linku.
                     const dialUrl = (typeof DIAL_LINKS !== 'undefined' && DIAL_LINKS[id]) ? DIAL_LINKS[id] : null;
-                    const _iddHtml = dialUrl
-                        ? `<a href="${dialUrl}" target="_blank" rel="noopener" title="Kierunkowy ${id} na dialcode.org" style="color:inherit; text-decoration:none;">${idd}</a>`
-                        : idd;
+                    const _iddHtml = _extVal(idd, dialUrl, `Kierunkowy ${id} na dialcode.org`);
 
                     const religionVal = (typeof RELIGIONS !== 'undefined' && RELIGIONS[id]) ? RELIGIONS[id] : "N/A";
                     // Link RELIGION -> pl.wikipedia. Wartosci sa zlozone ("Islam (Szyizm)", "Chrzescijanstwo
@@ -4118,7 +4124,7 @@
                             ? `<a href="${anthemUrl}" target="_blank" rel="noopener" title="Posłuchaj hymnu narodowego (nationalanthems.info)"><img src="${flagUrl}" class="fact-img" alt="Flag" style="cursor:pointer;"></a>`
                             : `<img src="${flagUrl}" class="fact-img" alt="Flag">`}
                         
-                        <div class="fact-row" style="border: none;"><span class="fact-key">SAFETY:</span><span class="fact-val" style="color:${safeInfo.color}; font-weight:bold; text-shadow: 0 0 5px ${safeInfo.color}44;"><a href="${fcdoTravelUrl}" target="_blank" rel="noopener" title="Oficjalne ostrzeżenia dla podróżnych (gov.uk FCDO)" style="color:inherit; text-decoration:none;">${safeInfo.text}</a><span id="live-safety-badge" title="Sprawdzanie zgodności z danymi live..." style="margin-left:6px; font-size:0.85em; opacity:0.5;">⏳</span></span></div>
+                        <div class="fact-row" style="border: none;"><span class="fact-key">SAFETY:</span><span class="fact-val" style="color:${safeInfo.color}; font-weight:bold; text-shadow: 0 0 5px ${safeInfo.color}44;">${_extVal(safeInfo.text, fcdoTravelUrl, "Oficjalne ostrzeżenia dla podróżnych (gov.uk FCDO)")}<span id="live-safety-badge" title="Sprawdzanie zgodności z danymi live..." style="margin-left:6px; font-size:0.85em; opacity:0.5;">⏳</span></span></div>
                         
                         <div class="fact-row" style="margin-top:-5px; margin-bottom:12px; display:block;"><div style="font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; color:${safeInfo.color}; width: 100%; text-align: right; white-space: normal; line-height: 1.2;">${safeInfo.desc}</div></div>
 
@@ -4126,17 +4132,17 @@
                         <div class="fact-row" id="capital-row" style="cursor:pointer;" title="Pokaż profil stolicy"><span class="fact-key">CAPITAL:</span><span class="fact-val">${capitalRaw.toUpperCase()}</span></div>
                         <div class="fact-row"><span class="fact-key">DIST. WAW:</span><span class="fact-val" style="color:#00ccff">${distance}</span></div>
                         
-                        <div class="fact-row"><span class="fact-key">POWER:</span><span class="fact-val" style="color:${pColor}"><a href="https://www.iec.ch/world-plugs" target="_blank" rel="noopener" title="Wtyczki i napięcia świata (IEC World Plugs) — kraj wybierasz z listy na stronie" style="color:inherit; text-decoration:none;">${intel.p}</a></span></div>
-                        <div class="fact-row"><span class="fact-key">WATER:</span><span class="fact-val" style="color:${intel.w.includes('✅') ? '#00ff00' : '#dc2626'}">${waterUrl ? `<a href="${waterUrl}" target="_blank" rel="noopener" title="Sprawdź, czy woda z kranu jest bezpieczna (isthewatersafe.com)" style="color:inherit; text-decoration:none;">${intel.w}</a>` : intel.w}</span></div>
+                        <div class="fact-row"><span class="fact-key">POWER:</span><span class="fact-val" style="color:${pColor}">${_extVal(intel.p, "https://www.iec.ch/world-plugs", "Wtyczki i napięcia świata (IEC World Plugs) — kraj wybierasz z listy na stronie")}</span></div>
+                        <div class="fact-row"><span class="fact-key">WATER:</span><span class="fact-val" style="color:${intel.w.includes('✅') ? '#00ff00' : '#dc2626'}">${_extVal(intel.w, waterUrl, "Sprawdź, czy woda z kranu jest bezpieczna (isthewatersafe.com)")}</span></div>
                         <div class="fact-row"><span class="fact-key">TIPPING:</span><span class="fact-val">${intel.t.toUpperCase()}</span></div>
 
                         ${countryVisitedRowHtml}
                         <div class="fact-row"><span class="fact-key">POPULATION:</span><span class="fact-val">${pop}</span></div>
                         <div class="fact-row"><span class="fact-key">AREA:</span><span class="fact-val">${area}</span></div>
                         ${citiesRowHtml}
-                        <div class="fact-row"><span class="fact-key">LANG:</span><span class="fact-val"><a href="https://www.localingual.com/?ISO=${id}" target="_blank" rel="noopener" title="Posłuchaj języków tego kraju (localingual.com)" style="color:inherit; text-decoration:none;">${languages.toUpperCase()}</a></span></div>
+                        <div class="fact-row"><span class="fact-key">LANG:</span><span class="fact-val">${_extVal(languages.toUpperCase(), `https://www.localingual.com/?ISO=${id}`, "Posłuchaj języków tego kraju (localingual.com)")}</span></div>
                         
-                        <div class="fact-row"><span class="fact-key">RELIGION:</span><span class="fact-val" style="color:#ddd;">${relUrl ? `<a href="${relUrl}" target="_blank" rel="noopener" title="O tej religii na Wikipedii" style="color:inherit; text-decoration:none;">${religionVal.toUpperCase()}</a>` : religionVal.toUpperCase()}</span></div>
+                        <div class="fact-row"><span class="fact-key">RELIGION:</span><span class="fact-val" style="color:#ddd;">${_extVal(religionVal.toUpperCase(), relUrl, "O tej religii na Wikipedii")}</span></div>
                         <div class="fact-row"><span class="fact-key">COST INDEX:</span><span class="fact-val" style="color:${costColor}; letter-spacing: 2px;">${costVal}</span></div>
 
                         <div class="fact-row" id="live-rate-row" style="display:none;">

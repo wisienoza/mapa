@@ -197,6 +197,9 @@
         .fact-row { display: flex; justify-content: space-between; border-bottom: 1px solid #333; padding-bottom: 4px; margin-bottom: 4px; font-size: 0.85rem; align-items: center; }
         .fact-key { color: #b3bdc9; font-size: 0.8rem; font-weight: 600; text-transform: uppercase; font-family: 'Rajdhani', sans-serif; }
         .fact-val { color: #fff; font-weight: 700; text-align: right; max-width: 85%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        /* Znaczek zewnetrznego linku (strzalka) dopisywany PO wartosci wiersza fact-row - patrz _extVal() w app.js.
+           Przygaszony i mniejszy niz tekst, zeby nie konkurowal z kolorem wartosci (zielony/cyan/zolty itd). */
+        .ext-ico { font-size: 0.7em; opacity: 0.55; margin-left: 4px; }
         /* Wiersze list w intelu rangi/misji niosa dluzszy opis niz zwykly factbook (dystans + punkt
            odniesienia + wiza + ceny), a globalny .fact-val jest jednolinijkowy z wielokropkiem - tu
            pozwalamy zawijac zamiast ucinac. */
