@@ -1550,11 +1550,11 @@ const CAPITAL_COORDS = {
 		const RELIGIONS = {
     // EUROPA
     "PL": "Katolicyzm",
-    "DE": "Chrześcijaństwo (Prot./Kat.)",
+    "DE": "Protestantyzm / Katolicyzm",
     "FR": "Katolicyzm (Zlaicyzowany)",
     "ES": "Katolicyzm",
     "IT": "Katolicyzm",
-    "GB": "Chrześcijaństwo (Anglikanizm)",
+    "GB": "Anglikanizm",
     "PT": "Katolicyzm",
     "NL": "Brak wyznania / Katolicyzm",
     "BE": "Katolicyzm",
@@ -1607,7 +1607,7 @@ const CAPITAL_COORDS = {
     "VN": "Brak wyznania / Buddyzm",
     "ID": "Islam",
     "MY": "Islam",
-    "BN": "Islam (Sunnizm)",
+    "BN": "Sunnizm",
     "PH": "Katolicyzm",
     "SG": "Buddyzm / Chrześcijaństwo",
     "KH": "Buddyzm",
@@ -1619,15 +1619,15 @@ const CAPITAL_COORDS = {
     "PK": "Islam",
     "BD": "Islam",
     "AE": "Islam",
-    "SA": "Islam (Wahhabizm)",
+    "SA": "Wahhabizm",
     "QA": "Islam",
     "KW": "Islam",
-    "OM": "Islam (Ibadatyzm)",
+    "OM": "Ibadatyzm",
     "BH": "Islam",
     "IL": "Judaizm",
     "JO": "Islam",
     "LB": "Islam / Chrześcijaństwo",
-    "IR": "Islam (Szyizm)",
+    "IR": "Szyizm",
     "IQ": "Islam",
     "SY": "Islam",
     "KZ": "Islam",
@@ -1637,8 +1637,8 @@ const CAPITAL_COORDS = {
     "TJ": "Islam",
     "AF": "Islam",
     "GE": "Prawosławie",
-    "AM": "Chrześcijaństwo (Ormiańskie)",
-    "AZ": "Islam (Szyizm)",
+    "AM": "Apostolski Kościół Ormiański",
+    "AZ": "Szyizm",
     "TW": "Buddyzm / Taoizm",
     "HK": "Brak wyznania / Buddyzm",
     "MO": "Brak wyznania / Buddyzm",
@@ -1773,12 +1773,12 @@ const CAPITAL_COORDS = {
 
     // KARAIBY & AMERYKA (Kolonialny mix)
     "PR": "Katolicyzm / Protestantyzm", // Portoryko
-    "VI": "Protestantyzm (Baptyzm)", // US Virgin
-    "VG": "Protestantyzm (Metodyzm)", // British Virgin
-    "AI": "Protestantyzm (Anglikanizm)", // Anguilla
+    "VI": "Baptyzm", // US Virgin
+    "VG": "Metodyzm", // British Virgin
+    "AI": "Anglikanizm", // Anguilla
     "KY": "Protestantyzm (Bóg i Pieniądz)", // Kajmany
-    "TC": "Protestantyzm (Baptyzm)", // Turks & Caicos
-    "BM": "Protestantyzm (Anglikanizm)", // Bermudy
+    "TC": "Baptyzm", // Turks & Caicos
+    "BM": "Anglikanizm", // Bermudy
     "MS": "Protestantyzm / Katolicyzm", // Montserrat
     "AW": "Katolicyzm", // Aruba
     "CW": "Katolicyzm", // Curacao
@@ -1793,7 +1793,6 @@ const CAPITAL_COORDS = {
     // AMERYKA PŁD & ATLANTYK
     "GF": "Katolicyzm", // Gujana Francuska
     "FK": "Chrześcijaństwo", // Falklandy
-    "SH": "Protestantyzm (Anglikanizm)", // Św. Helena
     "GS": "Brak (Garnizon/Nauka)", // Georgia Płd.
 
     // AFRYKA & INDYJSKI
@@ -1808,17 +1807,17 @@ const CAPITAL_COORDS = {
     "MO": "Religie ludowe / Buddyzm", // Makau
     "GU": "Katolicyzm", // Guam
     "MP": "Katolicyzm", // Mariany Północne
-    "AS": "Protestantyzm (Kongregacjonizm)", // Samoa Amerykańskie
+    "AS": "Kongregacjonizm", // Samoa Amerykańskie
     "NC": "Katolicyzm", // Nowa Kaledonia
     "PF": "Protestantyzm / Katolicyzm", // Polinezja Francuska
     "WF": "Katolicyzm", // Wallis & Futuna
     "CK": "Protestantyzm", // Wyspy Cooka
     "NU": "Protestantyzm (Ekalesia Niue)", // Niue
-    "TK": "Protestantyzm (Kongregacjonizm)", // Tokelau
-    "NF": "Protestantyzm (Anglikanizm)", // Norfolk
+    "TK": "Kongregacjonizm", // Tokelau
+    "NF": "Anglikanizm", // Norfolk
     "PN": "Adwentyzm Dnia Siódmego", // Pitcairn (Ciekawostka!)
     "CX": "Buddyzm / Islam", // Wyspa Bożego Narodzenia
-    "CC": "Islam (Sunnizm)", // Wyspy Kokosowe
+    "CC": "Sunnizm", // Wyspy Kokosowe
 
     // BEZLUDNE / NAUKOWE
     "TF": "Brak (Nauka)", // Francuskie Terytoria Płd.
@@ -2310,7 +2309,7 @@ const RELIGION_SUBLINKS = {
     "baptyzm":"https://pl.wikipedia.org/wiki/Baptyzm",
     "metodyzm":"https://pl.wikipedia.org/wiki/Metodyzm",
     "kongregacjonizm":"https://pl.wikipedia.org/wiki/Kongregacjonalizm",
-    "ormiańskie":"https://pl.wikipedia.org/wiki/Apostolski_Kościół_Ormiański",
+    "ormiański":"https://pl.wikipedia.org/wiki/Apostolski_Kościół_Ormiański",
 };
 
 // === ANTHEM LINKS (nationalanthems.info) ===
