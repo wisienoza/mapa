@@ -4054,6 +4054,12 @@
                     const languages = Object.values(c.languages || {}).join(', ') || "N/A";
                     const area = c.area ? c.area.toLocaleString() + " km²" : "N/A";
                     const idd = (c.idd && c.idd.root) ? (c.idd.root + (c.idd.suffixes ? c.idd.suffixes[0] : "")) : "N/A";
+                    // Link DIAL CODE -> dialcode.org, TYLKO gdy id jest w jawnej bazie DIAL_LINKS (intel.js;
+                    // celowo ograniczona do "dostepnych panstw", nie calego swiata). Brak wpisu = sam kod bez linku.
+                    const dialUrl = (typeof DIAL_LINKS !== 'undefined' && DIAL_LINKS[id]) ? DIAL_LINKS[id] : null;
+                    const _iddHtml = dialUrl
+                        ? `<a href="${dialUrl}" target="_blank" rel="noopener" title="Kierunkowy ${id} na dialcode.org" style="color:inherit; text-decoration:none;">${idd}</a>`
+                        : idd;
 
                     const religionVal = (typeof RELIGIONS !== 'undefined' && RELIGIONS[id]) ? RELIGIONS[id] : "N/A";
                     // Link RELIGION -> pl.wikipedia. Wartosci sa zlozone ("Islam (Szyizm)", "Chrzescijanstwo
@@ -4142,7 +4148,7 @@
                             <span class="fact-val" id="live-rate-val-rev" style="color:#00ccff;">...</span>
                         </div>
 
-                        <div class="fact-row"><span class="fact-key">DIAL CODE:</span><span class="fact-val">${idd}</span></div>
+                        <div class="fact-row"><span class="fact-key">DIAL CODE:</span><span class="fact-val">${_iddHtml}</span></div>
                         
                         <div class="fact-row"><span class="fact-key">LOCAL TIME:</span><span class="fact-val" id="live-local-time" style="color:#facc15; animation: blink 1s infinite;">CONNECTING...</span></div>
                         

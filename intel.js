@@ -2375,6 +2375,50 @@ const ANTHEM_LINKS = {
     "MP":"https://nationalanthems.info/mp.htm", "AS":"https://nationalanthems.info/as.htm", "CK":"https://nationalanthems.info/ck.htm", "NU":"https://nationalanthems.info/nu.htm", "TK":"https://nationalanthems.info/tk.htm",
     "WF":"https://nationalanthems.info/wf.htm", "NF":"https://nationalanthems.info/nf.htm", "PN":"https://nationalanthems.info/pn.htm", "XK":"https://nationalanthems.info/kos.htm", "BQ":"https://nationalanthems.info/bnr.htm",
 };
+// DIAL_LINKS - kierunkowy telefoniczny -> strona kraju na dialcode.org, TYLKO dla "dostepnych panstw" (lista
+// dostarczona recznie 2026-07-20, ~88 krajow - najczesciej odwiedzane/istotne dla gracza, nie caly swiat).
+// Brak wpisu = wiersz DIAL CODE zostaje samym tekstem bez linku (ten sam wzorzec co WATER_SAFE_LINKS/ANTHEM_LINKS).
+const DIAL_LINKS = {
+    // --- EUROPA ---
+    "DE":"https://dialcode.org/Europe/Germany/", "FR":"https://dialcode.org/Europe/France/", "GB":"https://dialcode.org/Europe/United_Kingdom/",
+    "RU":"https://dialcode.org/Europe/Russia/", "IT":"https://dialcode.org/Europe/Italy/", "ES":"https://dialcode.org/Europe/Spain/",
+    "SE":"https://dialcode.org/Europe/Sweden/", "AT":"https://dialcode.org/Europe/Austria/", "IE":"https://dialcode.org/Europe/Ireland/",
+    "GR":"https://dialcode.org/Europe/Greece/", "PT":"https://dialcode.org/Europe/Portugal/", "TR":"https://dialcode.org/Europe/Turkey/",
+    "UA":"https://dialcode.org/Europe/Ukraine/", "NO":"https://dialcode.org/Europe/Norway/", "DK":"https://dialcode.org/Europe/Denmark/",
+    "CH":"https://dialcode.org/Europe/Switzerland/", "PL":"https://dialcode.org/Europe/Poland/", "CZ":"https://dialcode.org/Europe/Czech_Republic/",
+    "NL":"https://dialcode.org/Europe/Netherlands/", "FI":"https://dialcode.org/Europe/Finland/", "HU":"https://dialcode.org/Europe/Hungary/",
+    "RO":"https://dialcode.org/Europe/Romania/", "BY":"https://dialcode.org/Europe/Belarus/", "BE":"https://dialcode.org/Europe/Belgium/",
+    "BG":"https://dialcode.org/Europe/Bulgaria/", "SK":"https://dialcode.org/Europe/Slovakia/", "RS":"https://dialcode.org/Europe/Serbia/",
+    "HR":"https://dialcode.org/Europe/Croatia/", "EE":"https://dialcode.org/Europe/Estonia/", "CY":"https://dialcode.org/Europe/Cyprus/",
+    "MK":"https://dialcode.org/Europe/Macedonia/",
+    // --- AFRYKA ---
+    "ZA":"https://dialcode.org/Africa/South_Africa/", "DZ":"https://dialcode.org/Africa/Algeria/", "EG":"https://dialcode.org/Africa/Egypt/",
+    "MA":"https://dialcode.org/Africa/Morocco/", "TN":"https://dialcode.org/Africa/Tunisia/", "NG":"https://dialcode.org/Africa/Nigeria/",
+    "KE":"https://dialcode.org/Africa/Kenya/", "BW":"https://dialcode.org/Africa/Botswana/", "CD":"https://dialcode.org/Africa/Congo_(Dem._Rep.)/",
+    // --- AZJA ---
+    "CN":"https://dialcode.org/Asia/China/", "IN":"https://dialcode.org/Asia/India/", "JP":"https://dialcode.org/Asia/Japan/",
+    "ID":"https://dialcode.org/Asia/Indonesia/", "PH":"https://dialcode.org/Asia/Philippines/", "KR":"https://dialcode.org/Asia/Korea_(South)/",
+    "KZ":"https://dialcode.org/Asia/Kazakhstan/", "SA":"https://dialcode.org/Asia/Saudi_Arabia/", "TH":"https://dialcode.org/Asia/Thailand/",
+    "TW":"https://dialcode.org/Asia/Taiwan/", "IR":"https://dialcode.org/Asia/Iran/", "MN":"https://dialcode.org/Asia/Mongolia/",
+    "TM":"https://dialcode.org/Asia/Turkmenistan/", "MY":"https://dialcode.org/Asia/Malaysia/", "IL":"https://dialcode.org/Asia/Israel/",
+    "VN":"https://dialcode.org/Asia/Vietnam/", "UZ":"https://dialcode.org/Asia/Uzbekistan/", "PK":"https://dialcode.org/Asia/Pakistan/",
+    "OM":"https://dialcode.org/Asia/Oman/", "SY":"https://dialcode.org/Asia/Syria/", "KP":"https://dialcode.org/Asia/Korea_(North)/",
+    "YE":"https://dialcode.org/Asia/Yemen/", "AE":"https://dialcode.org/Asia/United_Arab_Emirates/", "BD":"https://dialcode.org/Asia/Bangladesh/",
+    "IQ":"https://dialcode.org/Asia/Iraq/",
+    // --- AMERYKA PN + SRODKOWA ---
+    "US":"https://dialcode.org/North_America/United_States/", "MX":"https://dialcode.org/North_America/Mexico/", "CA":"https://dialcode.org/North_America/Canada/",
+    "DO":"https://dialcode.org/Central_America/Dominican_Republic/", "HN":"https://dialcode.org/Central_America/Honduras/",
+    "CU":"https://dialcode.org/Central_America/Cuba/", "BS":"https://dialcode.org/Central_America/Bahamas/",
+    "GT":"https://dialcode.org/Central_America/Guatemala/", "CR":"https://dialcode.org/Central_America/Costa_Rica/",
+    // --- AMERYKA POLUDNIOWA ---
+    "BR":"https://dialcode.org/South_America/Brazil/", "AR":"https://dialcode.org/South_America/Argentina/", "VE":"https://dialcode.org/South_America/Venezuela/",
+    "CL":"https://dialcode.org/South_America/Chile/", "PE":"https://dialcode.org/South_America/Peru/", "CO":"https://dialcode.org/South_America/Colombia/",
+    "BO":"https://dialcode.org/South_America/Bolivia/", "EC":"https://dialcode.org/South_America/Ecuador/", "UY":"https://dialcode.org/South_America/Uruguay/",
+    "PY":"https://dialcode.org/South_America/Paraguay/",
+    // --- OCEANIA ---
+    "AU":"https://dialcode.org/Oceania/Australia/", "NZ":"https://dialcode.org/Oceania/New_Zealand/", "PG":"https://dialcode.org/Oceania/Papua_New_Guinea/",
+    "FJ":"https://dialcode.org/Oceania/Fiji/",
+};
 // RELIGION_LINKS - religie-bazy; uzywane, gdy w dominujacej grupie nie ma zadnego odlamu z SUBLINKS. Bierzemy
 // slowo-klucz o NAJMNIEJSZYM indeksie w calej wartosci (= pierwsza wymieniona wiara). "Brak (...)" / bezludne
 // terytoria nie maja klucza -> brak linku. "Brak wyznania" swiadomie bez klucza (samo -> bez linku; w zlozeniu
