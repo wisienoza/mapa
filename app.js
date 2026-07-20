@@ -3983,7 +3983,7 @@
             // fetcha zegara (ponizej) nie ma prawa juz nadpisac interwalu / pokazac obcej strefy czasowej.
             const _fbToken = (window._factbookToken = (window._factbookToken || 0) + 1);
 
-            fTarget.innerText = "INTEL: " + name;
+            fTarget.innerText = "INTEL: " + name + " · " + id.toUpperCase();
             fPanel.innerHTML = '<div class="scanning-text">RETRIEVING DOSSIER...</div>';
 
             if (id.startsWith("UM-") || id === "UM") {
@@ -4067,9 +4067,25 @@
                         ? `https://www.sleepinginairports.net/guides/${airportSlug}.htm`
                         : `https://www.sleepinginairports.net/?s=${airportCitySlug}`;
 
-                    const intel = getIntel(id); 
+                    const intel = getIntel(id);
                     const pColor = intel.p.includes("NIE") ? "#00ff00" : "#dc2626";
-                    
+
+                    // DRIVING: strona ruchu (DRIVING_LEFT, intel.js) + ewentualne konwencje IDP (Genewa 1949 /
+                    // Wiedeń 1968, CONVENTION_GENEVA/VIENNA w intel.js). Ikonki CH/AT to SYMBOL konwencji (podpisane
+                    // w tych miastach), NIE flaga kraju docelowego - obie linkuja do gov.pl (jak zdobyc MPU).
+                    const drivingLeft = (typeof DRIVING_LEFT !== 'undefined') && DRIVING_LEFT.indexOf(id) >= 0;
+                    const drivingHtml = _extVal(drivingLeft ? "LEWOSTRONNY" : "PRAWOSTRONNY", "https://geohints.com/meta/drivingSide", "Kierunek ruchu drogowego (geohints.com)");
+                    const _idpGovUrl = "https://www.gov.pl/web/gov/uzyskaj-miedzynarodowe-prawo-jazdy";
+                    const _flagCH = (typeof FLAGS !== 'undefined') ? FLAGS['CH'] : null;
+                    const _flagAT = (typeof FLAGS !== 'undefined') ? FLAGS['AT'] : null;
+                    let conventionHtml = '';
+                    if (_flagCH && typeof CONVENTION_GENEVA !== 'undefined' && CONVENTION_GENEVA.indexOf(id) >= 0) {
+                        conventionHtml += `<a href="${_idpGovUrl}" target="_blank" rel="noopener" title="Strona Konwencji Genewskiej 1949 o Ruchu Drogowym - jak zdobyć Międzynarodowe Prawo Jazdy (gov.pl)"><img src="${_flagCH}" alt="GEN" style="height:11px; width:auto; vertical-align:middle; margin-left:5px; border-radius:1px;"></a>`;
+                    }
+                    if (_flagAT && typeof CONVENTION_VIENNA !== 'undefined' && CONVENTION_VIENNA.indexOf(id) >= 0) {
+                        conventionHtml += `<a href="${_idpGovUrl}" target="_blank" rel="noopener" title="Strona Konwencji Wiedeńskiej 1968 o Ruchu Drogowym - jak zdobyć Międzynarodowe Prawo Jazdy (gov.pl)"><img src="${_flagAT}" alt="VIE" style="height:11px; width:auto; vertical-align:middle; margin-left:3px; border-radius:1px;"></a>`;
+                    }
+
                     const currKey = Object.keys(c.currencies || {})[0] || "N/A";
                     // Link waluty (redar.net) - TYLKO gdy kod jest w jawnej bazie CURRENCY_LINKS (intel.js).
                     // Jedna waluta = wiele krajow (klucz to kod ISO 4217 z FACTBOOK). Brak wpisu = sam kod bez linku.
@@ -4081,7 +4097,6 @@
                     // Flaga -> link do hymnu narodowego (nationalanthems.info), TYLKO gdy id jest w ANTHEM_LINKS
                     // (intel.js). Brak wpisu (np. bezludne terytoria bez strony na serwisie) = sama flaga bez linku.
                     const anthemUrl = (typeof ANTHEM_LINKS !== 'undefined' && ANTHEM_LINKS[id]) ? ANTHEM_LINKS[id] : null;
-                    const cca2 = c.cca2 || "N/A";
                     const _langArr = Object.values(c.languages || {});
                     const languages = _langArr.length ? _langArr.join(', ') : "N/A";
                     // Kraje z wieloma jezykami urzedowymi (RPA=11, Szwajcaria=4...) nie miesza sie w jednej linii
@@ -4150,7 +4165,7 @@
                         
                         <div class="fact-row" style="margin-top:-5px; margin-bottom:12px; display:block;"><div style="font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; color:${safeInfo.color}; width: 100%; text-align: right; white-space: normal; line-height: 1.2;">${safeInfo.desc}</div></div>
 
-                        <div class="fact-row"><span class="fact-key">CODE:</span><span class="fact-val" style="color:#facc15">${cca2}</span></div>
+                        <div class="fact-row"><span class="fact-key">DRIVING:</span><span class="fact-val">${drivingHtml}${conventionHtml}</span></div>
                         <div class="fact-row" id="capital-row" style="cursor:pointer;" title="Pokaż profil stolicy"><span class="fact-key">CAPITAL:</span><span class="fact-val">${capitalRaw.toUpperCase()}</span></div>
                         <div class="fact-row"><span class="fact-key">DIST. WAW:</span><span class="fact-val" style="color:#00ccff">${distance}</span></div>
                         

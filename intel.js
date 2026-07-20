@@ -303,6 +303,51 @@ function getIntel(id) {
     };
 }
 
+// === RUCH DROGOWY: STRONA + KONWENCJE MIĘDZYNARODOWEGO PRAWA JAZDY ===
+// DRIVING_LEFT - kompletna lista panstw/terytoriow LEWOSTRONNEGO ruchu (LHT). Wszystko poza ta lista (i poza
+// CAPITAL_COORDS) domyslnie PRAWOSTRONNE (RHT) - w app.js: DRIVING_LEFT.indexOf(id)>=0 ? 'L' : 'R'. Lista
+// skompilowana z ogolnie znanego, stabilnego podzialu LHT/RHT (Wikipedia "Left- and right-hand traffic",
+// zgodnie z geohints.com/meta/drivingSide) - NIE zrodlo live-fetch jak inne bazy w tym pliku, wiec przy
+// dopisywaniu nowego panstwa warto zweryfikowac zrodlem zewnetrznym. Bezludne/naukowe terytoria (AQ/TF/HM/BV/
+// UM/UM-*) CELOWO pominiete - brak realnego ruchu drogowego, wiec brak sensownej odpowiedzi.
+// PUŁAPKI (bylej kolonie, ktore ZMIENILY strone po niepodleglosci - NIE sa juz LHT mimo brytyjskiej przeszlosci):
+// Nigeria, Ghana, Sierra Leone, Gambia (Afryka Zach., przeszly na RHT w latach 60./70.), Mjanma (Mjanma/Burma,
+// 1970, mimo ze nadal jezdzi autami z kierownica po prawej - STRONA RUCHU i STRONA KIEROWNICY to DWIE ROZNE
+// rzeczy), Sudan i Sudan Płd. (RHT). Gibraltar - WYJATEK w Europie: brytyjskie, ale RHT (dopasowane do
+// sasiadującej Hiszpanii od 1929). Rwanda - RHT (belgijska, nie brytyjska kolonia), mimo ze wschodnioafrykanscy
+// sasiedzi (Kenia/Uganda/Tanzania) sa LHT.
+const DRIVING_LEFT = [
+    // Europa
+    "GB","IE","MT","CY","IM","JE","GG",
+    // Azja
+    "JP","IN","PK","BD","LK","NP","BT","ID","TH","MY","SG","BN","TL","HK","MO","MV",
+    // Afryka
+    "ZA","BW","NA","ZW","ZM","MW","MZ","TZ","KE","UG","LS","SZ","MU","SC",
+    // Oceania
+    "AU","NZ","PG","FJ","SB","WS","TO","NR","KI","TV","CK","NU","TK","CX","CC","NF","PN",
+    // Ameryki i Karaiby
+    "JM","BS","BB","TT","LC","VC","GD","DM","AG","KN","VG","VI","KY","TC","BM","MS","AI","GY","SR","FK",
+];
+
+// CONVENTION_GENEVA / CONVENTION_VIENNA - sygnatariusze Konwencji o Ruchu Drogowym: Genewa 1949 / Wiedeń 1968
+// (miedzynarodowe prawo jazdy - patrz gov.pl/web/gov/uzyskaj-miedzynarodowe-prawo-jazdy). Listy dostarczone
+// recznie przez usera 2026-07-20 (konwencje.txt), NIE generowane/zgadywane. Kraj moze byc w OBU, JEDNEJ albo
+// ZADNEJ (wtedy brak zaznaczenia w wierszu DRIVING). Brak automatycznej aktualizacji - to dane traktatowe,
+// dopisywanie nowego panstwa wymaga sprawdzenia w oficjalnym zrodle (UN Treaty Collection), NIE domyslania.
+const CONVENTION_GENEVA = [
+    "AL","DZ","AR","AU","AT","BD","BB","BE","BJ","BW","BG","BF","KH","CA","CF","CL","CG","CI","CU","CY","CZ",
+    "CD","DK","DO","EC","EG","FJ","FI","FR","GE","GH","GR","GT","HT","VA","HU","IS","IN","IE","IL","IT","JM",
+    "JP","KG","LA","LB","LS","LU","MG","MW","MY","ML","MT","MC","ME","MA","NA","NL","NZ","NE","NG","NO","PG",
+    "PY","PE","PH","PL","PT","KR","RO","RU","RW","SM","SN","RS","SL","SG","SK","ZA","ES","LK","SE","SY","TG",
+    "TT","TN","TR","UG","AE","GB","US","VE","ZW",
+];
+const CONVENTION_VIENNA = [
+    "AL","AD","AM","AT","AZ","BS","BH","BY","BE","BA","BR","BG","CF","CI","HR","CU","CZ","CD","DK","EE","FI",
+    "FR","GE","DE","GR","GY","HU","IR","IL","IT","KZ","KE","KW","KG","LV","LR","LT","LU","MD","MC","MN","ME",
+    "MA","NL","NE","NO","PK","PE","PH","PL","PT","QA","RO","RU","SM","SA","SN","RS","SC","SK","SI","ZA","SE",
+    "CH","TJ","TH","MK","TN","TR","TM","UA","AE","UY","UZ","VN","ZW",
+];
+
 const QPP_LINKS = {
 			"PF": "https://www.qppstudio.net/public-holidays/french_polynesia.htm",
 			"RE": "https://www.qppstudio.net/public-holidays/r_union.htm",
