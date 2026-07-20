@@ -5258,8 +5258,7 @@
                                            : '<span style="font-size:0.6rem; color:#00ff88; letter-spacing:1px;">NEW</span>';
                             var bg = seen ? "rgba(255,255,255,0.03)" : "rgba(0,255,136,0.06)";
                             var br = seen ? "rgba(255,255,255,0.1)" : "rgba(0,255,136,0.25)";
-                            var cc = JSON.stringify(code);
-                            html += '<div onclick="window.hideMissionDossier(); if(window.focusRankTarget) window.focusRankTarget(' + cc + ');" title="Pokaż ' + esc(nm) + ' na globusie" style="display:flex; align-items:center; gap:6px; cursor:pointer; background:' + bg + '; border:1px solid ' + br + '; border-radius:5px; padding:4px 8px;">'
+                            html += '<div onclick="window.hideMissionDossier(); if(window.focusRankTarget) window.focusRankTarget(\'' + esc(code) + '\');" title="Pokaż ' + esc(nm) + ' na globusie" style="display:flex; align-items:center; gap:6px; cursor:pointer; background:' + bg + '; border:1px solid ' + br + '; border-radius:5px; padding:4px 8px;">'
                                   + fimg + '<span style="font-size:0.76rem; color:' + (seen ? "#9aa5b1" : "#e6ecf2") + ';">' + esc(nm) + '</span>' + tag + '</div>';
                         });
                         html += '</div></div>';
