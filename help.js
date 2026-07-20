@@ -17,7 +17,8 @@ window.HELP_SECTIONS = [
         { icon: "📡", text: "Box MAX RANGE (najdalszy odwiedzony kraj) jest klikalny w całości — zarówno liczba kilometrów, jak i nazwa celu z flagą. Rysuje trasę z Warszawy, puszcza po niej samolot i otwiera profil tego kraju. Kliknięcie w sam wiersz MIASTO powiększa mapę na to najdalsze miasto (i zdejmuje krążący samolot, jeśli leciał)." },
         { icon: "🔗", text: "Pod profilem kraju znajdziesz przyciski do zewnętrznych stron (koszty życia, jedzenie, przewodnik podróżniczy, mapy i inne) — od razu podlinkowane pod ten konkretny kraj." },
         { icon: "💧", text: "Wiersz „WATER” w profilu kraju bywa klikalny — jeśli dany kraj ma swoją stronę w bazie isthewatersafe.com, kliknięcie otwiera ją w nowej karcie (informacja, czy woda z kranu nadaje się do picia). Kraje spoza tej bazy pokazują sam status wody, bez linku." },
-        { icon: "💱", text: "W wierszu z kursem waluty (np. „1 PLN = 4,3 EUR”) sam kod lokalnej waluty jest linkiem — otwiera stronę tej waluty na redar.net w nowej karcie. Waluty spoza bazy pokazują sam kod, bez linku." }
+        { icon: "💱", text: "W wierszu z kursem waluty (np. „1 PLN = 4,3 EUR”) sam kod lokalnej waluty jest linkiem — otwiera stronę tej waluty na redar.net w nowej karcie. Waluty spoza bazy pokazują sam kod, bez linku." },
+        { icon: "🗣️", text: "Wiersz „LANG” (języki kraju) jest linkiem — otwiera ten kraj na localingual.com w nowej karcie, gdzie posłuchasz, jak brzmią jego języki i nazwy miejsc." }
     ]},
     { cat: "TWÓJ POSTĘP", items: [
         { icon: "🔢", text: "Liczba w lewym górnym rogu to Twój wynik — ile krajów odwiedziłeś. Kliknięcie w samą liczbę otwiera spis wszystkich tych państw, pogrupowany po kontynencie i z flagami; kliknij dowolne, żeby przenieść się do niego na globusie razem z profilem. Pasek pod liczbą pokazuje, ile brakuje do kolejnej rangi — kliknij go, żeby zobaczyć plan dojścia do niej. Kliknięcie w nazwę aktualnej rangi otwiera jej szczegóły." },

@@ -4091,7 +4091,7 @@
                         <div class="fact-row"><span class="fact-key">POPULATION:</span><span class="fact-val">${pop}</span></div>
                         <div class="fact-row"><span class="fact-key">AREA:</span><span class="fact-val">${area}</span></div>
                         ${citiesRowHtml}
-                        <div class="fact-row"><span class="fact-key">LANG:</span><span class="fact-val">${languages.toUpperCase()}</span></div>
+                        <div class="fact-row"><span class="fact-key">LANG:</span><span class="fact-val"><a href="https://www.localingual.com/?ISO=${id}" target="_blank" rel="noopener" title="Posłuchaj języków tego kraju (localingual.com)" style="color:inherit; text-decoration:none;">${languages.toUpperCase()}</a></span></div>
                         
                         <div class="fact-row"><span class="fact-key">RELIGION:</span><span class="fact-val" style="color:#ddd;">${religionVal.toUpperCase()}</span></div>
                         <div class="fact-row"><span class="fact-key">COST INDEX:</span><span class="fact-val" style="color:${costColor}; letter-spacing: 2px;">${costVal}</span></div>
