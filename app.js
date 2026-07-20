@@ -2789,6 +2789,82 @@
             }).join('');
             el.style.display = "flex";
         };
+        // --- SPIS ODWIEDZONYCH PANSTW (klik w duzy licznik "38" w Operative Status) ---
+        // "38" = currentScore = rankedVisits (uniqueVisited - EXCLUDED_CODES), liczone w refreshVisitedUI.
+        // Sasiedzi licznika maja juz swoje klik-cele (nazwa rangi -> paszport, pasek XP -> plan rangi,
+        // pasek odznak -> osiagniecia); sam licznik byl jedynym elementem panelu bez akcji. Pokazuje
+        // DOKLADNIE panstwa skladajace sie na te liczbe, pogrupowane po kontynencie. Okno w tej samej
+        // konwencji co showContinentCountries (overlay budowany leniwie, flaga z _flagSrc, nazwa z FACTBOOK).
+        window.hideVisitedCountries = function(){
+            var el = document.getElementById("visited-countries-overlay");
+            if (el) el.style.display = "none";
+        };
+        window.showVisitedCountries = function(){
+            if (typeof REGION_MAP === 'undefined') return;
+            var el = document.getElementById("visited-countries-overlay");
+            if (!el) {
+                el = document.createElement("div");
+                el.id = "visited-countries-overlay";
+                el.style.cssText = "display:none; position:fixed; inset:0; z-index:200; background:rgba(0,0,0,0.75); backdrop-filter:blur(4px); align-items:center; justify-content:center;";
+                el.innerHTML =
+                    '<div style="background:rgba(8,8,10,0.96); border:1px solid rgba(250,204,21,0.4); border-radius:8px; padding:22px; width:min(820px,92vw); max-height:85vh; overflow-y:auto; box-shadow:0 8px 40px rgba(0,0,0,0.6); font-family:\'Rajdhani\',sans-serif;">'
+                  +   '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">'
+                  +     '<h1 style="margin:0; border:none; padding:0; font-size:1.3rem;">🗺️ ODWIEDZONE PAŃSTWA</h1>'
+                  +     '<span id="visited-countries-close" style="cursor:pointer; font-size:1.5rem; color:#8f9ba8; line-height:1;">✕</span>'
+                  +   '</div>'
+                  +   '<div id="visited-countries-progress" style="font-family:\'JetBrains Mono\',monospace; font-size:0.85rem; letter-spacing:0.5px; color:#facc15; margin-bottom:14px;"></div>'
+                  +   '<div id="visited-countries-body"></div>'
+                  + '</div>';
+                document.body.appendChild(el);
+                el.addEventListener("click", function(e){ if (e.target === el) window.hideVisitedCountries(); });
+                document.getElementById("visited-countries-close").onclick = window.hideVisitedCountries;
+            }
+            // Zrodlo = ta sama lista, ktora daje "38": _rankState.visited (rankedVisits). Fallback liczy ja
+            // recznie tym samym wzorem (unikaty VISITED_COUNTRIES - EXCLUDED_CODES), gdyby panel otworzyl sie
+            // zanim refreshVisitedUI ustawi _rankState - inaczej spis roznilby sie od widocznego licznika.
+            var codes;
+            if (window._rankState && Array.isArray(window._rankState.visited) && window._rankState.visited.length) {
+                codes = window._rankState.visited.slice();
+            } else {
+                var uniq = Array.from(new Set((typeof VISITED_COUNTRIES !== 'undefined') ? VISITED_COUNTRIES : []));
+                var excl = (typeof EXCLUDED_CODES !== 'undefined') ? EXCLUDED_CODES : [];
+                codes = uniq.filter(function(c){ return excl.indexOf(c) === -1; });
+            }
+            var nameOf = function(c){ return (typeof FACTBOOK !== 'undefined' && FACTBOOK[c]) ? FACTBOOK[c].name.common : c; };
+            // Kubelki per kontynent w kolejnosci CONTINENT_DATA. Kod bez REGION_MAP (nie powinno sie zdarzyc,
+            // bo rankedVisits nie zawiera terytoriow) laduje w "INNE" - zeby nigdy nie wypadl ze spisu po cichu.
+            var buckets = {};
+            codes.forEach(function(c){
+                var r = REGION_MAP[c] || "_OTHER";
+                (buckets[r] = buckets[r] || []).push(c);
+            });
+            var order = (typeof CONTINENT_DATA !== 'undefined') ? CONTINENT_DATA.map(function(x){ return { id: x.id, name: x.name }; }) : [];
+            if (buckets["_OTHER"]) order.push({ id: "_OTHER", name: "INNE" });
+            document.getElementById("visited-countries-progress").innerText =
+                codes.length + " " + (codes.length === 1 ? "PAŃSTWO" : "PAŃSTW") + " — LICZĄCE SIĘ DO RANGI";
+            var html = "";
+            order.forEach(function(g){
+                var list = buckets[g.id];
+                if (!list || !list.length) return;
+                list.sort(function(a, b){ return nameOf(a).localeCompare(nameOf(b), "pl"); });
+                html += '<div style="font-family:\'JetBrains Mono\',monospace; font-size:0.75rem; letter-spacing:2px; color:#c6cfd9; font-weight:700; margin:16px 0 8px;">'
+                      + g.name.toUpperCase() + ' <span style="color:#6b7684;">· ' + list.length + '</span></div>'
+                      + '<div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:7px;">';
+                html += list.map(function(code){
+                    var flag = (window._flagSrc && window._flagSrc(code))
+                        ? '<img src="' + window._flagSrc(code) + '" style="width:22px; height:15px; object-fit:cover; flex:0 0 22px; border:1px solid rgba(255,255,255,0.25);" alt="">'
+                        : '<span style="flex:0 0 22px;"></span>';
+                    return '<div onclick="window.hideVisitedCountries(); window.focusRankTarget(\'' + code + '\');" '
+                      +   'style="display:flex; gap:10px; align-items:center; padding:8px 10px; cursor:pointer; border:1px solid rgba(255,255,255,0.08); border-left:3px solid #86efac; border-radius:3px; background:rgba(255,255,255,0.04);">'
+                      +   flag
+                      +   '<span style="font-size:0.95rem; font-weight:600; letter-spacing:0.4px; color:#86efac; line-height:1.25;">' + nameOf(code) + '</span>'
+                      + '</div>';
+                }).join('');
+                html += '</div>';
+            });
+            document.getElementById("visited-countries-body").innerHTML = html;
+            el.style.display = "flex";
+        };
         // --- PLAN DOJSCIA DO RANGI (klik w pozycje na liscie rang po prawej) ---
         // Stan liczony w refreshVisitedUI (window._rankState), zeby nie duplikowac tu logiki XP
         // (dedup + EXCLUDED_CODES). Panel renderuje sie w tym samym miejscu co intel krajow/cudow.
@@ -5661,6 +5737,17 @@
         (function(){
             var achRow = document.getElementById("ach-label-row");
             if (achRow) achRow.onclick = function(){ window._achOpenedFromPassport = false; if (window.showAchievementsPanel) window.showAchievementsPanel(); };
+        })();
+        // --- KLIK W DUZY LICZNIK "38" -> spis odwiedzonych panstw ---
+        // #counter dostaje tylko innerText co refresh (refreshVisitedUI), sam element nie jest przerysowywany,
+        // wiec handler wystarczy podpiac raz tutaj (jak wyzej pasek odznak) - nie przepadnie przy odswiezeniu.
+        (function(){
+            var counterEl = document.getElementById("counter");
+            if (counterEl) {
+                counterEl.style.cursor = "pointer";
+                counterEl.title = "Pokaż spis odwiedzonych państw";
+                counterEl.onclick = function(){ if (window.showVisitedCountries) window.showVisitedCountries(); };
+            }
         })();
         
         function startSystemLog(count) {
