@@ -4082,7 +4082,17 @@
                     // (intel.js). Brak wpisu (np. bezludne terytoria bez strony na serwisie) = sama flaga bez linku.
                     const anthemUrl = (typeof ANTHEM_LINKS !== 'undefined' && ANTHEM_LINKS[id]) ? ANTHEM_LINKS[id] : null;
                     const cca2 = c.cca2 || "N/A";
-                    const languages = Object.values(c.languages || {}).join(', ') || "N/A";
+                    const _langArr = Object.values(c.languages || {});
+                    const languages = _langArr.length ? _langArr.join(', ') : "N/A";
+                    // Kraje z wieloma jezykami urzedowymi (RPA=11, Szwajcaria=4...) nie miesza sie w jednej linii
+                    // fact-row (nowrap+ellipsis) - w wierszu pokazujemy max 3 + licznik reszty, PELNA liste
+                    // przenosimy do title (tooltip po najechaniu), zamiast zawijac caly wiersz na kilka linii.
+                    const _langDisplay = _langArr.length > 3
+                        ? `${_langArr.slice(0, 3).join(', ').toUpperCase()} +${_langArr.length - 3}`
+                        : languages.toUpperCase();
+                    const _langTitle = _langArr.length > 3
+                        ? `${languages} — posłuchaj na localingual.com`
+                        : "Posłuchaj języków tego kraju (localingual.com)";
                     const area = c.area ? c.area.toLocaleString() + " km²" : "N/A";
                     const idd = (c.idd && c.idd.root) ? (c.idd.root + (c.idd.suffixes ? c.idd.suffixes[0] : "")) : "N/A";
                     // Link DIAL CODE -> dialcode.org, TYLKO gdy id jest w jawnej bazie DIAL_LINKS (intel.js;
@@ -4152,7 +4162,7 @@
                         <div class="fact-row"><span class="fact-key">POPULATION:</span><span class="fact-val">${pop}</span></div>
                         <div class="fact-row"><span class="fact-key">AREA:</span><span class="fact-val">${area}</span></div>
                         ${citiesRowHtml}
-                        <div class="fact-row"><span class="fact-key">LANG:</span><span class="fact-val">${_extVal(languages.toUpperCase(), `https://www.localingual.com/?ISO=${id}`, "Posłuchaj języków tego kraju (localingual.com)")}</span></div>
+                        <div class="fact-row"><span class="fact-key">LANG:</span><span class="fact-val">${_extVal(_langDisplay, `https://www.localingual.com/?ISO=${id}`, _langTitle)}</span></div>
                         
                         <div class="fact-row"><span class="fact-key">RELIGION:</span><span class="fact-val" style="color:#ddd;">${religionHtml}</span></div>
                         <div class="fact-row"><span class="fact-key">COST INDEX:</span><span class="fact-val" style="color:${costColor}; letter-spacing: 2px;">${costVal}</span></div>
