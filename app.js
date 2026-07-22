@@ -3986,9 +3986,10 @@
             // Wysokosc paska CZYTAMY Z DOM (2026-07-22), zamiast trzymac ja w stalej 108 = 80 (pasek)
             // + 20 (top .left-wrapper) + 8 (luz). Pasek ma dwie wysokosci (56 px, a przy @media
             // max-height:1000px - 48 px), wiec jedna liczba w kodzie zawsze klamala na jednym z nich.
+            // +16 = 8 px (top .left-wrapper/.right-wrapper) + 8 px luzu nad paskiem flag.
             var _lootEl = document.getElementById('loot-wrapper');
             var _lootH = _lootEl ? _lootEl.offsetHeight : 56;
-            const colH = ((window.innerHeight - (_lootH + 28)) / scale) + 'px';
+            const colH = ((window.innerHeight - (_lootH + 16)) / scale) + 'px';
             const leftHud = document.getElementById('left-hud');
             if (leftHud) leftHud.style.height = colH;
             // Druga kolumna (pogoda + wyszukiwarka + FLIGHTS) dostaje TE SAMA wysokosc - inaczej
