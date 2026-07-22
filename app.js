@@ -1047,6 +1047,15 @@
         window._fitRankName = function(){
             var el = document.querySelector("#current-rank .rank-title-text");
             if (!el) return;
+            // JetBrains Mono jest hostowany U NAS (fonts/fonts.css, podpiety <link> w index.html),
+            // ale @font-face i tak laduje sie ASYNCHRONICZNIE - takze z wlasnego serwera. Pierwszy
+            // pomiar potrafi wiec wypasc na foncie zastepczym, a ten ma INNE szerokosci liter:
+            // nazwa wychodzila albo za mala, albo (przy szerszym kroju docelowym) i tak sie nie
+            // miescila. Po dojsciu webfontu przeliczamy raz jeszcze; rejestracja tylko za pierwszym razem.
+            if (!window._rankFitFontHooked && document.fonts && document.fonts.ready) {
+                window._rankFitFontHooked = true;
+                document.fonts.ready.then(function(){ window._fitRankName(); });
+            }
             var fs = 2.8;
             el.style.fontSize = fs + "rem";
             // clientWidth = miejsce przydzielone przez flexa (juz po odjeciu ikony i gapa),
