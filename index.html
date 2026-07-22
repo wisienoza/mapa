@@ -141,7 +141,14 @@
         .current-rank-display { font-size: 1.0rem; color: #facc15; text-shadow: 0 0 10px rgba(250, 204, 21, 0.4); border-left: 3px solid #facc15; padding-left: 10px; margin-bottom: 8px; margin-top: 8px; letter-spacing: -0.5px; }
         #ach-label-row:hover span:first-child { color: #fff; }
         
-        .hud-panel { background: rgba(0, 0, 0, 0.85); padding: 15px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.15); pointer-events: auto; backdrop-filter: blur(8px); margin-bottom: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+        /* PADDING 7px jest REGULA dla wszystkich paneli HUD (2026-07-22, bylo 15px / 10px pod
+           @media max-height:1000px). Jedyny wyjatek to #mission-panel - patrz komentarz przy jego
+           regule ponizej. Jesli dokladasz nowy panel, NIE dawaj mu wlasnego paddingu. */
+        .hud-panel { background: rgba(0, 0, 0, 0.85); padding: 7px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.15); pointer-events: auto; backdrop-filter: blur(8px); margin-bottom: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+        /* ACTIVE MISSION - JEDYNY panel z grubsza ramka i to CELOWO: licznik T-MINUS idzie przez cala
+           szerokosc wiersza, a w prawym gornym rogu panelu siedzi flaga celu. Przy 7px licznik wchodzi
+           pod flage. Dolne 8px ma z inline style elementu (inline wygrywa z arkuszem). */
+        #mission-panel { padding: 15px; }
         /* Ostatni element w boxie NIE dokleja swojego dolnego marginesu do paddingu panelu -
            bez tego kazdy box konczyl sie pustym pasem (margines wiersza + 15px paddingu).
            !important, bo czesc wierszy (np. cuda swiata) ma margines nadany inline z JS.
@@ -156,15 +163,7 @@
         /* margin-bottom:0 - .hud-panel ma domyslnie 12px, przez co WORLD WONDERS (ostatni panel lewej
            kolumny) konczyl sie wyzej niz prawa strona HUD i lewa polowa ekranu wygladala na "podniesiona"
            nad paskiem flag. Teraz obie strony schodza rowno do 7px nad pasek. */
-        /* padding 7px zamiast dziedziczonych z .hud-panel 15px (10px pod @media max-height:1000px) -
-           lista cudow ma wlasny scroll i wypelnia cala kolumne, wiec gruba ramka wewnetrzna zjadala
-           miejsce na pozycje. Selektor po ID wygrywa z .hud-panel takze w media query, wiec ta jedna
-           regula zalatwia oba warianty. */
-        #wonders-stats { flex: 1 1 0; min-height: 0; overflow-y: auto; margin-bottom: 0; padding: 7px; }
-        /* To samo dla OPERATIVE STATUS i CONTINENTAL CONTROL - te trzy panele lewej kolumny maja gesta,
-           wielowierszowa tresc (paski XP, wiersze regionow, lista cudow), wiec 15px ramki wewnetrznej
-           kosztowalo tam najwiecej miejsca. Pozostale .hud-panel zostaja na domyslnych 15/10px. */
-        #status-panel, #region-stats { padding: 7px; }
+        #wonders-stats { flex: 1 1 0; min-height: 0; overflow-y: auto; margin-bottom: 0; }
         #wonders-stats::-webkit-scrollbar { width: 6px; }
         #wonders-stats::-webkit-scrollbar-thumb { background: rgba(250,204,21,0.4); border-radius: 3px; }
         .ui-container > *:not(#wonders-stats) { flex-shrink: 0; }
@@ -279,7 +278,10 @@
         .flight-stats .fs-num { display:block; font-family:'JetBrains Mono',monospace; font-size:1.1rem; font-weight:700; color:#00eaff; line-height:1; }
         .flight-stats .fs-lbl { display:block; font-size:0.5rem; letter-spacing:0.5px; color:#7fb8c4; margin-top:3px; font-family:'Rajdhani',sans-serif; font-weight:600; }
 
-        .rank-sidebar { box-sizing: border-box; max-height: calc(100vh - 280px); background: rgba(0, 0, 0, 0.75); backdrop-filter: blur(8px); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 8px; padding: 15px; overflow-y: auto; pointer-events: auto; }
+        /* padding 7px (bylo 15px, i to bez wariantu w @media - stad najgrubsza ramka wewnetrzna
+           w calym HUD). box-sizing:border-box juz tu bylo, wiec max-height liczone przez adjustLayout
+           dalej obejmuje padding - zmiana tylko oddaje miejsce pozycjom listy rang. */
+        .rank-sidebar { box-sizing: border-box; max-height: calc(100vh - 280px); background: rgba(0, 0, 0, 0.75); backdrop-filter: blur(8px); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 8px; padding: 7px; overflow-y: auto; pointer-events: auto; }
         .rank-sidebar::-webkit-scrollbar { width: 4px; }
         .rank-sidebar::-webkit-scrollbar-thumb { background: #444; border-radius: 2px; }
         #factbook-panel { box-sizing: border-box; max-height: calc(100vh - 320px); overflow-y: auto; }
@@ -405,7 +407,10 @@
 
         @media (max-height: 1000px) {
             h1 { font-size: 0.9rem; margin-bottom: 5px; }
-            .hud-panel { padding: 10px; margin-bottom: 10px; }
+            /* padding NIE jest tu juz nadpisywany - 7px z reguly bazowej jest na tyle ciasne, ze na
+               niskim ekranie nie ma z czego schodzic. Zmienia sie tylko odstep MIEDZY panelami. */
+            .hud-panel { margin-bottom: 10px; }
+            #mission-panel { padding: 10px; }
             .stats-row h2 { font-size: 3.0rem; }
             .telemetry-flag { font-size: 2.2rem; }
             .loot-bar-wrapper { height: 48px; }
@@ -551,10 +556,8 @@
                     <span class="mission-arrow" onclick="cycleMission(1)">▶</span>
                 </div>
             </h1>
-            <!-- NIE zmniejszaj tu paddingu do 7px "dla spojnosci" z #status-panel / #region-stats /
-                 #wonders-stats. Te 15px (10px pod @media max-height:1000px) sa tu CELOWO: licznik
-                 T-MINUS idzie przez cala szerokosc wiersza, a w prawym gornym rogu panelu siedzi flaga
-                 celu - bez tego marginesu licznik wchodzi pod flage. -->
+            <!-- Padding (15px / 10px pod @media) jest w arkuszu przy regule #mission-panel - to JEDYNY
+                 panel odstajacy od bazowych 7px i jest tak CELOWO. Patrz komentarz przy tamtej regule. -->
             <div class="hud-panel" id="mission-panel" style="margin-bottom:6px; padding-bottom:8px; position:relative;">
                 <div class="max-range-box">
                     <div class="range-label" id="mission-status">SCANNING...</div>
