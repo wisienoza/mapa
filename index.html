@@ -551,6 +551,10 @@
                     <span class="mission-arrow" onclick="cycleMission(1)">▶</span>
                 </div>
             </h1>
+            <!-- NIE zmniejszaj tu paddingu do 7px "dla spojnosci" z #status-panel / #region-stats /
+                 #wonders-stats. Te 15px (10px pod @media max-height:1000px) sa tu CELOWO: licznik
+                 T-MINUS idzie przez cala szerokosc wiersza, a w prawym gornym rogu panelu siedzi flaga
+                 celu - bez tego marginesu licznik wchodzi pod flage. -->
             <div class="hud-panel" id="mission-panel" style="margin-bottom:6px; padding-bottom:8px; position:relative;">
                 <div class="max-range-box">
                     <div class="range-label" id="mission-status">SCANNING...</div>
