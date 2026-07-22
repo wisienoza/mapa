@@ -624,7 +624,11 @@
                         <div class="fs-cell"><span class="fs-num" id="fs-airports">–</span><span class="fs-lbl">LOTNISKA</span></div>
                         <div class="fs-cell"><span class="fs-num" id="fs-routes">–</span><span class="fs-lbl">TRASY</span></div>
                     </div>
-                    <div class="range-label" style="margin-top:3px;">MAX RANGE DETECTED</div>
+                    <!-- 8px (bylo 3px) - po zejsciu paddingu panelu do 7px czerwony naglowek MAX RANGE
+                         niemal sklejal sie z komorkami statystyk nad nim. To jedyny odstep w tym panelu,
+                         ktory oddziela dwie ROZNE sekcje (linki/statystyki vs rekord dystansu), reszta
+                         wierszy jest ciasno celowo. -->
+                    <div class="range-label" style="margin-top:8px;">MAX RANGE DETECTED</div>
                     <div class="range-value" id="max-dist-val">CALCULATING...</div>
                     <div class="range-sub" id="max-dist-name" style="min-height:0; margin-top:2px;"><div class="range-sub-text">SCANNING...</div><div class="telemetry-flag">📡</div></div>
                 </div>
