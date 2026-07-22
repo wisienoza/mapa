@@ -156,7 +156,15 @@
         /* margin-bottom:0 - .hud-panel ma domyslnie 12px, przez co WORLD WONDERS (ostatni panel lewej
            kolumny) konczyl sie wyzej niz prawa strona HUD i lewa polowa ekranu wygladala na "podniesiona"
            nad paskiem flag. Teraz obie strony schodza rowno do 7px nad pasek. */
-        #wonders-stats { flex: 1 1 0; min-height: 0; overflow-y: auto; margin-bottom: 0; }
+        /* padding 7px zamiast dziedziczonych z .hud-panel 15px (10px pod @media max-height:1000px) -
+           lista cudow ma wlasny scroll i wypelnia cala kolumne, wiec gruba ramka wewnetrzna zjadala
+           miejsce na pozycje. Selektor po ID wygrywa z .hud-panel takze w media query, wiec ta jedna
+           regula zalatwia oba warianty. */
+        #wonders-stats { flex: 1 1 0; min-height: 0; overflow-y: auto; margin-bottom: 0; padding: 7px; }
+        /* To samo dla OPERATIVE STATUS i CONTINENTAL CONTROL - te trzy panele lewej kolumny maja gesta,
+           wielowierszowa tresc (paski XP, wiersze regionow, lista cudow), wiec 15px ramki wewnetrznej
+           kosztowalo tam najwiecej miejsca. Pozostale .hud-panel zostaja na domyslnych 15/10px. */
+        #status-panel, #region-stats { padding: 7px; }
         #wonders-stats::-webkit-scrollbar { width: 6px; }
         #wonders-stats::-webkit-scrollbar-thumb { background: rgba(250,204,21,0.4); border-radius: 3px; }
         .ui-container > *:not(#wonders-stats) { flex-shrink: 0; }
@@ -513,7 +521,7 @@
     <div class="left-wrapper">
         <div class="ui-container" id="left-hud">
             <h1>Operative Status</h1>
-            <div class="hud-panel" style="margin-bottom:12px;">
+            <div class="hud-panel" id="status-panel" style="margin-bottom:12px;">
                 <div class="stats-row">
                     <h2 id="counter">0</h2>
                     <div class="xp-container">
@@ -587,11 +595,12 @@
                  Teraz jest zwyklym elementem tej samej kolumny (.weather-floater = flex column):
                  margin-top:auto trzyma go przy dole, gdy jest miejsce (wyglad jak dotad), a gdy miejsca
                  brak - auto schodzi do 0 i panel ustawia sie POD wyszukiwarka, zamiast na nia wchodzic.
-                 margin-bottom rezerwuje miejsce na przyciski RESET / "?" pod spodem: 50px = ich wysokosc
-                 (37px) + 13px odstepu. Bylo 72px, gdy #bottom-left-bar stal 22px nad dolem .left-wrapper;
-                 teraz stoi rowno przy dole (bottom:0), wiec rezerwa zeszla o te same 22px - inaczej miedzy
-                 FLIGHTS a przyciskami zrobilaby sie dziura. -->
-            <div class="flights-floater" style="width:100%; z-index:110; pointer-events:auto; margin-top:auto; margin-bottom:50px;">
+                 margin-bottom rezerwuje miejsce na przyciski RESET / "?" pod spodem: 46px = ich wysokosc
+                 (37px) + 9px odstepu. Bylo 72px, gdy #bottom-left-bar stal 22px nad dolem .left-wrapper;
+                 teraz stoi rowno przy dole (bottom:0), wiec rezerwa zeszla o te same 22px (-> 50px), a
+                 potem jeszcze o 30% samego odstepu (13px -> 9px). Ponizej ~46px przyciski zaczna wchodzic
+                 na panel FLIGHTS. -->
+            <div class="flights-floater" style="width:100%; z-index:110; pointer-events:auto; margin-top:auto; margin-bottom:46px;">
                 <h1>Flights</h1>
                 <div class="hud-panel" style="padding-bottom:5px;">
                     <div class="range-label">MY FLIGHTS</div>
