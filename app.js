@@ -3940,6 +3940,13 @@
             if (!proj || typeof proj.scale !== "function" || typeof proj.translate !== "function") return;
             var r = proj.scale(), t = proj.translate();
             if (!r || !t || !isFinite(r) || !isFinite(t[0]) || !isFinite(t[1])) return;
+            // GEOMETRIA "HOME" DLA BIEZACEGO UKLADU. Zapisujemy przy KAZDYM przebiegu bez zoomu (guard
+            // na gorze funkcji przepuszcza tylko zoomLevel <= 1.05), bo wtedy - i tylko wtedy - translate
+            // opisuje poprawnie wysrodkowana kule. Konsument: przycisk RESET, ktory tym naprawia to, co
+            // zostawia po sobie chart.goHome() (patrz komentarz przy resetBtn.onclick).
+            // MUSI stac PRZED straznikiem "bez zmian" ponizej - inaczej przy niezmienionej geometrii
+            // (czyli w praktyce zawsze po pierwszym przebiegu) nigdy by sie nie zapisalo.
+            window._globeHomeTr = { x: gc.get("translateX"), y: gc.get("translateY") };
             if (window._ambR === r && window._ambCx === t[0] && window._ambCy === t[1]) return;
             window._ambR = r; window._ambCx = t[0]; window._ambCy = t[1];
             var s = document.documentElement.style;
@@ -5479,18 +5486,42 @@
                     window.airportMode = false;                                           // wroc do miast (wylacz tryb lotnisk)
                     if (window.clearCountrySearch) window.clearCountrySearch();   // wyczysc tez pole wyszukiwania kraju
                     window.resetIntelPanels();
-                    chart.goHome();
+                    // ===== GEOMETRIA GLOBU PRZY RESECIE (naprawione 2026-07-22, pomiary uzytkownika) =====
+                    // chart.goHome() przywraca stan Z CHWILI TWORZENIA WYKRESU - w tym przesuniecie
+                    // (translateX/Y) policzone dla OWCZESNEJ wysokosci okna. Po kazdej pozniejszej zmianie
+                    // rozmiaru (klasycznie F11, ale tez otwarcie DevTools albo zmiana zoomu przegladarki)
+                    // te wartosci sa nieaktualne i reset ODSUWA glob od srodka.
+                    // ZMIERZONE: kontener 904 px wysokosci, promien kuli poprawny (452 = 904/2), ale srodek
+                    // na y=508,5 zamiast 452 - czyli 56 px za nisko, kula wystaje pod dolna krawedz.
+                    // WAZNE: przeliczenie samego paddingu tego NIE naprawia. Na szerokim ekranie (2560 px)
+                    // padding wynosi 0 przed i po (bo wysokosc < polowa szerokosci), wiec ustawienie tej
+                    // samej wartosci niczego nie wymusza - trzeba tknac translate.
+                    //
+                    // (1) Zdejmij poprawna geometrie TERAZ. To najpewniejszy moment: ewentualny resize juz
+                    //     sie ustalil, a goHome jeszcze niczego nie ruszyl. Tylko bez zoomu - przy zoomie
+                    //     translate opisuje przesuniety kadr, nie wysrodkowana kule.
+                    if ((chart.get("zoomLevel") || 1) <= 1.05) {
+                        window._globeHomeTr = { x: chart.get("translateX"), y: chart.get("translateY") };
+                    }
+                    // (2) goHome() wolaj TYLKO gdy jest co cofac, czyli przy realnym zoomie - to jego jedyne
+                    //     potrzebne tu zadanie (skasowac przesuniecie po zoomToGeoPoint z kolka myszy).
+                    //     Bez zoomu translate jest juz poprawny i goHome moglby go wylacznie zepsuc.
+                    else chart.goHome();
                     chart.animate({ key: "rotationX", to: -20, duration: 1000, easing: am5.ease.out(am5.ease.cubic) });
                     chart.animate({ key: "rotationY", to: -15, duration: 1000, easing: am5.ease.out(am5.ease.cubic) });
-                    // goHome() przywraca WEWNETRZNY stan widoku chartu (zoom + przesuniecie), policzony
-                    // przy poprzednim ukladzie. Gdy uklad zmienil sie od tamtej pory - a wejscie w F11
-                    // zmienia wysokosc viewportu - przywrocone wartosci nie pasuja juz do biezacych
-                    // wymiarow i glob laduje przesuniety w pionie (zgloszone: "reset w F11 przesuwa glob
-                    // w dol"). Przeliczamy wiec padding centrujacy OD RAZU i jeszcze raz PO animacji
-                    // (goHome + rotacje trwaja 1 s), zeby ostatnie slowo mial biezacy rozmiar #chartdiv.
-                    // adjustLayout sam w sobie jest tani i idempotentny, a przy okazji synchronizuje
-                    // poswiate atmosfery (_syncGlobeAmbiance) z nowa geometria kuli.
-                    if (typeof adjustLayout === 'function') { adjustLayout(); setTimeout(adjustLayout, 1100); }
+                    if (typeof adjustLayout === 'function') adjustLayout();
+                    // (3) PO ustaniu animacji przywroc geometrie policzona dla BIEZACEGO ukladu. Dopiero
+                    //     teraz, bo goHome animuje translate i wczesniejszy zapis zostalby nadpisany
+                    //     w trakcie. Fallback na _globeHomeTr z _syncGlobeAmbiance, gdy reset poszedl
+                    //     przy zoomie (wtedy krok 1 celowo nic nie zapisal).
+                    setTimeout(function(){
+                        var h = window._globeHomeTr;
+                        if (h && isFinite(h.x) && isFinite(h.y) && (chart.get("zoomLevel") || 1) <= 1.05) {
+                            if (Math.abs((chart.get("translateX") || 0) - h.x) > 0.5) chart.set("translateX", h.x);
+                            if (Math.abs((chart.get("translateY") || 0) - h.y) > 0.5) chart.set("translateY", h.y);
+                        }
+                        if (typeof adjustLayout === 'function') adjustLayout();
+                    }, 1150);
                     lineSeries.data.clear();
                     pointSeries.data.clear();
                     // startRot sam czysci serie i wstawia znacznik PL - wczesniejsza reczna kopia
