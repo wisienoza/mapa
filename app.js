@@ -5273,7 +5273,12 @@
                     // rotacja i pogoda tylko gdy sa wspolrzedne stolicy.
                     window.updateFactbookPanel(id, name);
                     if (c) {
-                        rotateGlobe(c[0], c[1]);
+                        // keepZoom = true: klik w kraj NA GLOBIE ma tylko doobrocic glob na jego stolice,
+                        // bez kasowania przyblizenia zrobionego kolkiem - inaczej ogladanie regionu z bliska
+                        // bylo niemozliwe, bo kazde klikniecie sasiada odrzucalo do pelnego widoku.
+                        // Powrot do zoomu 1 zostaje tylko tam, gdzie cel trzeba zobaczyc w calosci
+                        // (kontynent, MAX DISTANCE, trasa lotu, cud swiata) - patrz komentarz przy rotateGlobe.
+                        rotateGlobe(c[0], c[1], 1000, true);
                         window.updateWeatherPanel(id, name, c[0], c[1]);
                     }
                 };
