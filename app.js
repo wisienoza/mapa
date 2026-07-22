@@ -3946,7 +3946,10 @@
             // zostawia po sobie chart.goHome() (patrz komentarz przy resetBtn.onclick).
             // MUSI stac PRZED straznikiem "bez zmian" ponizej - inaczej przy niezmienionej geometrii
             // (czyli w praktyce zawsze po pierwszym przebiegu) nigdy by sie nie zapisalo.
-            window._globeHomeTr = { x: gc.get("translateX"), y: gc.get("translateY") };
+            // _globeHomeLock: reset PODNOSI te flage na czas swoich animacji. Bez niej adjustLayout
+            // wolany ze srodka resetu nadpisalby zapamietana, POPRAWNA geometrie ta wlasnie zepsuta
+            // przez goHome - i przycisk utrwalalby blad zamiast go cofac.
+            if (!window._globeHomeLock) window._globeHomeTr = { x: gc.get("translateX"), y: gc.get("translateY") };
             if (window._ambR === r && window._ambCx === t[0] && window._ambCy === t[1]) return;
             window._ambR = r; window._ambCx = t[0]; window._ambCy = t[1];
             var s = document.documentElement.style;
@@ -5497,16 +5500,16 @@
                     // padding wynosi 0 przed i po (bo wysokosc < polowa szerokosci), wiec ustawienie tej
                     // samej wartosci niczego nie wymusza - trzeba tknac translate.
                     //
-                    // (1) Zdejmij poprawna geometrie TERAZ. To najpewniejszy moment: ewentualny resize juz
-                    //     sie ustalil, a goHome jeszcze niczego nie ruszyl. Tylko bez zoomu - przy zoomie
-                    //     translate opisuje przesuniety kadr, nie wysrodkowana kule.
-                    if ((chart.get("zoomLevel") || 1) <= 1.05) {
-                        window._globeHomeTr = { x: chart.get("translateX"), y: chart.get("translateY") };
-                    }
+                    // (1) ZAMROZ zapamietana geometrie na czas resetu. Od tej chwili _syncGlobeAmbiance
+                    //     jej nie nadpisuje, wiec w _globeHomeTr zostaje ostatni POPRAWNY odczyt - ten
+                    //     sprzed goHome, zrobiony po ustaniu ostatniego resize. Bez tej blokady
+                    //     adjustLayout wolany nizej zapisalby juz wartosc zepsuta przez goHome
+                    //     i przycisk utrwalalby przesuniecie zamiast je cofac.
+                    window._globeHomeLock = true;
                     // (2) goHome() wolaj TYLKO gdy jest co cofac, czyli przy realnym zoomie - to jego jedyne
                     //     potrzebne tu zadanie (skasowac przesuniecie po zoomToGeoPoint z kolka myszy).
                     //     Bez zoomu translate jest juz poprawny i goHome moglby go wylacznie zepsuc.
-                    else chart.goHome();
+                    if ((chart.get("zoomLevel") || 1) > 1.05) chart.goHome();
                     chart.animate({ key: "rotationX", to: -20, duration: 1000, easing: am5.ease.out(am5.ease.cubic) });
                     chart.animate({ key: "rotationY", to: -15, duration: 1000, easing: am5.ease.out(am5.ease.cubic) });
                     if (typeof adjustLayout === 'function') adjustLayout();
@@ -5520,6 +5523,7 @@
                             if (Math.abs((chart.get("translateX") || 0) - h.x) > 0.5) chart.set("translateX", h.x);
                             if (Math.abs((chart.get("translateY") || 0) - h.y) > 0.5) chart.set("translateY", h.y);
                         }
+                        window._globeHomeLock = false;   // koniec resetu - znow sledzimy geometrie na biezaco
                         if (typeof adjustLayout === 'function') adjustLayout();
                     }, 1150);
                     lineSeries.data.clear();
