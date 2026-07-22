@@ -3983,9 +3983,22 @@
             const weatherCol = document.querySelector('.weather-floater');
             if (weatherCol) weatherCol.style.height = colH;
 
-            // Glob: stala srednica wg szerokosci (nie rosnie na full screen pod boxy)
+            // Glob: stala srednica wg szerokosci (nie rosnie na full screen pod boxy).
+            // WYMIARY Z REALNEGO KONTENERA (#chartdiv), nie z window.innerWidth/innerHeight (zmiana
+            // 2026-07-22): to rozmiar TEGO elementu decyduje o geometrii globu, a viewport i element
+            // potrafia raportowac rozne wartosci - m.in. w trakcie wchodzenia/wychodzenia z trybu
+            // pelnoekranowego (F11), przy zoomie przegladarki i gdy 100vh nie rowna sie innerHeight.
+            // Liczenie paddingu z viewportu, a rysowanie w elemencie o innej wysokosci daje asymetryczne
+            // marginesy - czyli glob przesuniety w pionie (zglaszane po resecie w F11).
             var gc = window.__globeChart;
-            if (gc) { var gcap = window.innerWidth * 0.50; var gextra = Math.max(0, window.innerHeight - gcap); gc.set('paddingTop', gextra/2); gc.set('paddingBottom', gextra/2); }
+            if (gc) {
+                var _cd = document.getElementById('chartdiv');
+                var gcW = (_cd && _cd.clientWidth)  || window.innerWidth;
+                var gcH = (_cd && _cd.clientHeight) || window.innerHeight;
+                var gcap = gcW * 0.50;
+                var gextra = Math.max(0, gcH - gcap);
+                gc.set('paddingTop', gextra/2); gc.set('paddingBottom', gextra/2);
+            }
             // Poswiata atmosfery pod nowa geometrie globu. amCharts przelicza projekcje asynchronicznie
             // (wlasna petla renderu), wiec odczyt "teraz" widzi stan po POPRZEDNIEJ klatce - dlatego
             // dokladamy opozniony strzal, ktory lapie stan po ustaniu resize'a. Petla rozgrzewkowa
@@ -4026,7 +4039,21 @@
             }
         }
 
-        window.addEventListener('resize', adjustLayout);
+        // ZMIANA ROZMIARU: przelicz OD RAZU + jeszcze raz PO USTANIU zmiany (2026-07-22).
+        // F11 na Windows/Chrome (a takze drag-resize i zmiana zoomu przegladarki) potrafi wyslac
+        // 'resize' ZANIM viewport i layout skoncza sie zmieniac - pojedyncze przeliczenie czyta wtedy
+        // wymiary POSREDNIE i uklad (w tym padding centrujacy glob) zostaje rozjechany az do
+        // nastepnego zdarzenia. Opozniony, debounce'owany strzal czyta juz stan koncowy.
+        // Ten sam helper obsluguje 'fullscreenchange' - F11 go NIE emituje (to zdarzenie JS-owego
+        // Fullscreen API), ale wejscie w pelny ekran z poziomu kodu/przegladarki juz tak.
+        var _layoutSettleTimer = null;
+        window.adjustLayoutSoon = function(){
+            adjustLayout();
+            if (_layoutSettleTimer) clearTimeout(_layoutSettleTimer);
+            _layoutSettleTimer = setTimeout(adjustLayout, 260);
+        };
+        window.addEventListener('resize', window.adjustLayoutSoon);
+        document.addEventListener('fullscreenchange', window.adjustLayoutSoon);
         window.addEventListener('load', adjustLayout);
         // Rozgrzewka layoutu: KILKA strzalow w stalych odstepach zamiast rAF co klatke przez 2 s
         // (zmiana 2026-07-22). adjustLayout robi getBoundingClientRect na kilku elementach
@@ -4559,7 +4586,16 @@
 					rotationY: -15 
 				}));
 				window.__globeChart = chart;
-				(function(){ var cap = window.innerWidth * 0.50; var extra = Math.max(0, window.innerHeight - cap); chart.set("paddingTop", extra/2); chart.set("paddingBottom", extra/2); })();
+				// Pierwsze ustawienie paddingu globu. Ta sama formula co w adjustLayout (i te same
+				// wymiary - z #chartdiv, nie z viewportu); adjustLayout i tak przeliczy to zaraz potem,
+				// ale bez tego pierwsza klatka renderu leci z paddingiem 0 i glob "podskakuje".
+				(function(){
+					var _cd = document.getElementById('chartdiv');
+					var cw = (_cd && _cd.clientWidth)  || window.innerWidth;
+					var chh = (_cd && _cd.clientHeight) || window.innerHeight;
+					var cap = cw * 0.50; var extra = Math.max(0, chh - cap);
+					chart.set("paddingTop", extra/2); chart.set("paddingBottom", extra/2);
+				})();
 				// ZOOM kolkiem - zawsze wycentrowany na punkcie na srodku globu (nie ucieka "za planete")
 				(function(){
 					var cd = document.getElementById("chartdiv");
@@ -5446,6 +5482,15 @@
                     chart.goHome();
                     chart.animate({ key: "rotationX", to: -20, duration: 1000, easing: am5.ease.out(am5.ease.cubic) });
                     chart.animate({ key: "rotationY", to: -15, duration: 1000, easing: am5.ease.out(am5.ease.cubic) });
+                    // goHome() przywraca WEWNETRZNY stan widoku chartu (zoom + przesuniecie), policzony
+                    // przy poprzednim ukladzie. Gdy uklad zmienil sie od tamtej pory - a wejscie w F11
+                    // zmienia wysokosc viewportu - przywrocone wartosci nie pasuja juz do biezacych
+                    // wymiarow i glob laduje przesuniety w pionie (zgloszone: "reset w F11 przesuwa glob
+                    // w dol"). Przeliczamy wiec padding centrujacy OD RAZU i jeszcze raz PO animacji
+                    // (goHome + rotacje trwaja 1 s), zeby ostatnie slowo mial biezacy rozmiar #chartdiv.
+                    // adjustLayout sam w sobie jest tani i idempotentny, a przy okazji synchronizuje
+                    // poswiate atmosfery (_syncGlobeAmbiance) z nowa geometria kuli.
+                    if (typeof adjustLayout === 'function') { adjustLayout(); setTimeout(adjustLayout, 1100); }
                     lineSeries.data.clear();
                     pointSeries.data.clear();
                     // startRot sam czysci serie i wstawia znacznik PL - wczesniejsza reczna kopia
