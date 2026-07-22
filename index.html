@@ -71,10 +71,11 @@
         /* --- UI WRAPPERS (SZTYWNA STRUKTURA) --- */
         .left-wrapper {
             position: absolute;
-            /* top 8px (2026-07-22, bylo 20px) - nad naglowkami HUD siedzial pas czarnego tla. Ta sama
-               wartosc MUSI byc w .right-wrapper (obie kolumny zaczynaja sie na tej samej wysokosci)
-               oraz w adjustLayout w app.js, ktore z niej liczy wysokosc kolumn (_lootH + 8 + 8). */
-            top: 8px;
+            /* top 7px (2026-07-22, bylo 20px) - nad naglowkami HUD siedzial pas czarnego tla. 7px to ta
+               sama odstepka, co luz pod HUD-em (nad paskiem flag), wiec ramka jest symetryczna. Ta sama
+               wartosc MUSI byc w .right-wrapper (obie kolumny startuja rowno) oraz w adjustLayout
+               w app.js, ktore z niej liczy wysokosc kolumn (_lootH + 7 + 7). */
+            top: 7px;
             left: 20px;
             display: flex !important;       
             gap: 20px !important;
@@ -90,7 +91,7 @@
 
         .right-wrapper {
             position: absolute;
-            top: 8px;   /* trzymaj rowno z .left-wrapper - patrz komentarz tam */
+            top: 7px;   /* trzymaj rowno z .left-wrapper - patrz komentarz tam */
             right: 20px;
             display: flex !important;
             gap: 20px !important;
@@ -292,11 +293,13 @@
            window._initLootBarDrag). touch-action MUSI byc none, inaczej przegladarka na dotyku probuje
            przewijac strone zamiast oddac nam pointermove. */
         /* WYSOKOSC (2026-07-22): 56px zamiast 80px. Flaga ma 36px (0.75em z font-size:3rem), wiec przy 80px
-           zostawaly 22px pustki nad i pod paskiem. 56px daje 10px luzu z kazdej strony - tyle, ile potrzebuje
+           zostawaly 22px pustki nad i pod paskiem. 56px daje ~9px luzu z kazdej strony - tyle, ile potrzebuje
            powiekszenie flagi pod kursorem (patrz zmniejszone translateY w .loot-flag:hover / .lf-active).
+           box-sizing:border-box, zeby te 56px BYLO calkowita wysokoscia razem z border-top - inaczej pasek
+           zajmuje 57px i kazda kotwica ponizej rozjezdza sie o ten jeden piksel.
            Zmiana wysokosci pociaga za soba kotwice elementow stojacych NAD paskiem: .sys-log-container,
            #bottom-right-hud i #bottom-left-bar - przy kolejnej korekcie trzeba je przeliczyc razem. */
-        .loot-bar-wrapper { position: absolute; bottom: 0; left: 0; width: 100%; height: 56px; background: rgba(20, 20, 20, 0.85); backdrop-filter: blur(10px); border-top: 1px solid rgba(255, 255, 255, 0.1); z-index: 100; overflow-x: hidden; overflow-y: hidden; display: flex; align-items: center; white-space: nowrap; scrollbar-width: none; cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none; }
+        .loot-bar-wrapper { box-sizing: border-box; position: absolute; bottom: 0; left: 0; width: 100%; height: 56px; background: rgba(20, 20, 20, 0.85); backdrop-filter: blur(10px); border-top: 1px solid rgba(255, 255, 255, 0.1); z-index: 100; overflow-x: hidden; overflow-y: hidden; display: flex; align-items: center; white-space: nowrap; scrollbar-width: none; cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none; }
         .loot-bar-wrapper.lb-dragging { cursor: grabbing; }
         /* W trakcie ciagniecia gasimy powiekszanie flagi pod kursorem - inaczej flagi "skacza" pod reka. */
         .loot-bar-wrapper.lb-dragging .loot-flag:hover { transform: none; }
@@ -367,8 +370,12 @@
         #loot-tip .lt-far b { color: #facc15; font-weight: normal; }
         #loot-tip .lt-none { color: #8f9ba8; font-style: italic; }
 
+        /* BEZ position/bottom: element w index.html ma inline `position:static` i jest zwyklym dzieckiem
+           flexa #bottom-right-hud - to TAMTEN kontener kotwiczy go nad paskiem flag. Wczesniej stalo tu
+           `position:absolute; bottom:...`, ale inline `static` i tak to zabijalo, wiec byly to martwe
+           deklaracje, ktore tylko udawaly, ze cos ustawiaja. */
         .sys-log-container {
-            position: absolute; bottom: 76px; right: 20px; width: 280px; height: 104px;
+            right: 20px; width: 280px; height: 104px;
             background: rgba(0, 0, 0, 0.9); border: none; color: #00ff00;
             font-size: 0.7rem; padding: 10px;
             overflow: hidden; z-index: 90; pointer-events: none;
@@ -380,6 +387,11 @@
         .blink-cursor { animation: blink 1s step-end infinite; }
         @keyframes blink { 50% { opacity: 0; } }
 
+        /* Kotwica dolnego-prawego HUD (przelaczniki + SYSTEM_LOG) MUSI byc w arkuszu, nie w inline style
+           elementu - inaczej nadpisanie jej w @media max-height:1000px nie mialoby szans (inline wygrywa).
+           63 = 56 (pasek flag) + 7 (luz), max-height 63 + 7 (gorny margines wrapperow). */
+        #bottom-right-hud { bottom: 63px; max-height: calc(100vh - 70px); }
+
         @media (max-height: 1000px) {
             h1 { font-size: 0.9rem; margin-bottom: 5px; }
             .hud-panel { padding: 10px; margin-bottom: 10px; }
@@ -387,7 +399,10 @@
             .telemetry-flag { font-size: 2.2rem; }
             .loot-bar-wrapper { height: 48px; }
             .loot-flag { font-size: 2.2rem; }
-            .sys-log-container { bottom: 58px; right: 10px; width: 220px; height: 80px; font-size: 0.65rem; }
+            .sys-log-container { right: 10px; width: 220px; height: 80px; font-size: 0.65rem; }
+            /* Pasek flag ma tu 48px zamiast 56px, wiec kotwica dolnego HUD musi zejsc razem z nim,
+               zeby luz nad paskiem zostal te same 7px (48+7=55, a max-height 55+7 na gorny margines). */
+            #bottom-right-hud { bottom: 55px; max-height: calc(100vh - 62px); }
         }
     </style>
 </head>
@@ -628,7 +643,7 @@
     <!-- transform-origin:100% 100% -> skalowanie (adjustLayout w app.js, ten sam wspolczynnik co
          .left-wrapper/.right-wrapper) kurczy ten rog W STRONE prawego-dolnego naroznika, wiec HUD zostaje
          przyklejony nad paskiem flag zamiast odjezdzac. transition jak w obu wrapperach - dla spojnosci. -->
-    <div id="bottom-right-hud" style="position:fixed; right:20px; bottom:72px; z-index:110; display:flex; flex-direction:row; align-items:flex-end; gap:8px; pointer-events:none; max-height:calc(100vh - 80px); transform-origin:100% 100%; transition:transform 0.1s linear;">
+    <div id="bottom-right-hud" style="position:fixed; right:20px; z-index:110; display:flex; flex-direction:row; align-items:flex-end; gap:8px; pointer-events:none; transform-origin:100% 100%; transition:transform 0.1s linear;">
         <div id="toggle-stack" style="display:grid; grid-template-columns:auto auto; gap:8px; align-content:end; pointer-events:none;">
             <div class="reset-btn" id="visa-toggle" style="position:static; width:148px; box-sizing:border-box; display:flex; align-items:center; padding:8px 12px; border-color:#c084fc; color:#c084fc; opacity:0.4; white-space:nowrap;" title="Wymogi wizowe PL wl/wyl"><span class="rb-icon">🛂</span><span class="rb-label">VISA: OFF</span></div>
             <div class="reset-btn" id="tz-toggle" style="position:static; width:148px; box-sizing:border-box; display:flex; align-items:center; padding:8px 12px; border-color:#38d6c0; color:#38d6c0; opacity:0.4; white-space:nowrap;" title="Strefy czasowe wl/wyl"><span class="rb-icon">🕐</span><span class="rb-label">ZONES: OFF</span></div>
