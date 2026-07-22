@@ -1036,6 +1036,26 @@
             } catch (e) { /* zostaje 🎖️ i pelny tytul */ }
             return out;
         };
+        // Dopasowanie nazwy rangi do szerokosci kolumny (2026-07-22). Nazwy maja 3-11 znakow, a przy
+        // bazowych 2.8rem 15 z 35 nie miescilo sie w linii i zawijalo na dwie - panel OPERATIVE STATUS
+        // rosl wtedy ze 191 na 245px i zabieral te 54px liscie World Wonders (TIMBUKTU wypadalo poza kadr).
+        // Zamiast tego schodzimy z fontem, ale TYLKO tam, gdzie trzeba: 20 z 35 rang zostaje na 2.8rem,
+        // a najdluzsze (GRANDMASTER, OMNIPRESENT) lada na ~2.15rem. Panel ma dzieki temu STALA wysokosc.
+        // Krok 0.05rem - dosc drobny, zeby nie oddawac widocznie wiecej, niz potrzeba.
+        // Dolny limit 1.6rem jest bezpiecznikiem na wypadek nowej, bardzo dlugiej nazwy: wtedy nazwa
+        // zostanie przycieta przez overflow:hidden zamiast rozepchac panel.
+        window._fitRankName = function(){
+            var el = document.querySelector("#current-rank .rank-title-text");
+            if (!el) return;
+            var fs = 2.8;
+            el.style.fontSize = fs + "rem";
+            // clientWidth = miejsce przydzielone przez flexa (juz po odjeciu ikony i gapa),
+            // scrollWidth = realna szerokosc tekstu; oba dziala tylko przy nowrap + overflow:hidden.
+            while (fs > 1.6 && el.scrollWidth > el.clientWidth) {
+                fs = Math.round((fs - 0.05) * 100) / 100;
+                el.style.fontSize = fs + "rem";
+            }
+        };
         window.showRankSplash = function(idx, score){
             if (typeof RANKS === 'undefined' || !RANKS[idx]) return;
             var _rt = window._splitRankTitle(RANKS[idx].title);
@@ -6243,8 +6263,13 @@
                         document.getElementById("xp-text-val").innerText = "MAX LEVEL";
                     }
 
-                    document.getElementById("current-rank").innerHTML = "Current rank:<br><span class='rank-title-text' style='font-size: 2.8rem; line-height: 1.2; display: block; margin-top: 5px; color: #facc15; text-shadow: 0 0 15px rgba(250, 204, 21, 0.6);'>" + RANKS[currentRankIndex].title + "</span>";
-                    
+                    // Nazwa i ikona ida OSOBNO (_splitRankTitle - ten sam helper, co splash awansu
+                    // i paszport), zeby ikona stala na stalej pozycji przy prawej krawedzi zamiast
+                    // "plywac" za nazwa. Style siedza w .rank-line / .rank-title-text / .rank-title-icon.
+                    var _curRt = window._splitRankTitle(RANKS[currentRankIndex].title);
+                    document.getElementById("current-rank").innerHTML = "Current rank:<br><div class='rank-line'><span class='rank-title-text'>" + _curRt.name + "</span><span class='rank-title-icon'>" + _curRt.icon + "</span></div>";
+                    window._fitRankName();
+
                     let rls = document.getElementById("rank-list");
                     while(rls.childNodes.length > 0) rls.removeChild(rls.lastChild);
                     // Stan dla updateRankIntel (plan dojscia do rangi) - liczony tylko tutaj, zeby panel

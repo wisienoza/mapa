@@ -139,6 +139,16 @@
         .xp-bar-fill { height: 100%; background: linear-gradient(90deg, #991b1b, #ef4444); width: 0%; box-shadow: 0 0 10px #ef4444; transition: width 1s cubic-bezier(0.4, 0, 0.2, 1); position: relative; }
         
         .current-rank-display { font-size: 1.0rem; color: #facc15; text-shadow: 0 0 10px rgba(250, 204, 21, 0.4); border-left: 3px solid #facc15; padding-left: 10px; margin-bottom: 8px; margin-top: 8px; letter-spacing: -0.5px; }
+        /* NAZWA RANGI + IKONA (2026-07-22). Wczesniej caly RANKS[].title szedl jednym <span>, wiec ikona
+           "plywala" zaraz za nazwa (przy NPC gdzie indziej niz przy PATHFINDER), a 15 z 35 nazw nie
+           miescilo sie w linii i zawijalo, podnoszac panel ze 191 na 245px - kosztem listy World Wonders.
+           Teraz nazwa i ikona to osobne elementy flexa: ikona ma STALY rozmiar i siedzi przy prawej
+           krawedzi, a nazwa dostaje reszte i jest skalowana w dol przez _fitRankName (app.js), az wejdzie
+           w jedna linie. nowrap + overflow:hidden + min-width:0 sa KONIECZNE, zeby scrollWidth mowilo
+           o realnej szerokosci tekstu, a clientWidth o przydzielonym miejscu - na tym opiera sie ta petla. */
+        .rank-line { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-top: 5px; }
+        .rank-title-text { flex: 1 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; font-size: 2.8rem; line-height: 1.2; color: #facc15; text-shadow: 0 0 15px rgba(250, 204, 21, 0.6); }
+        .rank-title-icon { flex: 0 0 auto; font-size: 2.8rem; line-height: 1.2; }
         #ach-label-row:hover span:first-child { color: #fff; }
         
         /* PADDING 7px jest REGULA dla wszystkich paneli HUD (2026-07-22, bylo 15px / 10px pod
