@@ -153,7 +153,10 @@
         .progress-bar-fill { height: 100%; background: #dc2626; box-shadow: 0 0 8px #dc2626; }
         .progress-bar-fill.empty { background: transparent; }
         .max-range-box { display: flex; flex-direction: column; gap: 2px; }
-        #wonders-stats { flex: 1 1 0; min-height: 0; overflow-y: auto; }
+        /* margin-bottom:0 - .hud-panel ma domyslnie 12px, przez co WORLD WONDERS (ostatni panel lewej
+           kolumny) konczyl sie wyzej niz prawa strona HUD i lewa polowa ekranu wygladala na "podniesiona"
+           nad paskiem flag. Teraz obie strony schodza rowno do 7px nad pasek. */
+        #wonders-stats { flex: 1 1 0; min-height: 0; overflow-y: auto; margin-bottom: 0; }
         #wonders-stats::-webkit-scrollbar { width: 6px; }
         #wonders-stats::-webkit-scrollbar-thumb { background: rgba(250,204,21,0.4); border-radius: 3px; }
         .ui-container > *:not(#wonders-stats) { flex-shrink: 0; }
@@ -584,8 +587,11 @@
                  Teraz jest zwyklym elementem tej samej kolumny (.weather-floater = flex column):
                  margin-top:auto trzyma go przy dole, gdy jest miejsce (wyglad jak dotad), a gdy miejsca
                  brak - auto schodzi do 0 i panel ustawia sie POD wyszukiwarka, zamiast na nia wchodzic.
-                 margin-bottom:72px zachowuje dawny odstep na przyciski RESET / "?" pod spodem. -->
-            <div class="flights-floater" style="width:100%; z-index:110; pointer-events:auto; margin-top:auto; margin-bottom:72px;">
+                 margin-bottom rezerwuje miejsce na przyciski RESET / "?" pod spodem: 50px = ich wysokosc
+                 (37px) + 13px odstepu. Bylo 72px, gdy #bottom-left-bar stal 22px nad dolem .left-wrapper;
+                 teraz stoi rowno przy dole (bottom:0), wiec rezerwa zeszla o te same 22px - inaczej miedzy
+                 FLIGHTS a przyciskami zrobilaby sie dziura. -->
+            <div class="flights-floater" style="width:100%; z-index:110; pointer-events:auto; margin-top:auto; margin-bottom:50px;">
                 <h1>Flights</h1>
                 <div class="hud-panel" style="padding-bottom:5px;">
                     <div class="range-label">MY FLIGHTS</div>
@@ -611,7 +617,7 @@
         <!-- Dolna belka przyciskow: JEDEN pozycjonowany kontener-flex zamiast recznych left:340/588/640
              na kazdym przycisku - zmiana dlugosci napisu nie wymaga juz przeliczania pozycji sasiadow.
              pointer-events:none na kontenerze (jak wrappery), auto wraca na przyciskach przez .reset-btn. -->
-        <div id="bottom-left-bar" style="position:absolute; left:340px; bottom:22px; display:flex; gap:10px; align-items:stretch; pointer-events:none; z-index:110;">
+        <div id="bottom-left-bar" style="position:absolute; left:340px; bottom:0; display:flex; gap:10px; align-items:stretch; pointer-events:none; z-index:110;">
             <div class="reset-btn" id="reset-btn" style="position:static; white-space:nowrap;">RESET AND RESUME ORBIT ↻</div>
             <div class="reset-btn" id="help-toggle" style="position:static; width:40px; box-sizing:border-box; padding:0; display:flex; align-items:center; justify-content:center; font-size:1.1rem; border-color:#facc15; color:#facc15;" title="Instrukcja / manual">❓</div>
         </div>
