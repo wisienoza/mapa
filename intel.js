@@ -871,6 +871,16 @@ const QPP_LINKS = {
         const NUMBEO_COUNTRY_OVERRIDES = {
             "CD": "Democratic+Republic+of+the+Congo"
         };
+
+        // --- GOOGLE MAPS FIX (przycisk 🗺️ GOOGLE MAPS w updateFactbookPanel, app.js) ---
+        // Reczne cele wyszukiwania dla krajow, ktorych nazwa z FACTBOOK trafia w zla strone/region.
+        // Przeniesione z app.js 2026-07-22 (rozdzial danych od logiki - jak pozostale *_OVERRIDES tutaj).
+        const GMAPS_OVERRIDES = {
+            "GL": "Grenlandia",
+            "GE": "Gruzja",
+            "SJ": "Svalbard",
+            "AQ": "Antarktyda"
+        };
 		
 				const TASTEATLAS_OVERRIDES = {
             "US": "usa", // United States -> usa

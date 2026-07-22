@@ -6,6 +6,13 @@ const VISITED_WONDERS = ["CN","IT","GR","JP"];
 
 const MISSIONS_DB = [
     {
+        "name": "drfhgdfghdf",
+        "date": "2026-07-17T00:00",
+        "returnDate": "2026-08-28T00:00",
+        "flight": "",
+        "flag": "KE"
+    },
+    {
         "name": "INDOCHINY",
         "date": "2026-10-23T17:40",
         "returnDate": "2026-11-14T17:15",

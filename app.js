@@ -24,6 +24,24 @@
             if (window.cityLabelSeries) window.cityLabelSeries.data.clear();
             if (window.cityDotSeries) window.cityDotSeries.data.clear();
         };
+        // --- Pelne czyszczenie warstw "focusu" na globusie (rotacja stop + linie + lotniska + miasta
+        // + legendy + highlight + loty). Jeden helper dla WSZYSTKICH sciezek nawigacji (klik w kraj,
+        // kontynent, cud, kandydata rangi, wynik wyszukiwarki, rekordowy lot...) - wczesniej kazda
+        // sciezka miala wlasna, recznie wklejona kopie tego bloku i kazda zapominala o innym podzbiorze
+        // (np. zaden focus* nie czyscil groundLegSeries, a wyszukiwarka krajow nie czyscila miast
+        // poprzedniego kraju). NIE rusza paneli intel/pogody (od tego jest resetIntelPanels) ani
+        // pointSeries (wolajacy zwykle zaraz wstawia tam wlasny znacznik). ---
+        window._clearFocusLayers = function(){
+            if (typeof window.stopRot === 'function') window.stopRot();
+            if (window.myFlightsOn) window.clearMyFlights();
+            if (window.lineSeries) window.lineSeries.data.clear();
+            if (window.groundLegSeries) window.groundLegSeries.data.clear();
+            if (window.airportSeries) window.airportSeries.data.clear();
+            window._clearCitySeries();
+            if (window.showCityLegend) window.showCityLegend(false);
+            if (window.showAirportModeBtn) window.showAirportModeBtn(false);
+            if (window.clearCountryHighlight) window.clearCountryHighlight();
+        };
         // --- Panel pogody -> stan spoczynkowy (TARGET: NONE / SYSTEM OFFLINE). Wspolne dla resetIntelPanels,
         // updateWonderIntel i updateContinentIntel (wczesniej ten sam blok byl wklejony inline 3x). ---
         window._standbyWeatherPanel = function(){
@@ -35,6 +53,12 @@
         window.resetIntelPanels = function() {
             if (window.liveClockInterval) { clearInterval(window.liveClockInterval); window.liveClockInterval = null; }
             window._cityWeatherToken = (window._cityWeatherToken || 0) + 1;   // uniewaznij pogode w locie
+            // Jw. dla POZOSTALYCH tokenow (2026-07-22): bez tego spozniona odpowiedz zegara kraju
+            // (updateFactbookPanel -> _fetchWeather) przechodzila kontrole tokenu PO resecie
+            // i uruchamiala interwal tykajacy w pustke (element juz nie istnial), a lancuch banera
+            // miasta dalej odpytywal Wikimedia dla panelu, ktorego juz nie ma.
+            window._factbookToken = (window._factbookToken || 0) + 1;
+            window._cityIntelToken = (window._cityIntelToken || 0) + 1;
             if (window.showCityLegend) window.showCityLegend(false);
             if (window.showAirportModeBtn) window.showAirportModeBtn(false);
             if (window.clearCountryHighlight) window.clearCountryHighlight();
@@ -218,12 +242,26 @@
             var hasRisky = false, hasMaxRisk = false, riskyCount = 0, safeCount = 0;
             var visaTypesSet = {};
             uniqueVisited.forEach(function(id){
-                var req = (typeof VISA_PL !== 'undefined') ? VISA_PL[id] : null;
+                // _visaFor = VISA_PL_OVERRIDES z pierwszenstwem przed VISA_PL - TO SAMO zrodlo co
+                // _visaProg nizej i tryb wizowy mapy. Wczesniej liczniki czytaly goly VISA_PL, wiec
+                // kraj z reczna korekta (np. TW/XK, ktorych dataset nie ma) nie wpadal do check(),
+                // choc pojawial sie na liscie prog() - kafelek i odznaka moglyby sie rozjechac.
+                var req = (typeof window._visaFor === 'function') ? window._visaFor(id)
+                        : ((typeof VISA_PL !== 'undefined') ? VISA_PL[id] : null);
+                if (req === "-1") req = null;   // "-1" = dom (PL) w overridach, nie zaden wymog wizowy
                 if (req === "visa required") { visaRequiredCount++; visaTypesSet["required"] = true; }
-                else if (req != null) { visaFreeCount++; visaTypesSet["free"] = true; }
-                if (req === "e-visa") { eVisaCount++; visaTypesSet["evisa"] = true; }
-                if (req === "eta") { etaCount++; visaTypesSet["eta"] = true; }
-                if (req === "visa on arrival") { onArrivalCount++; visaTypesSet["onarrival"] = true; }
+                else if (req != null) {
+                    // visaFreeCount CELOWO obejmuje tez e-visa/eta/on-arrival - odznaki "bez wizy /
+                    // z uproszczona procedura" w katalogu licza wlasnie te sume.
+                    visaFreeCount++;
+                    // ...ale TYP "free" w visaTypesSet dostaja WYLACZNIE kraje naprawde bez wizy -
+                    // "KOLEKCJONER BIUROKRACJI" wymaga 5 ROZNYCH procedur, wiec kraj z e-visa nie moze
+                    // przy okazji zaliczac typu "free" (wczesniej zaliczal - podwojne liczenie).
+                    if (req === "e-visa") { eVisaCount++; visaTypesSet["evisa"] = true; }
+                    else if (req === "eta") { etaCount++; visaTypesSet["eta"] = true; }
+                    else if (req === "visa on arrival") { onArrivalCount++; visaTypesSet["onarrival"] = true; }
+                    else visaTypesSet["free"] = true;
+                }
                 var cost = (typeof COST_INDEX !== 'undefined') ? COST_INDEX[id] : null;
                 if (cost === "$") { hasCheap = true; cheapCount++; }
                 if (cost === "$$$$") { hasExpensive = true; expensiveCount++; }
@@ -370,13 +408,17 @@
                 return { have: done.length, need: min, done: done, missing: missing };
             };
             var _visaProg = function(status, min) {
-                var l = [];
-                if (typeof VISA_PL !== 'undefined') {
-                    Object.keys(VISA_PL).forEach(function(c){
-                        var o = (typeof VISA_PL_OVERRIDES !== 'undefined') ? VISA_PL_OVERRIDES[c] : undefined;
-                        if ((o !== undefined ? o : VISA_PL[c]) === status) l.push(c);
-                    });
-                }
+                // Unia kluczy VISA_PL + VISA_PL_OVERRIDES: kraj obecny TYLKO w overridach (np. TW/XK,
+                // ktorych generowany dataset nie ma) tez musi trafic na liste. Wymog czytamy przez
+                // _visaFor (overridy z pierwszenstwem) - to samo zrodlo co liczniki w check() wyzej.
+                var l = [], seen = {};
+                var add = function(c){
+                    if (seen[c]) return;
+                    seen[c] = 1;
+                    if (window._visaFor(c) === status) l.push(c);
+                };
+                if (typeof VISA_PL !== 'undefined') Object.keys(VISA_PL).forEach(add);
+                if (typeof VISA_PL_OVERRIDES !== 'undefined') Object.keys(VISA_PL_OVERRIDES).forEach(add);
                 return _dictProg(l, min);
             };
             var _costProg = function(tier, min) {
@@ -982,16 +1024,22 @@
             }
             save();
         };
-        // Awans rangi. RANKS[].title trzyma emoji na KONCU napisu ("CAPTAIN ⚓" - tak jest we wszystkich
-        // 35 rangach), a splash chce ikone osobno: odcinamy koncowe znaki niebedace litera/cyfra.
+        // RANKS[].title trzyma emoji na KONCU napisu ("CAPTAIN ⚓" - tak jest we wszystkich 35 rangach),
+        // a splash/paszport chca ikone osobno: odcinamy koncowe znaki niebedace litera/cyfra.
         // Gdy sie nie uda (ranga bez emoji albo stara przegladarka bez \p{...}), leci 🎖️ i pelny tytul.
+        // Jeden helper dla showRankSplash i _passportHTML - wczesniej ten sam regex byl wklejony w obu.
+        window._splitRankTitle = function(title){
+            var out = { name: title, icon: "🎖️" };
+            try {
+                var m = String(title).match(/^(.+?)\s+([^\p{L}\p{N}\s]+)$/u);
+                if (m) { out.name = m[1]; out.icon = m[2]; }
+            } catch (e) { /* zostaje 🎖️ i pelny tytul */ }
+            return out;
+        };
         window.showRankSplash = function(idx, score){
             if (typeof RANKS === 'undefined' || !RANKS[idx]) return;
-            var title = RANKS[idx].title, icon = "🎖️", name = title;
-            try {
-                var m = title.match(/^(.+?)\s+([^\p{L}\p{N}\s]+)$/u);
-                if (m) { name = m[1]; icon = m[2]; }
-            } catch (e) { /* zostaje 🎖️ i pelny tytul */ }
+            var _rt = window._splitRankTitle(RANKS[idx].title);
+            var name = _rt.name, icon = _rt.icon;
             window._achSplashPush([{
                 kicker: "▲ AWANS RANGI ▲", icon: icon, name: name,
                 cat: "RANGA " + (idx + 1) + " / " + RANKS.length,
@@ -1293,10 +1341,10 @@
             var N = window._achNum || function(n){ return String(n); };
 
             // --- naglowek: ranga ---
-            // RANKS[].title trzyma emoji na koncu ("CAPTAIN ⚓") - odcinamy je jak w showRankSplash,
-            // zeby ikona mogla stanac osobno w emblemacie.
-            var rTitle = rank ? rank.title : "—", rIcon = "🎖️";
-            try { var m = rTitle.match(/^(.+?)\s+([^\p{L}\p{N}\s]+)$/u); if (m) { rTitle = m[1]; rIcon = m[2]; } } catch (e) {}
+            // Emoji z konca tytulu rangi odcina wspolny helper (_splitRankTitle, jak w showRankSplash) -
+            // ikona staje osobno w emblemacie.
+            var _rt = window._splitRankTitle(rank ? rank.title : "—");
+            var rTitle = _rt.name, rIcon = _rt.icon;
             var doNast = next ? (next.min - rs.score) : 0;
             var sub = next ? ("POZIOM " + (rs.idx + 1) + " · DO NASTĘPNEJ RANGI: " + (doNast > 0 ? doNast : 0) + " KR.")
                            : ("POZIOM " + (rs.idx + 1) + " · MAX LEVEL");
@@ -1511,7 +1559,10 @@
             if (!el) {
                 el = document.createElement("div");
                 el.id = "airlines-overlay";
-                el.style.cssText = "position:fixed; inset:0; background:rgba(0,0,0,0.72); z-index:10001; display:flex; align-items:center; justify-content:center;";
+                // z-index 210 (nie 10001, jak przez pomylke wczesniej): ta sama rodzina overlayow co
+                // paszport (200) i rozpiska odznak (210) - panel otwierany Z paszportu musi lezec nad nim,
+                // ale nie ma powodu wyskakiwac ponad cala hierarchie (splash = 220 zostaje najwyzej).
+                el.style.cssText = "position:fixed; inset:0; background:rgba(0,0,0,0.72); z-index:210; display:flex; align-items:center; justify-content:center;";
                 el.innerHTML =
                     '<div style="background:rgba(8,8,10,0.96); border:1px solid rgba(0,204,255,0.4); border-radius:8px; width:min(620px,94vw); max-height:88vh; overflow-y:auto; box-shadow:0 8px 40px rgba(0,0,0,0.6); font-family:\'Rajdhani\',sans-serif;">'
                   +   '<div style="display:flex; justify-content:space-between; align-items:center; padding:14px 18px; border-bottom:1px solid rgba(255,255,255,0.12);">'
@@ -2004,14 +2055,24 @@
         window._isSameSpot = function(aLat, aLon, bLat, bLon){
             return getDist(aLat, aLon, bLat, bLon) <= window._sameSpotKm;
         };
+        // Srodek dlugosci geograficznej po NAJKROTSZEJ drodze (z zawinieciem na antypoludniku).
+        // Srednia arytmetyczna (a+b)/2 dla trasy przecinajacej 180° wskazuje przeciwna strone globu -
+        // uzywac wszedzie tam, gdzie kamera ma stanac "nad srodkiem trasy" (focusFlightLeg, MAX RANGE).
+        window._midLon = function(a, b){
+            var d = ((((b - a) % 360) + 540) % 360) - 180;
+            var m = a + d / 2;
+            return ((m + 540) % 360) - 180;
+        };
         // --- NAJDALSZE LOTNISKO OD WARSZAWY (drugi wiersz w MAX RANGE) ---
         // Zrodlo: FLIGHTS_AP, czyli lotniska realnie wystepujace w Twoim logu lotow (51 sztuk) - a wiec
         // "najdalsze, na ktorym wyladowalem", nie "najdalsze na swiecie".
         // NIE potrzebuje airport-db.json: w tym ukladzie kraj bierze sie z wiersza MIASTO, a tu
         // wystarcza kod IATA i kilometry, ktore FLIGHTS_AP ma u siebie. Dzieki temu nic nie dociagamy.
-        window._farAirportCache = null;
+        // Wartownik = undefined (nie null): null jest tu LEGALNYM wynikiem (brak FLIGHTS_AP) i tez ma
+        // sie cache'owac - z wartownikiem null kazde wywolanie liczyloby wtedy od nowa.
+        window._farAirportCache = undefined;
         window._farthestAirport = function(){
-            if (window._farAirportCache !== null) return window._farAirportCache;
+            if (window._farAirportCache !== undefined) return window._farAirportCache;
             var best = null;
             if (typeof FLIGHTS_AP !== "undefined") {
                 for (var iata in FLIGHTS_AP) {
@@ -2030,6 +2091,13 @@
             var d = n % 10, s = n % 100;
             if (d >= 2 && d <= 4 && !(s >= 12 && s <= 14)) return n + " miasta";
             return n + " miast";
+        };
+        // Odmiana: 1 PAŃSTWO / 2-4 PAŃSTWA / 5+ PAŃSTW (z wyjatkiem 12-14) - naglowek spisu odwiedzonych.
+        window._plPanstw = function(n){
+            if (n === 1) return "PAŃSTWO";
+            var d = n % 10, s = n % 100;
+            if (d >= 2 && d <= 4 && !(s >= 12 && s <= 14)) return "PAŃSTWA";
+            return "PAŃSTW";
         };
         // --- ZAZNACZANIE MIASTA WPROST Z OKNA INTEL: TYLKO-DOPISUJACE (nie da sie stad odznaczyc -
         // cofniecie mozliwe tylko recznie, edycja visited-cities-data.js). Zaznaczenie miasta
@@ -2383,8 +2451,23 @@
             var key = lat + "," + lon;
             var c = window._weatherFetchCache[key];
             if (c && (Date.now() - c.t) < 5000) return c.p;
-            var p = window._fetchTimeout('https://api.open-meteo.com/v1/forecast?latitude=' + lat + '&longitude=' + lon + '&current_weather=true&timezone=auto')
-                .then(function(r){ return r.json(); });
+            // NOWE API open-meteo (blok current=). Legacy current_weather=true zostal PORZUCONY, bo
+            // gdy jest w URL-u, API IGNORUJE current= i nie zwraca wilgotnosci/cisnienia (sprawdzone
+            // 2026-07-22 - z current_weather=true w odpowiedzi bylo tylko current_weather, bez current).
+            // Konsumenci czytaja teraz data.current.{temperature_2m,wind_speed_10m,weather_code,
+            // relative_humidity_2m,surface_pressure}. utc_offset_seconds (zegar) dalej jest top-level.
+            var p = window._fetchTimeout('https://api.open-meteo.com/v1/forecast?latitude=' + lat + '&longitude=' + lon + '&current=temperature_2m,relative_humidity_2m,surface_pressure,wind_speed_10m,weather_code&timezone=auto')
+                .then(function(r){ return r.json(); })
+                .catch(function(e){
+                    // Blad -> wyrzuc TEN wpis z cache (wzorzec _fetchRatesPLN), zeby nastepny klik mogl
+                    // od razu ponowic. Bez tego odrzucony Promise byl serwowany z cache przez cale okno
+                    // 5 s i kazdy klik dostawal natychmiastowe "SIGNAL LOST" bez proby sieci.
+                    // Porownanie identycznosci (=== p) jest konieczne: timeout (12 s) potrafi przyjsc
+                    // PO wygasnieciu okna, gdy klucz okupuje juz NOWSZY, zdrowy fetch - jego nie ruszamy.
+                    var c2 = window._weatherFetchCache[key];
+                    if (c2 && c2.p === p) delete window._weatherFetchCache[key];
+                    throw e;
+                });
             window._weatherFetchCache[key] = { t: Date.now(), p: p };
             return p;
         };
@@ -2411,15 +2494,58 @@
         // uzywany zarowno dla kraju (updateWeatherPanel) jak i miasta (updateCityWeather), zeby
         // zmiana stylu/ukladu nie wymagala pilnowania dwoch kopii tego samego HTML-a. climateUrl
         // pusty/undefined -> przycisk CLIMATE pominiety (tak jak wczesniej dzialo to dla miasta). ---
-        window._weatherEnvHTML = function(temp, wind, desc, icon, windyUrl, climateUrl){
-            return '<div class="env-grid">'
-              +   '<div class="env-item"><div class="env-label">TEMP SURFACE</div><div class="env-row"><div class="env-val">' + temp + '°C</div><div class="env-icon">' + icon + '</div></div></div>'
-              +   '<div class="env-item"><div class="env-label">WIND VELOCITY</div><div class="env-row"><div class="env-val">' + wind + ' <span style="font-size:0.6rem">KM/H</span></div><div class="env-icon">💨</div></div></div>'
-              +   '<div class="env-item" style="grid-column: span 2;"><div class="env-label">ATMOSPHERE STATUS</div><div class="env-val" style="font-size: 0.9rem;">' + desc + '</div></div>'
-              + '</div>'
-              + '<div class="links-grid">'
-              +   '<a href="' + windyUrl + '" target="_blank" class="windy-btn">🌪️ WINDY (RADAR)</a>'
-              +   (climateUrl ? '<a href="' + climateUrl + '" target="_blank" class="climate-btn">☀️ CLIMATE (AVG)</a>' : '')
+        // --- KOLOR TEMPERATURY (feedback 2026-07-22): duza liczba w LIVE ENVIRON FEED nie jest juz
+        // zawsze zielona - kolor niesie informacje. Skala progowa (nie plynny gradient), zeby roznica
+        // 5°C byla widoczna na pierwszy rzut oka: fiolet/niebieski = mroz, cyjan/turkus = chlod,
+        // zielony = strefa komfortu (18-27, ta sama co travelTier w _climateSVG), zolty/pomaranczowy/
+        // czerwony = upal. Progi: [max temperatury dla tego koloru, kolor]; ostatni wpis = reszta.
+        var TEMP_SCALE = [
+            [-20, "#c084fc"],   // ekstremalny mroz
+            [-10, "#818cf8"],   // silny mroz
+            [  0, "#60a5fa"],   // mroz
+            [ 10, "#38bdf8"],   // zimno
+            [ 18, "#5eead4"],   // chlodno
+            [ 27, "#00ff00"],   // komfort
+            [ 32, "#facc15"],   // cieplo
+            [ 38, "#fb923c"],   // upal
+            [Infinity, "#ff3b30"]  // ekstremalny upal
+        ];
+        window._tempColor = function(t){
+            var v = parseFloat(t);
+            if (!isFinite(v)) return "#00ff00";
+            for (var i = 0; i < TEMP_SCALE.length; i++) { if (v < TEMP_SCALE[i][0]) return TEMP_SCALE[i][1]; }
+            return TEMP_SCALE[TEMP_SCALE.length - 1][1];
+        };
+        window._weatherEnvHTML = function(temp, wind, desc, icon, windyUrl, climateUrl, hum, pres){
+            // Uklad "widget pogodowy" (feedback 2026-07-22): DUZA ikona pogody wypelnia prawy-gorny
+            // rog panelu OD SAMEJ GORY (position:absolute wzgledem #weather-panel = position:relative;
+            // #weather-target ma padding-right, zeby dluga nazwa nie wchodzila pod ikone). Po lewej
+            // duza temperatura + slowny opis nieba; pod spodem CIASNA lista odczytow (wilgotnosc/
+            // wiatr/cisnienie) - ikonka + wartosc. CELOWO BEZ "odczuwalnej" i "widocznosci".
+            // hum/pres null (ubozsza odpowiedz API) -> kreska.
+            var readRow = function(sym, val){
+                return '<div style="display:flex; align-items:center; gap:9px; padding:3px 2px; border-bottom:1px solid rgba(255,255,255,0.06); font-family:\'JetBrains Mono\',monospace; font-size:0.82rem; color:#c6cfd9;">'
+                  + '<span style="width:18px; text-align:center; opacity:0.85;">' + sym + '</span>'
+                  + '<span>' + val + '</span>'
+                  + '</div>';
+            };
+            // Odczyty (lewa kolumna) i przyciski WINDY/CLIMATE (prawa, wyrownane do prawej) leza W JEDNYM
+            // RZEDZIE - przyciski nie zajmuja juz osobnego wiersza pod spodem (feedback 2026-07-22:
+            // "odzyskamy linie z dolu"). Cisnienie dostalo ikone wagi ⚖️ zamiast ⏲️.
+            var tCol = window._tempColor(temp);
+            return '<div style="position:absolute; top:4px; right:0; font-size:4.8rem; line-height:1; filter:drop-shadow(0 2px 8px rgba(0,0,0,0.55)); pointer-events:none;" title="' + desc + '">' + icon + '</div>'
+              + '<div style="font-size:2.6rem; font-weight:700; color:' + tCol + '; text-shadow:0 0 14px ' + tCol + '55; line-height:1; font-family:\'Rajdhani\',sans-serif;">' + temp + '°C</div>'
+              + '<div style="font-size:0.82rem; color:#8f9ba8; margin-top:2px; letter-spacing:1px; text-transform:uppercase;">' + desc + '</div>'
+              + '<div style="display:flex; gap:12px; margin-top:8px; align-items:center;">'
+              +   '<div style="flex:1 1 auto; min-width:0;">'
+              +     readRow('💧', (hum != null ? hum + '%' : '–'))
+              +     readRow('💨', wind + ' km/h')
+              +     readRow('⚖️', (pres != null ? pres + ' hPa' : '–'))
+              +   '</div>'
+              +   '<div style="flex:0 0 auto; display:flex; flex-direction:column; gap:6px; width:112px;">'
+              +     '<a href="' + windyUrl + '" target="_blank" class="windy-btn">🌪️ WINDY</a>'
+              +     (climateUrl ? '<a href="' + climateUrl + '" target="_blank" class="climate-btn">☀️ CLIMATE</a>' : '')
+              +   '</div>'
               + '</div>';
         };
         // --- POGODA DLA MIASTA (LIVE ENVIRON FEED) — jak dla kraju, ale wg wspolrzednych miasta ---
@@ -2434,8 +2560,10 @@
                 .then(function(data){
                     if (window._cityWeatherToken !== token) return;   // uzytkownik kliknal gdzie indziej
                     window._startLiveClock("city-local-time", data.utc_offset_seconds);   // czas lokalny miasta (realny tz z open-meteo)
-                    var cw = data.current_weather;
-                    var temp = cw.temperature, wind = cw.windspeed, code = cw.weathercode;
+                    var cur = data.current || {};
+                    var temp = cur.temperature_2m, wind = cur.wind_speed_10m, code = cur.weather_code;
+                    var hum = (cur.relative_humidity_2m != null) ? Math.round(cur.relative_humidity_2m) : null;
+                    var pres = (cur.surface_pressure != null) ? Math.round(cur.surface_pressure) : null;
                     var desc = getWeatherDesc(code), icon = getWeatherIcon(code);
                     var windyUrl = 'https://www.windy.com/?' + dc.lat + ',' + dc.lng + ',11';
                     var climateUrl = "";
@@ -2446,7 +2574,7 @@
                         var citySlug = window._tadCitySlug(dc.cname);
                         climateUrl = 'https://www.timeanddate.com/weather/' + tadCountrySlug + '/' + citySlug + '/climate';
                     }
-                    wPanel.innerHTML = window._weatherEnvHTML(temp, wind, desc, icon, windyUrl, climateUrl);
+                    wPanel.innerHTML = window._weatherEnvHTML(temp, wind, desc, icon, windyUrl, climateUrl, hum, pres);
                 })
                 .catch(function(err){
                     if (window._cityWeatherToken !== token) return;
@@ -2708,17 +2836,9 @@
         window.focusContinent = function(cid) {
             var cont = (typeof CONTINENT_DATA !== 'undefined') ? CONTINENT_DATA.find(function(x){ return x.id === cid; }) : null;
             if (!cont || cont.lat === undefined) return;
-            if (typeof stopRot === 'function') stopRot();
-            if (window.myFlightsOn) window.clearMyFlights();
-            if (window.lineSeries) window.lineSeries.data.clear();
+            window._clearFocusLayers();
             if (window.pointSeries) window.pointSeries.data.clear();
-            if (window.airportSeries) window.airportSeries.data.clear();
-            if (window.cityDotSeries) window.cityDotSeries.data.clear();
-            if (window.showCityLegend) window.showCityLegend(false);
-            if (window.showAirportModeBtn) window.showAirportModeBtn(false);
-            if (window.clearCountryHighlight) window.clearCountryHighlight();
             if (window.cityLabelSeries) {
-                window.cityLabelSeries.data.clear();
                 var _cc = (typeof CONTINENT_CITIES !== 'undefined') ? CONTINENT_CITIES[cid] : null;
                 if (_cc && _cc.length) {
                     window.cityLabelSeries.data.setAll(_cc.filter(function(x){ return x.length >= 4; }).map(function(x){ return { geometry: { type: "Point", coordinates: [x[3], x[2]] }, cname: x[0], lat: x[2], lng: x[3] }; }));
@@ -2841,7 +2961,7 @@
             var order = (typeof CONTINENT_DATA !== 'undefined') ? CONTINENT_DATA.map(function(x){ return { id: x.id, name: x.name }; }) : [];
             if (buckets["_OTHER"]) order.push({ id: "_OTHER", name: "INNE" });
             document.getElementById("visited-countries-progress").innerText =
-                codes.length + " " + (codes.length === 1 ? "PAŃSTWO" : "PAŃSTW") + " — LICZĄCE SIĘ DO RANGI";
+                codes.length + " " + window._plPanstw(codes.length) + " — LICZĄCE SIĘ DO RANGI";
             var html = "";
             order.forEach(function(g){
                 var list = buckets[g.id];
@@ -2897,6 +3017,11 @@
             }).map(function(c){
                 var p = CAPITAL_COORDS[c];
                 var visa = window._visaFor(c) || "";
+                // UWAGA, celowa asymetria domyslki: tu brak wpisu w SAFETY_OVERRIDE = 0 ("brak danych"),
+                // podczas gdy computeAchievementContext przyjmuje 1 (SAFE HAVEN). Roznica jest swiadoma:
+                // w REKOMENDACJACH (plan rangi, GDZIE TERAZ?) kraj bez danych nie moze uchodzic za
+                // "latwy/bezpieczny" (easy wymaga safe > 0), a w ODZNAKACH brak wpisu oznacza po prostu
+                // kraj bez podwyzszonego ryzyka. Nie ujednolicac bez przemyslenia obu konsumentow.
                 var safe = (typeof SAFETY_OVERRIDE !== 'undefined' && SAFETY_OVERRIDE[c]) ? SAFETY_OVERRIDE[c] : 0;
                 return {
                     code: c,
@@ -2927,6 +3052,14 @@
             for (var cc in CITIES_DB) {
                 var list = CITIES_DB[cc];
                 for (var i = 0; i < list.length; i++) {
+                    // PREFILTR (2026-07-22): dolna granica dystansu z samej szerokosci geograficznej.
+                    // 1° szerokosci ≈ 111,19 km, wiec realny dystans >= 111 * |ΔLat| - gdy juz TA
+                    // granica przekracza dotychczasowy rekord, haversine (trygonometria) nie ma czego
+                    // poprawic i moze byc pominiety. Po zejsciu bestD do kilkunastu km odsiewa ~95%+
+                    // miast; wynik jest IDENTYCZNY (czysty lower bound, 111 < 111,19 - zaokraglone
+                    // w strone bezpieczna). Bez tego pelne przejscie ~6800 miast x 51 lotnisk na
+                    // starcie (_flightStats.countries) robilo ~350 tys. wywolan getDist.
+                    if (111 * Math.abs(lat - list[i][1]) > bestD) continue;
                     var d = getDist(lat, lon, list[i][1], list[i][2]);
                     if (d < bestD) { bestD = d; best = cc; }
                 }
@@ -3014,6 +3147,30 @@
             out.sort(function(a, b){ return a.dist - b.dist; });
             return out.slice(0, limit);
         };
+        // Indeks misji dla auto-follow licznika: NAJWCZESNIEJ STARTUJACA sposrod nieukonczonych
+        // (returnDate > teraz) - a NIE pierwsza z tablicy, jak do 2026-07-22. Tamto zakladalo
+        // chronologiczny zapis MISSIONS_DB: misja dopisana w adminie "nie po kolei" przejmowala
+        // licznik, mimo ze inna zaczynala sie wczesniej. Misja W TRAKCIE ma date startu w przeszlosci,
+        // wiec naturalnie wygrywa z kazda przyszla. Gdy wszystkie odbyte: ostatnio zakonczona
+        // (max returnDate). -1 tylko przy pustej tablicy. Konsumenci: updateMissionCountdown
+        // (auto-follow) i startSystemLog (wiersz "NEXT TARGET").
+        window._nearestMissionIdx = function() {
+            var missions = (typeof MISSIONS_DB !== 'undefined') ? MISSIONS_DB : [];
+            var now = Date.now(), idx = -1, best = Infinity;
+            missions.forEach(function(m, i){
+                if (new Date(m.returnDate).getTime() <= now) return;
+                var st = new Date(m.date).getTime();
+                if (st < best) { best = st; idx = i; }
+            });
+            if (idx === -1) {
+                var mx = -Infinity;
+                missions.forEach(function(m, i){
+                    var rt = new Date(m.returnDate).getTime();
+                    if (rt > mx) { mx = rt; idx = i; }
+                });
+            }
+            return idx;
+        };
         // Data powrotu z ostatniej zaplanowanej misji (czyli moment, w ktorym estymata sie ziszcza).
         window._plannedMissionEnd = function() {
             if (typeof MISSIONS_DB === 'undefined') return null;
@@ -3038,14 +3195,7 @@
             var coords = (typeof CAPITAL_COORDS !== 'undefined') ? CAPITAL_COORDS[code] : null;
             if (!coords) return;
             var name = (typeof FACTBOOK !== 'undefined' && FACTBOOK[code]) ? FACTBOOK[code].name.common.toUpperCase() : code;
-            if (typeof stopRot === 'function') stopRot();
-            if (window.myFlightsOn) window.clearMyFlights();
-            if (window.lineSeries) window.lineSeries.data.clear();
-            if (window.airportSeries) window.airportSeries.data.clear();
-            if (window._clearCitySeries) window._clearCitySeries();
-            if (window.showCityLegend) window.showCityLegend(false);
-            if (window.showAirportModeBtn) window.showAirportModeBtn(false);
-            if (window.clearCountryHighlight) window.clearCountryHighlight();
+            window._clearFocusLayers();
             if (window.pointSeries) window.pointSeries.data.setAll([{ geometry: { type: "Point", coordinates: [coords[1], coords[0]] }, type: "target" }]);
             if (typeof rotateGlobe === 'function') rotateGlobe(coords[0], coords[1]);
             if (window.updateWeatherPanel) window.updateWeatherPanel(code, name, coords[0], coords[1]);
@@ -3125,8 +3275,7 @@
                 el.onclick = function(){
                     var w = WONDERS.find(function(x){ return x.id === el.getAttribute("data-wid"); });
                     if (!w) return;
-                    if (typeof stopRot === 'function') stopRot();
-                    if (window.lineSeries) window.lineSeries.data.clear();
+                    window._clearFocusLayers();
                     if (window.pointSeries) window.pointSeries.data.setAll([{ geometry: { type: "Point", coordinates: [w.lon, w.lat] }, type: "wonder", icon: w.icon }]);
                     if (typeof rotateGlobe === 'function') rotateGlobe(w.lat, w.lon);
                     if (window.updateWonderIntel) window.updateWonderIntel(w);
@@ -3342,23 +3491,23 @@
             var A = (typeof FLIGHTS_AP !== 'undefined') ? FLIGHTS_AP[from] : null;
             var B = (typeof FLIGHTS_AP !== 'undefined') ? FLIGHTS_AP[to] : null;
             if (!A || !B) return;
-            if (typeof stopRot === 'function') stopRot();
+            window._clearFocusLayers();
             if (window.lineSeries) {
-                window.lineSeries.data.clear();
                 window.lineSeries.pushDataItem({ geometry: { type: "LineString", coordinates: [[A[1], A[0]], [B[1], B[0]]] } });
             }
             if (window.pointSeries) window.pointSeries.data.setAll([
                 { geometry: { type: "Point", coordinates: [A[1], A[0]] }, type: "target" },
                 { geometry: { type: "Point", coordinates: [B[1], B[0]] }, type: "target" }
             ]);
-            if (typeof rotateGlobe === 'function') rotateGlobe((A[0] + B[0]) / 2, (A[1] + B[1]) / 2);
+            // Srodek dlugosci przez _midLon - trasa przez antypoludnik (180°) nie obraca juz kamery
+            // na przeciwna strone globu.
+            if (typeof rotateGlobe === 'function') rotateGlobe((A[0] + B[0]) / 2, window._midLon(A[1], B[1]));
             if (fly && window._flyMaxRange) window._flyMaxRange([A[0], A[1]], [B[0], B[1]]);
         };
         window.focusAirport = function(iata) {
             var a = (typeof FLIGHTS_AP !== 'undefined') ? FLIGHTS_AP[iata] : null;
             if (!a) return;
-            if (typeof stopRot === 'function') stopRot();
-            if (window.lineSeries) window.lineSeries.data.clear();
+            window._clearFocusLayers();
             if (window.pointSeries) window.pointSeries.data.setAll([{ geometry: { type: "Point", coordinates: [a[1], a[0]] }, type: "target" }]);
             if (typeof rotateGlobe === 'function') rotateGlobe(a[0], a[1]);
         };
@@ -3866,21 +4015,29 @@
                 var rankSidebar = document.getElementById('rank-list');
                 if (rankSidebar) {
                     var rsTop = rankSidebar.getBoundingClientRect().top;
-                    rankSidebar.style.maxHeight = Math.max(100, (hudTop - rsTop - gapPx) / scale) + 'px';
+                    // Pod drzewkiem rang stoi jeszcze przycisk GDZIE TERAZ? - jego wysokosc trzeba
+                    // wylaczyc z puli, inaczej lista zajmie cala przestrzen do dolnego HUD, a przycisk
+                    // wyjedzie pod niego. offsetHeight jest w skali PRZED transformacja (tak jak
+                    // maxHeight), wiec odejmujemy go dopiero PO podzieleniu odstepu przez scale.
+                    var wnBtn = document.getElementById('wherenow-toggle');
+                    var reserve = wnBtn ? (wnBtn.offsetHeight + 10) : 0;  // +10 = margin-top przycisku
+                    rankSidebar.style.maxHeight = Math.max(100, (hudTop - rsTop - gapPx) / scale - reserve) + 'px';
                 }
             }
         }
 
         window.addEventListener('resize', adjustLayout);
         window.addEventListener('load', adjustLayout);
-        // Petla rozgrzewkowa: przez pierwsze ~2s przeliczaj co klatke, zeby zlapac pozne zmiany
-        // ukladu (czcionki, media-query niskich okien, reflow siatki 2x2, pierwsze linie SYSTEM_LOG).
-        var _warmupEnd = (window.performance ? performance.now() : Date.now()) + 2000;
-        (function _warmup(){
-            adjustLayout();
-            var now = (window.performance ? performance.now() : Date.now());
-            if (now < _warmupEnd) requestAnimationFrame(_warmup);
-        })();
+        // Rozgrzewka layoutu: KILKA strzalow w stalych odstepach zamiast rAF co klatke przez 2 s
+        // (zmiana 2026-07-22). adjustLayout robi getBoundingClientRect na kilku elementach
+        // (wymuszony synchroniczny layout), wiec dawna petla = ~120 wymuszen dokladnie wtedy,
+        // gdy amCharts buduje glob - najdrozszy staly koszt startu. Harmonogram lapie te same
+        // pozne zmiany ukladu co petla: pierwszy render globu, doladowanie czcionek (dodatkowo
+        // fonts.ready nizej), media-query niskich okien, reflow siatki 2x2, pierwsze linie
+        // SYSTEM_LOG. Wszystko POZNIEJSZE i tak lapia: listener resize, ResizeObserver na
+        // #bottom-right-hud oraz wywolanie na koncu kazdego refreshVisitedUI.
+        adjustLayout();
+        [120, 300, 600, 1000, 1500, 2100].forEach(function(ms){ setTimeout(adjustLayout, ms); });
         if (document.fonts && document.fonts.ready) { document.fonts.ready.then(adjustLayout).catch(function(){}); }
         // Gdy dolny rog HUD (przyciski 2x2 + SYSTEM_LOG) zmieni rozmiar/pozycje - przelicz max-height
         // paneli, zeby nigdy nie nachodzily na ten rog (dziala tez dlugo po petli rozgrzewkowej).
@@ -3905,9 +4062,12 @@
             window._fetchWeather(lat, lon)
                 .then(data => {
                     if (window._cityWeatherToken !== _wtoken) return;   // inne target kliniete w miedzyczasie
-                    const temp = data.current_weather.temperature;
-                    const wind = data.current_weather.windspeed;
-                    const code = data.current_weather.weathercode;
+                    const cur = data.current || {};
+                    const temp = cur.temperature_2m;
+                    const wind = cur.wind_speed_10m;
+                    const code = cur.weather_code;
+                    const hum = (cur.relative_humidity_2m != null) ? Math.round(cur.relative_humidity_2m) : null;
+                    const pres = (cur.surface_pressure != null) ? Math.round(cur.surface_pressure) : null;
                     const desc = getWeatherDesc(code);
                     const icon = getWeatherIcon(code);
                     const windyUrl = `https://www.windy.com/?${lat},${lon},11`;
@@ -3927,7 +4087,7 @@
                         climateUrl = `https://www.timeanddate.com/weather/${tadCountrySlug}/climate`;
                     }
                     
-                    wPanel.innerHTML = window._weatherEnvHTML(temp, wind, desc, icon, windyUrl, climateUrl);
+                    wPanel.innerHTML = window._weatherEnvHTML(temp, wind, desc, icon, windyUrl, climateUrl, hum, pres);
                 })
                 .catch(err => {
                     if (window._cityWeatherToken !== _wtoken) return;   // inny target kliniety w miedzyczasie - nie nadpisuj
@@ -4049,14 +4209,11 @@
                     let wikiSlug = (typeof WIKIVOYAGE_OVERRIDES !== 'undefined' && WIKIVOYAGE_OVERRIDES[id]) ? WIKIVOYAGE_OVERRIDES[id] : countryNameWiki;
                     const wikiUrl = `https://en.wikivoyage.org/wiki/${wikiSlug}`;
                     
-                    // --- OVERRIDE DLA GOOGLE MAPS ---
-                    const GMAPS_OVERRIDES = {
-                        "GL": "Grenlandia",
-                        "GE": "Gruzja",
-                        "SJ": "Svalbard",
-                        "AQ": "Antarktyda"
-                    };
-                    let gmapsTarget = GMAPS_OVERRIDES[id] || countryNameSafe;
+                    // GMAPS_OVERRIDES mieszka w intel.js (obok NUMBEO/TASTEATLAS/WIKIVOYAGE_OVERRIDES,
+                    // przeniesione 2026-07-22). Guard typeof jak przy pozostalych: stara kopia intel.js
+                    // z cache przegladarki (plik bez ?v) nie moze wywrocic calego panelu - link po prostu
+                    // wraca na sama nazwe kraju.
+                    let gmapsTarget = (typeof GMAPS_OVERRIDES !== 'undefined' && GMAPS_OVERRIDES[id]) ? GMAPS_OVERRIDES[id] : countryNameSafe;
                     const gmapsUrl = `https://www.google.com/maps/place/${gmapsTarget}`;
 
                     const vaccinationsUrl = "https://zagrozeniazdrowotne.gssewarszawa.pl/docs/Tabela_szczepien.pdf";
@@ -4346,7 +4503,6 @@
                         // odwiedzonych miast podpis zmienia sie na "CAPITAL" i liczy do stolicy.
                         let _distPt = _far ? [_far.lat, _far.lon] : c;
                         let dist = Math.round(getDist(52.23, 21.01, _distPt[0], _distPt[1]));
-                        let flag = getFlagEmoji(id);
                         // Nazwa miejsca i licznik ida OSOBNYMI polami - etykiete sklada bullet serii.
                         let _capName = (typeof CAPITAL_NAMES !== 'undefined' && CAPITAL_NAMES[id]) ? CAPITAL_NAMES[id] : null;
 
@@ -4359,8 +4515,7 @@
                             cities: _stats.count,
                             dist: dist,
                             distCity: _far ? _far.name.toUpperCase() : (_capName ? _capName.toUpperCase() : null),
-                            distLabel: _far ? "MAX DISTANCE" : "CAPITAL",
-                            flag: flag
+                            distLabel: _far ? "MAX DISTANCE" : "CAPITAL"
                         }];
 
                         // Drugi znacznik + luk TYLKO gdy najdalsze miasto realnie lezy gdzie indziej niz
@@ -4723,7 +4878,197 @@
                         el.style.opacity = on ? "1" : "0";
                         el.style.pointerEvents = on ? "auto" : "none";
                     }
+                    // Ekspozycja dla rekomendatora "GDZIE TERAZ?" (blok nizej) - temperatury stolic
+                    // i pasma komfortu bez duplikowania logiki klimatu. Gdy CLIMATE_DB (defer) jeszcze
+                    // nie dojechal, _cliTempsFor zwraca null (rekomendator pokazuje "b.d.").
+                    window._cliTempsFor = function(id){ _cliBuild(); return (_cliCountryTemp && _cliCountryTemp[id]) || null; };
+                    window._cliBandOf = function(t){ var b=_cliBand(t); return { band:b, label:_cliBandLbl[b], color:"#"+("00000"+_cliBandCols[b].toString(16)).slice(-6) }; };
+                    window._cliMonthUI = { abbr: _cliMonAbbr, names: _cliMonthNames };
                 } catch(_cle) { console.warn("Climate mode init failed:", _cle); }
+
+                // ============================================================================
+                // --- "GDZIE TERAZ?" - rekomendator celow podrozy (przycisk #wherenow-toggle) ---
+                // ============================================================================
+                // Laczy w JEDEN ranking dane, ktore dotad zyly w osobnych narzedziach: komfort
+                // temperaturowy stolicy w wybranym miesiacu (CLIMATE_DB przez _cliTempsFor), wize
+                // (_visaFor przez _rankCandidates), bezpieczenstwo (SAFETY_OVERRIDE), poziom cen
+                // (COST_INDEX) i dystans z Warszawy (getDist). Kandydaci: _rankCandidates z limitem
+                // 9999 (wszyscy nieodwiedzeni z CAPITAL_COORDS, bez EXCLUDED_CODES); kraje z
+                // ZAPLANOWANYCH misji odpadaja (jak w planie rangi - i tak sa juz "kupione").
+                // WYNIK 0-10 (jawny wzor, pokazany w stopce modala):
+                //   klimat 0-2.5 (idealnie 2.5, chlodno/cieplo 1.25, zimno/upal 0, brak danych 1.25)
+                //   dojazd 0-2.5 (szac. koszt lotu w obie strony: <=500 zl 2.5, <=900 2, <=1500 1.5,
+                //                 <=2500 1, <=4000 0.5, drozej 0; brak danych 1.25)
+                //   ceny 0-2 ($ 2, $$ 1.5, $$$ 0.75, $$$$ 0, brak danych 1)
+                //   wiza 0-1.5 (free/dni 1.5, on-arrival/e-visa 0.75, required 0, brak danych 0.75)
+                //   bezpieczenstwo (feedback 2026-07-22 #3): poziom 1 -> 1.5, poziom 2 -> 1.125,
+                //                 RISKY (3) -> KARA -1, DANGER (4) i DEATH WISH (5) W OGOLE ODPADAJA
+                //                 z rankingu (filtr w _wnRows); brak danych 0.75. Wynik clampowany do >=0.
+                // Wszedzie "brak danych = polowa maksimum" (srodek skali). Dystans jest w tabeli tylko
+                // INFORMACYJNIE - punktowany jest szacunek kosztu dojazdu (feedback 2026-07-22: same km
+                // nie odrozniaja taniej Europy LCC od Pacyfiku z przesiadkami; drugi feedback tego dnia:
+                // dojazd ma wazyc mocniej -> podbity z 1 do 2.5 pkt, na rowni z klimatem).
+                // Remis rozstrzyga mniejszy dystans. PL nigdy nie jest kandydatem (dom).
+                try {
+                    var _wnMonth = (new Date()).getMonth();
+                    var _wnCostPts = { "$": 2, "$$": 1.5, "$$$": 0.75, "$$$$": 0 };
+                    var _wnCostCol = { "$": "#22c55e", "$$": "#facc15", "$$$": "#fb923c", "$$$$": "#f87171" };
+                    // Wspolna siatka naglowka i wierszy - kazda kolumna pod swoim naglowkiem, nic sie
+                    // nie zawija (nazwa kraju dostaje elastyczna reszte + ellipsis).
+                    var _wnGrid = "display:grid; grid-template-columns:26px minmax(150px,1fr) 116px 112px 132px 46px 78px 84px 44px; gap:0 10px; align-items:center;";
+                    // Szacunkowy koszt LOTU W OBIE STRONY z Warszawy [zl] - heurystyka z dystansu:
+                    // do 2500 km taryfa "europejska" (LCC: baza 200 zl + 0.22 zl/km), dalej long-haul
+                    // (taniej za km: +0.30 zl/km ponad prog), plus narzut kontynentalny za typowy brak
+                    // bezposrednich polaczen z WAW (Oceania +30%, Ameryka Pld +15%, Ameryka Pln +10%).
+                    // Zaokraglane do 50 zl i pokazywane z "~" - to rzad wielkosci, nie cennik.
+                    var _wnFareCol = function(f){ return (f === null) ? '#8f9ba8' : (f <= 700) ? '#22c55e' : (f <= 2000) ? '#facc15' : (f <= 4000) ? '#fb923c' : '#f87171'; };
+                    function _wnTravelCost(dist, cont){
+                        if (dist === null) return null;
+                        var c = (dist <= 2500) ? 200 + 0.22 * dist : 750 + 0.30 * (dist - 2500);
+                        if (cont === 'OC') c *= 1.3;
+                        else if (cont === 'SA') c *= 1.15;
+                        else if (cont === 'NA') c *= 1.1;
+                        return Math.round(c / 50) * 50;
+                    }
+                    function _wnScore(r){
+                        var s = 0;
+                        if (r.temp === null) s += 1.25;
+                        else { var b = window._cliBandOf(r.temp).band; s += (b === 2) ? 2.5 : (b === 1 || b === 3) ? 1.25 : 0; }
+                        var v = String(r.visa || "").toLowerCase();
+                        if (!v) s += 0.75;
+                        else if (v.indexOf("required") >= 0) s += 0;
+                        else if (v.indexOf("arrival") >= 0 || v.indexOf("e-visa") >= 0) s += 0.75;
+                        else s += 1.5;
+                        if (r.safe === 0) s += 0.75;
+                        else if (r.safe >= 3) s -= 1;   // RISKY: kara (poziomy 4+ w ogole nie docieraja tutaj - filtr w _wnRows)
+                        else s += Math.max(0, 2 - (r.safe - 1) * 0.5) * 0.75;
+                        s += (_wnCostPts[r.cost] !== undefined) ? _wnCostPts[r.cost] : 1;
+                        if (r.fare === null) s += 1.25;
+                        else s += (r.fare <= 500) ? 2.5 : (r.fare <= 900) ? 2 : (r.fare <= 1500) ? 1.5 : (r.fare <= 2500) ? 1 : (r.fare <= 4000) ? 0.5 : 0;
+                        return Math.max(0, Math.round(s * 10) / 10);
+                    }
+                    function _wnRows(limit){
+                        if (!window._rankCandidates) return [];
+                        var st = window._rankState;
+                        var visited = (st && st.visited) ? st.visited.slice() : [];
+                        if (!visited.length && typeof VISITED_COUNTRIES !== 'undefined') {
+                            var ex = (typeof EXCLUDED_CODES !== 'undefined') ? EXCLUDED_CODES : [];
+                            VISITED_COUNTRIES.forEach(function(c){ if (visited.indexOf(c) === -1 && ex.indexOf(c) === -1) visited.push(c); });
+                        }
+                        if (visited.indexOf("PL") === -1) visited.push("PL");   // dom - nigdy nie jest celem
+                        (window._plannedMissionTargets ? window._plannedMissionTargets() : []).forEach(function(p){ visited.push(p.code); });
+                        // DANGER (4) i DEATH WISH (5) odpadaja calkiem - nie chcemy ich nawet na liscie.
+                        var rows = window._rankCandidates(visited, 9999).filter(function(r){ return r.safe < 4; });
+                        rows.forEach(function(r){
+                            var temps = window._cliTempsFor ? window._cliTempsFor(r.code) : null;
+                            r.temp = temps ? temps[_wnMonth] : null;
+                            r.fare = _wnTravelCost(r.dist, (typeof REGION_MAP !== 'undefined') ? REGION_MAP[r.code] : null);
+                            r.score = _wnScore(r);
+                        });
+                        rows.sort(function(a, b){
+                            if (b.score !== a.score) return b.score - a.score;
+                            if (a.dist === null) return 1;
+                            if (b.dist === null) return -1;
+                            return a.dist - b.dist;
+                        });
+                        return rows.slice(0, limit);
+                    }
+                    function _wnPaintMonths(){
+                        var box = document.getElementById("wherenow-months"); if (!box) return;
+                        Array.prototype.forEach.call(box.querySelectorAll(".wn-mon"), function(ch){
+                            var act = parseInt(ch.getAttribute("data-m"), 10) === _wnMonth;
+                            ch.style.background  = act ? "#22d3ee" : "transparent";
+                            ch.style.color       = act ? "#111" : "#c6cfd9";
+                            ch.style.fontWeight  = act ? "700" : "400";
+                            ch.style.borderColor = act ? "#22d3ee" : "rgba(255,255,255,0.18)";
+                        });
+                    }
+                    function _wnRenderList(){
+                        var box = document.getElementById("wherenow-list"); if (!box) return;
+                        var rows = _wnRows(15);
+                        if (!rows.length){ box.innerHTML = '<div style="color:#8f9ba8; font-family:\'JetBrains Mono\',monospace; font-size:0.75rem;">Brak danych do wyznaczenia rankingu.</div>'; return; }
+                        box.innerHTML = rows.map(function(r, i){
+                            var nm = (typeof FACTBOOK !== 'undefined' && FACTBOOK[r.code]) ? FACTBOOK[r.code].name.common : r.code;
+                            var flag = window._flagSrc ? window._flagSrc(r.code) : null;
+                            var img = flag ? '<img src="' + String(flag).replace(/"/g, '%22') + '" alt="' + r.code + '" style="height:0.85em; width:auto; margin-right:7px; vertical-align:-1px;">' : '';
+                            var cli = (r.temp === null)
+                                ? '<span style="color:#8f9ba8;">b.d.</span>'
+                                : (function(){ var b = window._cliBandOf(r.temp); return '<span style="color:' + b.color + ';">' + Math.round(r.temp) + '°C ' + b.label + '</span>'; })();
+                            var v = String(r.visa || "").toLowerCase();
+                            var vCol = !v ? '#8f9ba8' : (v.indexOf('required') >= 0) ? '#f87171' : (v.indexOf('arrival') >= 0 || v.indexOf('e-visa') >= 0) ? '#facc15' : '#22c55e';
+                            var vTxt = r.visa ? ((/^\d+$/.test(String(r.visa))) ? r.visa + ' dni' : r.visa) : 'b.d.';
+                            var sl = (typeof SAFETY_LABELS !== 'undefined' && SAFETY_LABELS[r.safe]) ? SAFETY_LABELS[r.safe] : null;
+                            var sHtml = sl ? '<span style="color:' + sl.color + '; overflow:hidden; text-overflow:ellipsis;">' + sl.text + '</span>' : '<span style="color:#8f9ba8;">b.d.</span>';
+                            var cHtml = r.cost ? '<span style="color:' + (_wnCostCol[r.cost] || '#8f9ba8') + ';">' + r.cost + '</span>' : '<span style="color:#8f9ba8;">b.d.</span>';
+                            var dHtml = (r.dist !== null) ? r.dist.toLocaleString('pl-PL') + ' km' : 'b.d.';
+                            return '<div class="wn-row" data-code="' + r.code + '" title="Pokaż ' + nm + ' na globusie" style="' + _wnGrid + ' padding:7px 4px; border-bottom:1px solid rgba(255,255,255,0.06); cursor:pointer; font-family:\'JetBrains Mono\',monospace; font-size:0.72rem; white-space:nowrap;">'
+                              +   '<span style="color:#8f9ba8; text-align:right;">' + (i + 1) + '.</span>'
+                              +   '<span style="color:#e5edf5; font-weight:700; letter-spacing:0.5px; overflow:hidden; text-overflow:ellipsis;">' + img + nm.toUpperCase() + '</span>'
+                              +   cli
+                              +   '<span style="color:' + vCol + ';">' + vTxt + '</span>'
+                              +   sHtml
+                              +   cHtml
+                              +   '<span style="color:#8f9ba8; text-align:right;">' + dHtml + '</span>'
+                              +   '<span style="color:' + _wnFareCol(r.fare) + '; text-align:right;">' + ((r.fare !== null) ? '~' + r.fare.toLocaleString('pl-PL') + ' zł' : 'b.d.') + '</span>'
+                              +   '<span style="text-align:right; color:#22d3ee; font-weight:700; font-size:0.85rem;">' + r.score.toFixed(1) + '</span>'
+                              + '</div>';
+                        }).join('');
+                        Array.prototype.forEach.call(box.querySelectorAll(".wn-row"), function(el){
+                            el.onclick = function(){
+                                var ov = document.getElementById("wherenow-overlay");
+                                if (ov) ov.style.display = "none";
+                                if (window.focusRankTarget) window.focusRankTarget(el.getAttribute("data-code"));
+                            };
+                        });
+                    }
+                    window.showWhereNow = function(){
+                        var el = document.getElementById("wherenow-overlay");
+                        if (!el){
+                            el = document.createElement("div");
+                            el.id = "wherenow-overlay";
+                            el.style.cssText = "display:none; position:fixed; inset:0; z-index:200; background:rgba(0,0,0,0.75); backdrop-filter:blur(4px); align-items:center; justify-content:center;";
+                            var abbr = (window._cliMonthUI && window._cliMonthUI.abbr) || ["STY","LUT","MAR","KWI","MAJ","CZE","LIP","SIE","WRZ","PAŹ","LIS","GRU"];
+                            var chips = '';
+                            for (var i = 0; i < 12; i++){ chips += '<span class="wn-mon" data-m="' + i + '" style="cursor:pointer; padding:2px 6px; border:1px solid rgba(255,255,255,0.18); border-radius:4px;">' + abbr[i] + '</span>'; }
+                            var hd = function(txt, tip){
+                                return '<span' + (tip ? ' title="' + tip + '" style="cursor:help; text-decoration:underline dotted rgba(143,155,168,0.6); text-underline-offset:3px;"' : '') + '>' + txt + '</span>';
+                            };
+                            el.innerHTML =
+                                '<div style="background:rgba(8,8,10,0.96); border:1px solid rgba(34,211,238,0.4); border-radius:8px; padding:22px; width:min(1120px,96vw); max-height:85vh; overflow-y:auto; box-shadow:0 8px 40px rgba(0,0,0,0.6); font-family:\'Rajdhani\',sans-serif;">'
+                              +   '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">'
+                              +     '<h1 style="margin:0; border:none; padding:0; font-size:1.3rem; color:#22d3ee;">🎯 GDZIE TERAZ? — ranking celów</h1>'
+                              +     '<span id="wherenow-close" style="cursor:pointer; font-size:1.5rem; color:#8f9ba8; line-height:1;">✕</span>'
+                              +   '</div>'
+                              +   '<div id="wherenow-months" style="display:flex; gap:3px; flex-wrap:wrap; margin-bottom:10px; font-family:\'JetBrains Mono\',monospace; font-size:0.72rem;">' + chips + '</div>'
+                              // Naglowki kolumn (ta sama siatka co wiersze). Zasady punktacji NIE maja juz
+                              // stopki - siedza w tooltipach naglowkow (kropkowane podkreslenie = najedz).
+                              +   '<div style="' + _wnGrid + ' padding:4px 4px 6px; border-bottom:1px solid rgba(255,255,255,0.2); font-family:\'JetBrains Mono\',monospace; font-size:0.62rem; color:#8f9ba8; letter-spacing:1px; white-space:nowrap;">'
+                              +     '<span></span>'
+                              +     hd('KRAJ', 'Nieodwiedzone kraje, bez krajów ujętych w zaplanowanych misjach. Kliknij wiersz, żeby zobaczyć kraj na globusie.')
+                              +     hd('KLIMAT', 'Średnia temperatura stolicy w wybranym miesiącu (30-letnie normalne). Punkty (0–2.5): idealnie 18–27°C = 2.5, chłodno/ciepło = 1.25, zimno/upał = 0, brak danych = 1.25.')
+                              +     hd('WIZA', 'Wymóg wizowy dla obywatela PL. Punkty (0–1.5): visa free / liczba dni = 1.5, on arrival / e-visa = 0.75, visa required = 0, brak danych = 0.75.')
+                              +     hd('BEZPIECZEŃSTWO', 'Poziom bezpieczeństwa 1–5. Punkty: SAFE HAVEN (1) = 1.5, CAUTION (2) = 1.125, RISKY (3) = kara −1, brak danych = 0.75. Kraje DANGER (4) i gorsze w ogóle nie wchodzą do rankingu.')
+                              +     hd('CENY', 'Poziom cen $–$$$$. Punkty (0–2): $ = 2, $$ = 1.5, $$$ = 0.75, $$$$ = 0, brak danych = 1.')
+                              +     '<span style="text-align:right;">' + hd('DYSTANS', 'W linii prostej z Warszawy (stolica–stolica). Tylko informacyjnie — punktowany jest szacunkowy koszt dojazdu (kolumna obok).') + '</span>'
+                              +     '<span style="text-align:right;">' + hd('DOJAZD', 'Szacunkowy koszt lotu w obie strony z Warszawy, wyliczany z dystansu: do 2500 km taryfa europejska (LCC), dalej long-haul taniej za km, plus narzut za typowy brak bezpośrednich połączeń (Oceania +30%, Am. Płd. +15%, Am. Płn. +10%). To rząd wielkości, nie cennik. Punkty (0–2.5): ≤500 zł = 2.5, ≤900 zł = 2, ≤1500 zł = 1.5, ≤2500 zł = 1, ≤4000 zł = 0.5, drożej = 0.') + '</span>'
+                              +     '<span style="text-align:right;">' + hd('/10', 'Suma punktów: klimat (2.5) + dojazd (2.5) + ceny (2) + wiza (1.5) + bezpieczeństwo (1.5; RISKY daje karę −1, DANGER i gorsze są pominięte). Remis rozstrzyga mniejszy dystans.') + '</span>'
+                              +   '</div>'
+                              +   '<div id="wherenow-list"></div>'
+                              + '</div>';
+                            document.body.appendChild(el);
+                            el.addEventListener("click", function(e){ if (e.target === el) el.style.display = "none"; });
+                            document.getElementById("wherenow-close").onclick = function(){ el.style.display = "none"; };
+                            Array.prototype.forEach.call(el.querySelectorAll(".wn-mon"), function(ch){
+                                ch.onclick = function(){ _wnMonth = parseInt(ch.getAttribute("data-m"), 10); _wnPaintMonths(); _wnRenderList(); };
+                            });
+                        }
+                        _wnPaintMonths();
+                        _wnRenderList();
+                        el.style.display = "flex";
+                    };
+                    var _wnBtn = document.getElementById("wherenow-toggle");
+                    if (_wnBtn) _wnBtn.onclick = function(){ window.showWhereNow(); };
+                } catch(_wne) { console.warn("WhereNow init failed:", _wne); }
 
                 // --- RADAR PL: USUNIETY (2026-07) - pulsujacy geo-pierscien odswiezany co 60ms bez przerwy
                 // byl najwiekszym stalym kosztem CPU/GPU (reprojekcja linii ~16x/s na widoku "home"). ---
@@ -4864,29 +5209,26 @@
                 // i otwiera intel kraju - patrz window._exitActiveOverlayMode + handlery klika w setVisa/
                 // setClimateMode). targetPoly = wielokat BAZOWEJ serii (nie nakladki) - po nim idzie highlight.
                 window._selectCountry = function(id, name, targetPoly) {
+                    // Czyszczenie PRZED ustawieniem nowego stanu - helper zdejmuje tez stary highlight,
+                    // wiec nowy musi wejsc dopiero po nim.
+                    window._clearFocusLayers();
                     window._selectedCountryId = id;
                     if (window.highlightCountry) window.highlightCountry(targetPoly);
                     // Sprzezenie zwrotne w dwie strony: klik w kraj na globie podswietla tez jego flage
                     // w dolnym pasku (o ile kraj jest odwiedzony - inaczej po prostu nie ma tam czego zapalic).
                     if (window._setLootBarActive) window._setLootBarActive(id);
                     if (targetPoly && targetPoly.hideTooltip) targetPoly.hideTooltip();
-
-                    stopRot();
-                    lineSeries.data.clear();
-                    if (window.myFlightsOn) window.clearMyFlights();
                     if (window.showAirportModeBtn) window.showAirportModeBtn(true);
                     var c = CAPITAL_COORDS[id];
                     window.renderCountryPlaces(id);
-                    if (window.airportMode) {
-                        if (c) rotateGlobe(c[0], c[1]);
-                        window.updateFactbookPanel(id, name);
-                        if (c) window.updateWeatherPanel(id, name, c[0], c[1]);
-                    } else {
-                        if (c) {
-                            rotateGlobe(c[0], c[1]);
-                            window.updateWeatherPanel(id, name, c[0], c[1]);
-                            window.updateFactbookPanel(id, name);
-                        }
+                    // Jedna wspolna galaz dla obu trybow (miasta/lotniska): factbook ZAWSZE (dziala i bez
+                    // stolicy - wczesniej kraj bez wpisu w CAPITAL_COORDS w trybie miast nie pokazywal nic,
+                    // a w trybie lotnisk pokazywal factbook - te sciezki byly rozjechane bez powodu),
+                    // rotacja i pogoda tylko gdy sa wspolrzedne stolicy.
+                    window.updateFactbookPanel(id, name);
+                    if (c) {
+                        rotateGlobe(c[0], c[1]);
+                        window.updateWeatherPanel(id, name, c[0], c[1]);
                     }
                 };
                 poly.mapPolygons.template.events.on("click", function(ev) {
@@ -4942,7 +5284,11 @@
                             // i zadnych statystyk - tam etykieta ma zostac jednowierszowa jak dotad.
                             var _dc = dataItem.dataContext;
                             var _lines = [];
-                            _lines.push(_dc.flag ? (_dc.flag + " " + _dc.title) : _dc.title);
+                            // BEZ emoji flagi przed nazwa: etykieta to tekst w canvasie amCharts, a na
+                            // Windows/Chrome emoji flag renderuje sie jako gole litery ("PL POLAND") -
+                            // ten sam problem, przez ktory caly DOM przeszedl na obrazki z FLAGS.
+                            // W canvasie obrazka tanio nie wstawimy, wiec etykieta niesie sama nazwe.
+                            _lines.push(_dc.title);
                             if (_dc.cities !== undefined && _dc.cities !== null) _lines.push("VISITED CITIES: " + _dc.cities);
                             if (_dc.dist !== undefined && _dc.dist !== null) {
                                 // distLabel rozroznia "najdalsze odwiedzone miasto" od fallbacku na stolice,
@@ -4977,6 +5323,10 @@
                     autoRot = chart.animate({ key: "rotationX", from: chart.get("rotationX"), to: chart.get("rotationX") + 360, duration: 60000, loops: Infinity });
                     pointSeries.data.clear();
                     lineSeries.data.clear();
+                    // Te dwie serie czyscil dotad tylko resetIntelPanels - powrot do orbity bez niego
+                    // (np. klik poza glob) zostawialby zielony odcinek naziemny / pinezki lotnisk.
+                    if (window.groundLegSeries) window.groundLegSeries.data.clear();
+                    if (window.airportSeries) window.airportSeries.data.clear();
                     window._clearCitySeries();
                     if (window.showCityLegend) window.showCityLegend(false);
                     if (window.showAirportModeBtn) window.showAirportModeBtn(false);
@@ -5097,13 +5447,10 @@
                     chart.animate({ key: "rotationX", to: -20, duration: 1000, easing: am5.ease.out(am5.ease.cubic) });
                     chart.animate({ key: "rotationY", to: -15, duration: 1000, easing: am5.ease.out(am5.ease.cubic) });
                     lineSeries.data.clear();
-                    pointSeries.data.clear(); 
-                    setTimeout(() => {
-                        pointSeries.data.clear(); 
-                        var plCoords = CAPITAL_COORDS["PL"];
-                        if(plCoords) pointSeries.data.push({ geometry: { type: "Point", coordinates: [plCoords[1], plCoords[0]] }, id: "PL" });
-                        startRot();
-                    }, 1000);
+                    pointSeries.data.clear();
+                    // startRot sam czysci serie i wstawia znacznik PL - wczesniejsza reczna kopia
+                    // tego bloku tutaj byla martwym duplikatem (push PL, ktory startRot zaraz kasowal).
+                    setTimeout(() => { startRot(); }, 1000);
                 };
 
                 // Klik w przestrzen POZA globem -> zdejmij focus + wznow rotacje (BEZ resetu pozycji)
@@ -5116,12 +5463,9 @@
                         var dx = (e.clientX - rect.left) - rect.width / 2;
                         var dy = (e.clientY - rect.top) - (rect.height / 2 - 50);
                         if (Math.sqrt(dx*dx + dy*dy) <= rect.width * 0.26) return; // klik na globie -> ignoruj
-                        if (autoRot) autoRot.pause();
+                        // startRot sam pauzuje autoRot, czysci serie i wstawia znacznik PL -
+                        // reczne kopie tych krokow tutaj byly martwym duplikatem.
                         window.resetIntelPanels();
-                        lineSeries.data.clear();
-                        pointSeries.data.clear();
-                        var plCoords = CAPITAL_COORDS["PL"];
-                        if (plCoords) pointSeries.data.push({ geometry: { type: "Point", coordinates: [plCoords[1], plCoords[0]] }, id: "PL" });
                         startRot();
                     });
                 })();
@@ -5151,6 +5495,7 @@
                     if (missions.length < 2) return;
                     if (window.selectedMissionIndex === null || window.selectedMissionIndex === undefined) window.selectedMissionIndex = 0;
                     window.missionManual = true;
+                    window._missionManualTs = Date.now();   // od tego momentu liczy sie minuta recznego wyboru
                     window.selectedMissionIndex = (window.selectedMissionIndex + delta + missions.length) % missions.length;
                     updateMissionCountdown();
                 };
@@ -5171,10 +5516,19 @@
                         return;
                     }
 
-                    // Auto-follow najblizszej nieukonczonej misji, dopoki uzytkownik nie przejdzie recznie strzalkami
+                    // RECZNY WYBOR STRZALKAMI WYGASA PO MINUCIE (feedback 2026-07-22) - potem licznik
+                    // wraca do auto-follow. Kazde klikniecie strzalki (panel i dossier) odswieza
+                    // _missionManualTs, wiec minuta liczy sie od OSTATNIEGO przelaczenia. Wyjatek:
+                    // przy OTWARTYM oknie briefu nie wygaszamy - dossier i panel dziela
+                    // selectedMissionIndex i auto-przeskok podmienilby misje pod otwartym oknem.
+                    if (window.missionManual && Date.now() - (window._missionManualTs || 0) > 60000) {
+                        var _dov = document.getElementById("mission-dossier-overlay");
+                        if (!_dov || _dov.style.display === "none") window.missionManual = false;
+                    }
+                    // Auto-follow najblizszej nieukonczonej misji (wg dat, przez _nearestMissionIdx -
+                    // NIE wg kolejnosci zapisu w MISSIONS_DB), dopoki user nie przejdzie recznie strzalkami.
                     if (!window.missionManual || window.selectedMissionIndex === null || window.selectedMissionIndex === undefined || window.selectedMissionIndex >= missions.length) {
-                        let _idx = missions.findIndex(m => new Date(m.returnDate).getTime() > now);
-                        window.selectedMissionIndex = (_idx === -1) ? missions.length - 1 : _idx;
+                        window.selectedMissionIndex = window._nearestMissionIdx();
                     }
                     const activeMission = missions[window.selectedMissionIndex];
 
@@ -5400,6 +5754,7 @@
                     var missions = (typeof MISSIONS_DB !== "undefined") ? MISSIONS_DB : [];
                     if (missions.length < 2) return;
                     window.missionManual = true;
+                    window._missionManualTs = Date.now();   // minuta recznego wyboru liczy sie od ostatniego kliku
                     window.selectedMissionIndex = ((window.selectedMissionIndex || 0) + delta + missions.length) % missions.length;
                     if (typeof updateMissionCountdown === "function") updateMissionCountdown();   // panel tez podaza
                     window._renderDossier();
@@ -5452,8 +5807,12 @@
                     // wiec teraz wszystkie liczniki sa spojne.
                     let uniqueVisited = [...new Set(visited)];
 
-                    // Liczymy staty regionów (To zostawiamy, niech pokazuje wszystko na mapie)
-                    let counts = { "EU":0, "ASIA":0, "NA":0, "SA":0, "AF":0, "OC":0 };
+                    // Liczymy staty regionów (To zostawiamy, niech pokazuje wszystko na mapie).
+                    // Kubelki budowane z CONTINENT_DATA (2026-07-22), nie z recznej listy id - petla
+                    // trzy linie nizej i tak iteruje CONTINENT_DATA, wiec zmiana id w danych nie moze
+                    // juz po cichu wyzerowac licznika regionu.
+                    let counts = {};
+                    CONTINENT_DATA.forEach(c => { counts[c.id] = 0; });
                     uniqueVisited.forEach(c => { let r = REGION_MAP[c]; if(counts[r] !== undefined) counts[r]++; });
                     let regionRowsHTML = "";
                     CONTINENT_DATA.forEach(c => {
@@ -5724,7 +6083,8 @@
                             _pts.push({ geometry: { type: "Point", coordinates: [city[1], city[0]] }, type: "farcity", title: _fc.name.toUpperCase() });
                         }
                         pointSeries.data.setAll(_pts);
-                        rotateGlobe((start[0] + dest[0]) / 2, (start[1] + dest[1]) / 2);
+                        // Srodek dlugosci przez _midLon (trasa przez antypoludnik nie odwraca kamery).
+                        rotateGlobe((start[0] + dest[0]) / 2, window._midLon(start[1], dest[1]));
 
                         // Intel PO resetIntelPanels - wczesniej reset szedl na koncu handlera i kasowal
                         // panel, wiec klik nie otwieral zadnego intelu. Profil bierzemy z MIASTA (znamy
@@ -5761,14 +6121,7 @@
                         el.style.marginBottom = "3px";
                         el.innerHTML = `<span>${isV?'[✓]':'[🔒]'} ${w.icon} ${w.name}${(w.winner||w.honorary)?' 🏆':''}</span>`;
                         el.onclick = function() {
-                            stopRot();
-                            lineSeries.data.clear();
-                            airportSeries.data.clear();
-                            window._clearCitySeries();
-                            if (window.myFlightsOn) window.clearMyFlights();
-                            if (window.showCityLegend) window.showCityLegend(false);
-                            if (window.showAirportModeBtn) window.showAirportModeBtn(false);
-                            if (window.clearCountryHighlight) window.clearCountryHighlight();
+                            window._clearFocusLayers();
                             pointSeries.data.setAll([{ geometry: { type: "Point", coordinates: [w.lon, w.lat] }, type: "wonder", icon: w.icon }]);
                             rotateGlobe(w.lat, w.lon);
                             window.updateWonderIntel(w);
@@ -5946,8 +6299,9 @@
                         const coords = CAPITAL_COORDS[id];
 
                         if(coords) {
-                            stopRot();   // bylo: autoRot.pause() - stopRot robi to samo + sprzata samolot
-                            lineSeries.data.clear();
+                            // Pelne czyszczenie warstw: wczesniej klik w wynik-kraj czyscil tylko linie,
+                            // wiec miasta i highlight POPRZEDNIO wybranego kraju zostawaly na globusie.
+                            window._clearFocusLayers();
                             pointSeries.data.setAll([{
                                 geometry: { type: "Point", coordinates: [coords[1], coords[0]] },
                                 type: "target-search"
@@ -5993,9 +6347,7 @@
                     d.onmouseout = () => d.style.background = 'transparent';
 
                     d.onclick = () => {
-                        stopRot();   // bylo: autoRot.pause() - stopRot robi to samo + sprzata samolot
-                        if (window.myFlightsOn) window.clearMyFlights();
-                        lineSeries.data.clear();
+                        window._clearFocusLayers();
 
                         window._selectedCountryId = cc;
                         window.airportMode = false;
@@ -6075,7 +6427,10 @@
             let daysMsg = "> STANDBY MODE";
             
             if(typeof MISSIONS_DB !== 'undefined') {
-                const activeMission = MISSIONS_DB.find(m => new Date(m.returnDate).getTime() > now);
+                // Ta sama definicja "najblizszej" co auto-follow licznika (_nearestMissionIdx, wg dat) -
+                // wczesniej find() bral pierwsza NIEUKONCZONA z tablicy, co zakladalo chronologiczny zapis.
+                const _ni = window._nearestMissionIdx ? window._nearestMissionIdx() : -1;
+                const activeMission = (_ni >= 0 && new Date(MISSIONS_DB[_ni].returnDate).getTime() > now) ? MISSIONS_DB[_ni] : null;
 
                 if (activeMission) {
                     targetMsg = `> NEXT TARGET: ${activeMission.name} [${activeMission.flag}]`;

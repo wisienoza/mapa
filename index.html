@@ -37,7 +37,7 @@
         }
         
         /* MONOSPACE DLA DANYCH */
-        .xp-label, .current-rank-display, .range-value, .mission-timer, .env-val, 
+        .xp-label, .current-rank-display, .range-value, .mission-timer,
         .fact-row, .numbeo-btn, .msz-btn, .windy-btn, .climate-btn, .my-flights-btn,
         .rank-sidebar, .sys-log-container, .reset-btn {
             font-family: 'JetBrains Mono', monospace !important;
@@ -121,10 +121,10 @@
         .factbook-floater { width: 340px; }
         .right-hud { width: 240px; display: flex; flex-direction: column; }
 
-        h1 { 
-            font-weight: 700; text-transform: uppercase; letter-spacing: 2px; margin: 0; 
-            font-size: 1.1rem; 
-            color: #c6cfd9; border-bottom: 1px solid #444; padding-bottom: 5px; margin-bottom: 10px; 
+        h1 {
+            font-weight: 700; text-transform: uppercase; letter-spacing: 2px; margin: 0;
+            font-size: 1.1rem;
+            color: #c6cfd9; border-bottom: 1px solid #444; padding-bottom: 4px; margin-bottom: 8px;
         }
         
         .stats-row { display: flex; align-items: flex-end; gap: 15px; margin-bottom: 5px; }
@@ -134,12 +134,17 @@
         .xp-bar-bg { width: 100%; height: 8px; background: #111; border: 1px solid #444; border-radius: 4px; overflow: hidden; position: relative; box-shadow: 0 0 5px rgba(0,0,0,0.8) inset; }
         .xp-bar-fill { height: 100%; background: linear-gradient(90deg, #991b1b, #ef4444); width: 0%; box-shadow: 0 0 10px #ef4444; transition: width 1s cubic-bezier(0.4, 0, 0.2, 1); position: relative; }
         
-        .current-rank-display { font-size: 1.0rem; color: #facc15; text-shadow: 0 0 10px rgba(250, 204, 21, 0.4); border-left: 3px solid #facc15; padding-left: 10px; margin-bottom: 10px; margin-top: 10px; letter-spacing: -0.5px; }
+        .current-rank-display { font-size: 1.0rem; color: #facc15; text-shadow: 0 0 10px rgba(250, 204, 21, 0.4); border-left: 3px solid #facc15; padding-left: 10px; margin-bottom: 8px; margin-top: 8px; letter-spacing: -0.5px; }
         #ach-label-row:hover span:first-child { color: #fff; }
         
-        .hud-panel { background: rgba(0, 0, 0, 0.85); padding: 15px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.15); pointer-events: auto; backdrop-filter: blur(8px); margin-bottom: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
-        .region-row { margin-bottom: 10px; }
-        .region-header { display: flex; justify-content: space-between; font-size: 1.0rem; color: #c6cfd9; margin-bottom: 4px; text-transform: uppercase; font-family: 'Rajdhani', sans-serif; font-weight: 700; letter-spacing: 1px; }
+        .hud-panel { background: rgba(0, 0, 0, 0.85); padding: 15px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.15); pointer-events: auto; backdrop-filter: blur(8px); margin-bottom: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+        /* Ostatni element w boxie NIE dokleja swojego dolnego marginesu do paddingu panelu -
+           bez tego kazdy box konczyl sie pustym pasem (margines wiersza + 15px paddingu).
+           !important, bo czesc wierszy (np. cuda swiata) ma margines nadany inline z JS.
+           Dotyczy tez zagniezdzenia .max-range-box (factbook/misja/pogoda budują wiersze w nim). */
+        .hud-panel > :last-child, .hud-panel .max-range-box > :last-child { margin-bottom: 0 !important; }
+        .region-row { margin-bottom: 8px; }
+        .region-header { display: flex; justify-content: space-between; font-size: 1.0rem; color: #c6cfd9; margin-bottom: 3px; text-transform: uppercase; font-family: 'Rajdhani', sans-serif; font-weight: 700; letter-spacing: 1px; }
         .progress-bar-bg { width: 100%; height: 5px; background: #222; border-radius: 3px; overflow: hidden; }
         .progress-bar-fill { height: 100%; background: #dc2626; box-shadow: 0 0 8px #dc2626; }
         .progress-bar-fill.empty { background: transparent; }
@@ -150,12 +155,17 @@
         .ui-container > *:not(#wonders-stats) { flex-shrink: 0; }
         .range-label { font-size: 0.8rem; color: #dc2626; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; font-family: 'Rajdhani', sans-serif; }
         .range-value { font-size: 1.8rem; color: #fff; font-weight: 700; }
-        .mission-timer { font-size: 1.3rem; color: #facc15; font-weight: 700; text-shadow: 0 0 10px rgba(250, 204, 21, 0.5); margin-top: 5px; }
-        .mission-nav { display:none; align-items:center; justify-content:space-between; margin-bottom:8px; font-family:'JetBrains Mono','Consolas',monospace; font-size:0.8rem; color:#facc15; }
-        .mission-arrow { cursor:pointer; padding:1px 12px; border:1px solid rgba(250,204,21,0.35); border-radius:4px; user-select:none; transition:0.15s; }
+        .mission-timer { font-size: 1.3rem; color: #facc15; font-weight: 700; text-shadow: 0 0 10px rgba(250, 204, 21, 0.5); margin-top: 4px; }
+        /* Przelacznik misji (◀ 1/2 ▶) siedzi w NAGLOWKU "Active Mission", nie w srodku boxu - box
+           zaczyna sie od razu od statusu misji. .h1-nav robi z naglowka flex-a, zeby nawigacja
+           wyladowala po prawej stronie tytulu. pointer-events:auto jest konieczne, bo .ui-container
+           ma none (klikalne sa tam tylko .hud-panel), a naglowek lezy poza panelem. */
+        h1.h1-nav { display:flex; align-items:center; justify-content:space-between; gap:10px; }
+        .mission-nav { display:none; align-items:center; gap:6px; font-family:'JetBrains Mono','Consolas',monospace; font-size:0.8rem; color:#facc15; letter-spacing:0; pointer-events:auto; }
+        .mission-arrow { cursor:pointer; padding:0 7px; border:1px solid rgba(250,204,21,0.35); border-radius:4px; user-select:none; transition:0.15s; }
         .mission-arrow:hover { background:rgba(250,204,21,0.15); color:#fff; border-color:#facc15; }
         #mission-counter { letter-spacing:2px; opacity:0.85; }
-        .range-sub { font-size: 0.95rem; color: #ccc; display: flex; align-items: center; justify-content: space-between; margin-top: 5px; min-height: 3.5rem; font-family: 'Rajdhani', sans-serif; font-weight: 600; }
+        .range-sub { font-size: 0.95rem; color: #ccc; display: flex; align-items: center; justify-content: space-between; margin-top: 4px; min-height: 3.5rem; font-family: 'Rajdhani', sans-serif; font-weight: 600; }
         .range-sub-text a:hover { color: #fff !important; cursor: pointer; }
         /* MAX RANGE ma teraz DWA wiersze opisu (miasto + lotnisko) obok flagi. .range-sub jest flexem
            space-between zbudowanym pod jeden wiersz, wiec wiersze pakujemy w ten kontener. */
@@ -169,23 +179,26 @@
         .mr-line.mr-city { color: #22c55e; }
         .telemetry-flag { font-size: 3rem; line-height: 1; filter: drop-shadow(0 0 10px rgba(255,255,255,0.2)); cursor: pointer; pointer-events: auto; transition: transform 0.2s; }
         .telemetry-flag:hover { transform: scale(1.2); }
+        /* MISSION: flaga w prawy gorny rog panelu (absolute wzgledem #mission-panel = position:relative),
+           dzieki czemu wiersz TARGET (#mission-info) traci wymuszona wysokosc 3.5rem i box sie sciska.
+           Nawigacja misji nie koliduje juz z flaga - wyjechala z boxu do naglowka (patrz .h1-nav). */
+        #mission-info { min-height: 0; }
+        /* top: nizsze niz padding panelu (15px) - flaga celowo siedzi wyzej niz wiersz statusu,
+           zeby jej dolna krawedz nie wchodzila na sekundy licznika END IN. Jeden numer do strojenia. */
+        #mission-flag { position: absolute; top: 4px; right: 12px; }
+        /* Odstep robimy POD flaga, a nie zwezeniem licznika: END IN to jedna dluga linia i padding-right
+           zlamalby ja na dwa wiersze. Wiekszy margin-top spycha licznik ponizej dolnej krawedzi flagi. */
+        #mission-countdown { margin-top: 12px; }
         
-        .env-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 5px; }
-        .env-item { 
-            background: rgba(255,255,255,0.05); 
-            padding: 8px 10px; 
-            border-radius: 4px; 
-            border-left: 3px solid #555; 
-            overflow: hidden; 
-            display: flex; flex-direction: column; justify-content: center;
-        }
-        .env-label { font-size: 0.75rem; color: #cfd6de; text-transform: uppercase; margin-bottom: 2px; letter-spacing: 0.5px; font-weight: 700; font-family: 'Rajdhani', sans-serif; }
-        .env-row { display: flex; justify-content: space-between; align-items: center; width: 100%; }
-        .env-val { font-size: 1.1rem; color: #00ff00; font-weight: 700; white-space: nowrap; }
-        .env-icon { font-size: 1.6rem; line-height: 1; margin: 0; opacity: 0.9; }
+        /* Kotwica dla duzej ikony pogody (absolute, prawy-gorny rog panelu od samej gory - patrz
+           _weatherEnvHTML w app.js); padding-right na TARGET, zeby dluga nazwa nie weszla pod ikone. */
+        #weather-panel { position: relative; }
+        #weather-target { padding-right: 82px; }
+        /* (.env-* usuniete 2026-07-22: stary uklad siatki pogody - nowy _weatherEnvHTML w app.js
+           styluje wszystko inline i zadna z tych klas nie miala juz ani jednego uzycia) */
         .scanning-text { color: #facc15; font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; animation: blink 0.5s infinite; }
 
-        .fact-img { width: 100%; height: auto; max-height: 120px; object-fit: contain; margin-bottom: 12px; border-radius: 2px; border: 1px solid #444; background: rgba(0,0,0,0.3); }
+        .fact-img { width: 100%; height: auto; max-height: 120px; object-fit: contain; margin-bottom: 8px; border-radius: 2px; border: 1px solid #444; background: rgba(0,0,0,0.3); }
         .wonder-img { width: 100%; height: 170px; object-fit: cover; margin-bottom: 12px; border-radius: 2px; border: 1px solid #444; background: rgba(0,0,0,0.3); }
         .wonder-desc { font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; color: #ccc; line-height: 1.45; margin-bottom: 12px; text-align: justify; }
         .continent-img { display: block; width: 62%; margin: 6px auto 14px; }
@@ -194,7 +207,7 @@
         .cc-rank { color: #8f9ba8; width: 22px; flex-shrink: 0; }
         .cc-name { flex: 1; color: #ddd; }
         .cc-pop { color: #00ccff; font-weight: bold; }
-        .fact-row { display: flex; justify-content: space-between; border-bottom: 1px solid #333; padding-bottom: 4px; margin-bottom: 4px; font-size: 0.85rem; align-items: center; }
+        .fact-row { display: flex; justify-content: space-between; border-bottom: 1px solid #333; padding-bottom: 4px; margin-bottom: 3px; font-size: 0.85rem; align-items: center; }
         .fact-key { color: #b3bdc9; font-size: 0.8rem; font-weight: 600; text-transform: uppercase; font-family: 'Rajdhani', sans-serif; }
         .fact-val { color: #fff; font-weight: 700; text-align: right; max-width: 85%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         /* Znaczek zewnetrznego linku (strzalka) dopisywany PO wartosci wiersza fact-row - patrz _extVal() w app.js.
@@ -214,10 +227,10 @@
         .row-flag { width: 18px; height: 12px; object-fit: cover; flex: 0 0 auto; margin-top: 3px; }
         .rank-target-row .fact-val, .mission-wonder-row .fact-val, .flight-leg-row .fact-val { flex: 1 1 auto; max-width: none; white-space: normal; overflow: visible; text-overflow: clip; word-break: break-word; }
         
-        .links-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; align-items: stretch; }
-        .numbeo-btn, .msz-btn, .windy-btn, .climate-btn { 
-            display: block; width: 100%; text-align: center; padding: 8px 0; 
-            font-size: 0.8rem; font-weight: bold; text-decoration: none; border-radius: 4px; 
+        .links-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 10px; margin-top: 10px; align-items: stretch; }
+        .numbeo-btn, .msz-btn, .windy-btn, .climate-btn {
+            width: 100%; text-align: center; padding: 7px 0;
+            font-size: 0.8rem; font-weight: bold; text-decoration: none; border-radius: 4px;
             transition: all 0.2s; cursor: pointer; pointer-events: auto; display: flex; justify-content: center; align-items: center;
         }
         .numbeo-btn { background: rgba(0, 255, 0, 0.1); border: 1px solid #00ff00; color: #00ff00; }
@@ -231,9 +244,9 @@
 
         .my-flights-btn { 
             display: flex; justify-content: center; align-items: center; width: 100%; 
-            background: rgba(250, 204, 21, 0.15); border: 1px solid #facc15; color: #facc15; 
-            padding: 8px 0; font-family: 'JetBrains Mono', monospace; font-size: 0.9rem; 
-            font-weight: bold; text-decoration: none; border-radius: 4px; margin-top: 5px; 
+            background: rgba(250, 204, 21, 0.15); border: 1px solid #facc15; color: #facc15;
+            padding: 7px 0; font-family: 'JetBrains Mono', monospace; font-size: 0.9rem;
+            font-weight: bold; text-decoration: none; border-radius: 4px; margin-top: 4px;
             cursor: pointer; pointer-events: auto; box-sizing: border-box; transition: all 0.2s; 
         }
         .my-flights-btn:hover { background: rgba(250, 204, 21, 0.3); box-shadow: 0 0 10px rgba(250, 204, 21, 0.4); }
@@ -246,7 +259,7 @@
         .my-flights-btn.mf-globe { background: rgba(0,234,255,0.15); border-color:#00eaff; color:#00eaff; }
         .my-flights-btn.mf-globe:hover { background: rgba(0,234,255,0.3); box-shadow: 0 0 10px rgba(0,234,255,0.4); }
         .my-flights-btn.mf-globe.active { background:#00eaff; color:#04222a; box-shadow:0 0 12px rgba(0,234,255,0.6); }
-        .flight-stats { display:flex; gap:5px; margin-top:6px; }
+        .flight-stats { display:flex; gap:5px; margin-top:5px; }
         .flight-stats .fs-cell { flex:1; text-align:center; background:rgba(0,234,255,0.08); border:1px solid rgba(0,234,255,0.28); border-radius:4px; padding:4px 2px; }
         .flight-stats .fs-num { display:block; font-family:'JetBrains Mono',monospace; font-size:1.1rem; font-weight:700; color:#00eaff; line-height:1; }
         .flight-stats .fs-lbl { display:block; font-size:0.5rem; letter-spacing:0.5px; color:#7fb8c4; margin-top:3px; font-family:'Rajdhani',sans-serif; font-weight:600; }
@@ -257,13 +270,15 @@
         #factbook-panel { box-sizing: border-box; max-height: calc(100vh - 320px); overflow-y: auto; }
         #factbook-panel::-webkit-scrollbar { width: 4px; }
         #factbook-panel::-webkit-scrollbar-thumb { background: #444; border-radius: 2px; }
-        .rank-item { display: flex; justify-content: space-between; font-size: 0.95rem; margin-bottom: 4px; color: #8f9ba8; cursor: pointer; transition: color 0.2s; font-family: 'Rajdhani', sans-serif; font-weight: 600; }
+        .rank-item { display: flex; justify-content: space-between; font-size: 0.95rem; margin-bottom: 3px; color: #8f9ba8; cursor: pointer; transition: color 0.2s; font-family: 'Rajdhani', sans-serif; font-weight: 600; }
         .rank-item:hover { color: #c6cfd9; }
         .rank-item.active { color: #facc15; font-weight: bold; background: rgba(250, 204, 21, 0.1); padding: 2px 5px; border-radius: 4px; }
         .rank-item.completed { color: #00ff00; }
         
+        /* Sam wyglad, BEZ pozycjonowania: kazda instancja w markupie i tak stoi position:static
+           w swoim kontenerze-flex/grid (dawne absolute bottom/left bylo martwym reliktem). */
         .reset-btn {
-		position: absolute;	bottom: 110px; left: 360px;  background: rgba(0, 0, 0, 0.8); border: 1px solid #00ff00; color: #00ff00; padding: 8px 15px; font-size: 0.9rem; text-transform: uppercase; font-weight: bold; cursor: pointer; z-index: 110; border-radius: 4px; opacity: 1; pointer-events: auto; transition: all 0.3s ease;
+		background: rgba(0, 0, 0, 0.8); border: 1px solid #00ff00; color: #00ff00; padding: 8px 15px; font-size: 0.9rem; text-transform: uppercase; font-weight: bold; cursor: pointer; z-index: 110; border-radius: 4px; pointer-events: auto; transition: all 0.3s ease;
 		}
         .reset-btn .rb-icon { display: inline-block; width: 18px; flex: 0 0 18px; text-align: center; }
         .reset-btn .rb-label { text-align: left; flex: 1 1 auto; }
@@ -462,7 +477,7 @@
     <div class="left-wrapper">
         <div class="ui-container" id="left-hud">
             <h1>Operative Status</h1>
-            <div class="hud-panel" style="margin-bottom:15px;">
+            <div class="hud-panel" style="margin-bottom:12px;">
                 <div class="stats-row">
                     <h2 id="counter">0</h2>
                     <div class="xp-container">
@@ -485,14 +500,15 @@
                 </div>
             </div>
 
-            <h1>Active Mission</h1>
-            <div class="hud-panel" style="margin-bottom:6px; padding-bottom:8px;">
+            <h1 class="h1-nav">Active Mission
+                <div class="mission-nav" id="mission-nav">
+                    <span class="mission-arrow" onclick="cycleMission(-1)">◀</span>
+                    <span id="mission-counter">1/1</span>
+                    <span class="mission-arrow" onclick="cycleMission(1)">▶</span>
+                </div>
+            </h1>
+            <div class="hud-panel" id="mission-panel" style="margin-bottom:6px; padding-bottom:8px; position:relative;">
                 <div class="max-range-box">
-                    <div class="mission-nav" id="mission-nav">
-                        <span class="mission-arrow" onclick="cycleMission(-1)">◀</span>
-                        <span id="mission-counter">1/1</span>
-                        <span class="mission-arrow" onclick="cycleMission(1)">▶</span>
-                    </div>
                     <div class="range-label" id="mission-status">SCANNING...</div>
                     <div class="mission-timer" id="mission-countdown">AWAITING OBJECTIVES</div>
                     <div class="range-sub" id="mission-info">
@@ -521,7 +537,7 @@
             </div>
             <h1>Search & Track</h1>
             <div class="hud-panel">
-                <div class="range-label">SATELLITE UPLINK / COUNTRY SEARCH</div>
+                <div class="range-label">SATELLITE UPLINK / SEARCH</div>
                 <div style="position: relative; margin-top: 10px;">
                     <input type="text" id="country-search" placeholder="ENTER NAME..."
                            style="width: 100%; background: rgba(0,255,0,0.05); border: 1px solid #00ff00; color: #00ff00; padding: 10px 34px 10px 10px; font-family: 'JetBrains Mono', monospace; outline: none; box-sizing: border-box; border-radius: 4px;">
@@ -559,8 +575,13 @@
                 </div>
             </div>
         </div>
-        <div class="reset-btn" id="reset-btn" style="left:340px; bottom:22px;">RESET AND RESUME ORBIT ↻</div>
-        <div class="reset-btn" id="help-toggle" style="left:588px; bottom:22px; width:40px; height:36px; box-sizing:border-box; padding:0; display:flex; align-items:center; justify-content:center; font-size:1.1rem; border-color:#facc15; color:#facc15;" title="Instrukcja / manual">❓</div>
+        <!-- Dolna belka przyciskow: JEDEN pozycjonowany kontener-flex zamiast recznych left:340/588/640
+             na kazdym przycisku - zmiana dlugosci napisu nie wymaga juz przeliczania pozycji sasiadow.
+             pointer-events:none na kontenerze (jak wrappery), auto wraca na przyciskach przez .reset-btn. -->
+        <div id="bottom-left-bar" style="position:absolute; left:340px; bottom:22px; display:flex; gap:10px; align-items:stretch; pointer-events:none; z-index:110;">
+            <div class="reset-btn" id="reset-btn" style="position:static; white-space:nowrap;">RESET AND RESUME ORBIT ↻</div>
+            <div class="reset-btn" id="help-toggle" style="position:static; width:40px; box-sizing:border-box; padding:0; display:flex; align-items:center; justify-content:center; font-size:1.1rem; border-color:#facc15; color:#facc15;" title="Instrukcja / manual">❓</div>
+        </div>
     </div>
 
     <div class="right-wrapper">
@@ -579,6 +600,10 @@
         <div class="right-hud">
             <h1>Progression Tree</h1>
             <div class="rank-sidebar" id="rank-list"></div>
+            <!-- Przycisk siedzi POD drzewkiem rang, w tej samej kolumnie 240px. Miejsce na niego
+                 rezerwuje adjustLayout w app.js (odejmuje jego wysokosc od max-height #rank-list),
+                 inaczej lista rozpycha sie do dolnego HUD i przycisk wyjezdza poza ekran. -->
+            <div class="reset-btn" id="wherenow-toggle" style="position:static; margin-top:10px; box-sizing:border-box; display:flex; align-items:center; justify-content:center; gap:6px; padding:8px 10px; border-color:#22d3ee; color:#22d3ee; white-space:nowrap;" title="Ranking najlepszych celow podrozy na wybrany miesiac (klimat + dojazd + ceny + wiza + bezpieczenstwo)">🎯 GDZIE TERAZ?</div>
         </div>
     </div>
 
@@ -625,7 +650,7 @@
          ktory sie potem debuguje pol dnia).
          Celowo TYLKO te pliki: ciezkie bazy (flags 2 MB, climate 2.3 MB) maja sie cache'owac,
          bo zmieniaja sie raz na ruski rok, a publiczna kopia na GitHub Pages sciagalaby je od nowa. -->
-    <script src="help.js?v=20260719l"></script>
-    <script src="app.js?v=20260719l"></script>
+    <script src="help.js?v=20260722v"></script>
+    <script src="app.js?v=20260722v"></script>
 </body>
 </html>
