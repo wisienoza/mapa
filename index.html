@@ -323,7 +323,10 @@
             100% { transform: translateX(-50%); } 
         }
 
-        .loot-flag { font-size: 3rem; transition: all 0.2s ease; cursor: pointer; display: inline-block; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.5)); }
+        /* line-height:1 dotyczy TYLKO fallbacku na emoji (kraj bez obrazka we FLAGS) - .lf-img ma wlasna
+           wysokosc. Bez tego domyslne ~1.4 robilo z takiej flagi element wyzszy niz caly pasek (50 > 48 px)
+           i wystawal poza niego. */
+        .loot-flag { font-size: 3rem; line-height: 1; transition: all 0.2s ease; cursor: pointer; display: inline-block; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.5)); }
         /* AKTYWNY KRAJ: podswietlenie leci na WSZYSTKIE kopie flagi w pasku (pasek jest powielony), stad
            klasa nadawana po [data-fid] w app.js (window._setLootBarActive), a nie na pojedynczym elemencie.
            MUSI stac PRZED regula :hover - obie maja te sama specyficznosc (0,2,0), wiec o pierwszenstwie
@@ -590,7 +593,7 @@
         <!-- Dolna belka przyciskow: JEDEN pozycjonowany kontener-flex zamiast recznych left:340/588/640
              na kazdym przycisku - zmiana dlugosci napisu nie wymaga juz przeliczania pozycji sasiadow.
              pointer-events:none na kontenerze (jak wrappery), auto wraca na przyciskach przez .reset-btn. -->
-        <div id="bottom-left-bar" style="position:absolute; left:340px; bottom:10px; display:flex; gap:10px; align-items:stretch; pointer-events:none; z-index:110;">
+        <div id="bottom-left-bar" style="position:absolute; left:340px; bottom:22px; display:flex; gap:10px; align-items:stretch; pointer-events:none; z-index:110;">
             <div class="reset-btn" id="reset-btn" style="position:static; white-space:nowrap;">RESET AND RESUME ORBIT ↻</div>
             <div class="reset-btn" id="help-toggle" style="position:static; width:40px; box-sizing:border-box; padding:0; display:flex; align-items:center; justify-content:center; font-size:1.1rem; border-color:#facc15; color:#facc15;" title="Instrukcja / manual">❓</div>
         </div>
