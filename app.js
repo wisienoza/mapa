@@ -6396,6 +6396,53 @@
             }, 200);
         });
 
+        // --- ESC ZAMYKA WIERZCHNI OTWARTY PANEL (2026-07-22) ---
+        // JEDEN listener zamiast doklejania obslugi klawisza do kazdego z 10 paneli - te powstaja
+        // leniwie i w roznych miejscach pliku, wiec osobne listenery rozjechalyby sie przy pierwszym
+        // nowym oknie (dokladnie ten sam problem, co recznie kopiowane bloki czyszczenia warstw).
+        // NIE jest to "fabryka overlayow": panele buduja sie jak dotad, tu jest wylacznie SPIS
+        // {id, nazwa funkcji zamykajacej}.
+        //
+        // WIERZCHNI = najwyzszy z-index sposrod aktualnie widocznych, czytany z getComputedStyle,
+        // a NIE z kolejnosci tej tablicy - dzieki temu zmiana z-indexu w kodzie panelu nie wymaga
+        // ruszania tego spisu, a Esc zawsze zamyka to, co uzytkownik widzi na wierzchu (np. rozpiske
+        // odznaki 210 nad panelem osiagniec 200, zostawiajac panel otwarty - jak klik w tlo).
+        //
+        // Zamykamy PRZEZ WLASNA funkcje hide* panelu, bo czesc z nich robi wiecej niz ukrycie diva:
+        // powrot do paszportu (hideAchievementsPanel / hideAirlinesPanel), gaszenie interwalu
+        // (hideMissionDossier), czyszczenie kolejki (hideAchievementSplash). Ustawienie display:none
+        // wprost zepsuloby te sciezki. #wherenow-overlay jako jedyny nie ma funkcji (zamykany inline
+        // w swoim onclick) - dla niego jawny fallback nizej.
+        //
+        // Bramka PIN (#access-gate) CELOWO nie jest na liscie - nie ma byc zamykana klawiszem.
+        window._ESC_OVERLAYS = [
+            { id: "ach-splash-overlay",        hide: "hideAchievementSplash" },
+            { id: "ach-detail-overlay",        hide: "hideAchievementDetail" },
+            { id: "airlines-overlay",          hide: "hideAirlinesPanel" },
+            { id: "mission-dossier-overlay",   hide: "hideMissionDossier" },
+            { id: "achievements-overlay",      hide: "hideAchievementsPanel" },
+            { id: "passport-overlay",          hide: "hidePassportPanel" },
+            { id: "cont-countries-overlay",    hide: "hideContinentCountries" },
+            { id: "visited-countries-overlay", hide: "hideVisitedCountries" },
+            { id: "help-overlay",              hide: "hideHelpPanel" },
+            { id: "wherenow-overlay",          hide: null }
+        ];
+        document.addEventListener("keydown", function(ev){
+            if (ev.key !== "Escape") return;
+            var best = null, bestZ = -Infinity;
+            window._ESC_OVERLAYS.forEach(function(o){
+                var el = document.getElementById(o.id);
+                if (!el) return;                                        // panel jeszcze nie zbudowany
+                if (getComputedStyle(el).display === "none") return;    // zbudowany, ale zamkniety
+                var z = parseInt(getComputedStyle(el).zIndex, 10) || 0;
+                if (z >= bestZ) { bestZ = z; best = o; }                // >= : przy remisie wygrywa dalszy
+            });
+            if (!best) return;
+            ev.preventDefault();
+            var fn = best.hide ? window[best.hide] : null;
+            if (typeof fn === "function") fn();
+            else { var e2 = document.getElementById(best.id); if (e2) e2.style.display = "none"; }
+        });
         // --- KLIK W PRZYCISK "?" -> instrukcja/manual ---
         (function(){
             var helpBtn = document.getElementById("help-toggle");
