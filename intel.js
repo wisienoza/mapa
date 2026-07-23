@@ -220,7 +220,6 @@ const INTEL_DB = {
     "PF": { p: "110/220V [ADAPTER: TAK]", w: "✅ OK (Tahiti/Bora)", t: "Nieoczekiwane" }, // Polinezja Fr.
     "GP": { p: "230V [ADAPTER: NIE]", w: "✅ OK", t: "Wliczone" }, // Gwadelupa
     "MQ": { p: "220V [ADAPTER: NIE]", w: "✅ OK", t: "Wliczone" }, // Martynika
-    "NC": { p: "220V [ADAPTER: NIE]", w: "✅ OK", t: "Nieoczekiwane" }, // Nowa Kaledonia (Check)
     "KY": { p: "120V [ADAPTER: TAK]", w: "✅ OK (Odsalana)", t: "10-15%" }, // Kajmany
     "BM": { p: "120V [ADAPTER: TAK]", w: "✅ OK (Deszczówka)", t: "15-17% (Automat)" }, // Bermudy
     "FK": { p: "240V [ADAPTER: TAK]", w: "✅ OK", t: "10%" }, // Falklandy
@@ -1164,9 +1163,10 @@ const SAFETY_OVERRIDE = {
             "NE": 4, // Niger (Przewroty)
             "LR": 2, // Liberia (Powoli wstaje z kolan, daję 2 na zachętę, choć blisko 3)
             "SL": 2,  // Sierra Leone (Podobnie jak Liberia)
-			"GL": 1, "PR": 2, "GF": 2, "RE": 1, "PF": 1,
-			"GP": 1, "MQ": 1, "KY": 1, "BM": 1, "FK": 1,
-			"PS": 5, "EH": 3,
+			// Terytoria zamorskie bez wpisu w sekcjach geograficznych wyzej (GL/PR/GF/PF/KY/BM/PS
+			// mialy tu dawniej duplikaty o IDENTYCZNYCH wartosciach - usuniete 2026-07-23, zostaja
+			// tylko kody deklarowane WYLACZNIE tutaj):
+			"RE": 1, "GP": 1, "MQ": 1, "FK": 1, "EH": 3,
 			// Majotta - bez wpisu leciala na domyslny 1 (SAFE HAVEN), co przy najwyzszej przestepczosci
 			// we Francji bylo mylace. 3 jak sasiednie Komory; Reunion (tez FR, Ocean Indyjski) zostaje 1.
 			"YT": 3
@@ -1464,7 +1464,7 @@ const ATLAS_LINKS = {
     "SN":"AF","SO":"AF","SR":"SA","SS":"AF","ST":"AF","SV":"NA","SY":"ASIA","SZ":"AF","TD":"AF","TG":"AF",
     "TH":"ASIA","TJ":"ASIA","TL":"ASIA","TM":"ASIA","TN":"AF","TO":"OC","TR":"ASIA","TT":"NA","TV":"OC","TW":"ASIA",
     "TZ":"AF","UA":"EU","UG":"AF","US":"NA","UY":"SA","UZ":"ASIA","VA":"EU","VC":"NA","VE":"SA","VN":"ASIA",
-    "VU":"OC","WS":"OC","YE":"ASIA","ZA":"AF","ZM":"AF","ZW":"AF","XK":"EU","TW":"ASIA"
+    "VU":"OC","WS":"OC","YE":"ASIA","ZA":"AF","ZM":"AF","ZW":"AF","XK":"EU"
 };
         // UWAGA: total MUSI sie zgadzac z liczba wpisow o danym regionie w REGION_MAP - inaczej
         // "Continental Control" potrafi pokazac >100% (licznik idzie z REGION_MAP, mianownik stad).
@@ -1575,7 +1575,6 @@ const CAPITAL_COORDS = {
     // [AZJA I PACYFIK]
     "HK":[22.31,114.16], // Hongkong (Specjalny)
     "MO":[22.19,113.54], // Makau (Specjalny)
-    "TW":[25.03,121.50], // Tajwan (Zazwyczaj liczony jako kraj, ale tu dla pewności)
     "PS":[31.90,35.20],  // Palestyna
     "NC":[-22.27,166.44], // Nowa Kaledonia (FR)
     "PF":[-17.54,-149.57], // Polinezja Francuska (FR)
@@ -1918,7 +1917,6 @@ const COST_INDEX = {
     // $$$$ - ULTRA DROGO (Izolacja + Import + Podatki)
     "BM": "$$$$", // Bermudy (Najdrożej na świecie)
     "KY": "$$$$", // Kajmany (Raj podatkowy = ceny z kosmosu)
-    "CH": "$$$$", // Szwajcaria (dla przypomnienia)
     "TC": "$$$$", // Turks & Caicos
     "BL": "$$$$", // St. Barth (Dla milionerów)
     "PF": "$$$$", // Polinezja (Bora Bora drenuje portfel)
