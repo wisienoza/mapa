@@ -1514,10 +1514,13 @@ const CAPITAL_COORDS = {
 	"TF": [-49.35, 70.21],  // Port-aux-Français
 	"HM": [-53.01, 73.39],  // Heard Island
 	"BV": [-54.42, 3.34],   // Bouvet Island
-	// AQ (Antarktyda) NIE MA wpisu: to nie panstwo i nie ma stolicy. Wspolrzedne McMurdo
-	// [-77.85,166.67] robily z niej phantomowa "stolice" - zolta kropka "capital" po kliknieciu
-	// (renderCountryPlaces) + klikalny wiersz CAPITAL "N/A" linkujacy do syntetycznego miasta
-	// (updateFactbookPanel). AQ jest w EXCLUDED_CODES, wiec brak coords niczego wiecej nie psuje.
+	// UWAGA: te terytoria (UM/TF/HM/BV/AQ) NIE MAJA stolicy (FACTBOOK.capital jest puste -> wiersz
+	// CAPITAL pokazuje "N/A"). Wspolrzedne sa tu CELOWO, bo CAPITAL_COORDS to tez punkt zaczepienia
+	// dla LOCAL TIME / pogody / obrotu globusa po kliknieciu kraju - bez nich te panele "nie dzialaja".
+	// Zeby nie robily z siebie phantomowej "stolicy" (zolta kropka "capital" + klikalny wiersz CAPITAL
+	// linkujacy do syntetycznego miasta), app.js gatuje SAMA warstwe stolicowa przez window._hasCapital(id)
+	// = FACTBOOK.capital niepuste. Nie usuwaj tych wspolrzednych "zeby naprawic kropke" - zabijesz local time.
+	"AQ": [-77.85, 166.67], // McMurdo Station (Antarktyda) - punkt dla local time/pogody, NIE stolica
 	// Koordynaty dla poszczególnych wysp UM:
 "UM-DQ": [-0.37, -160.02], // Jarvis Island
 "UM-FQ": [0.18, -176.47],  // Baker Island

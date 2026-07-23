@@ -1998,6 +1998,19 @@
         window._normCity = function(s){ return (s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]/g,""); };
         // --- ODWIEDZONE MIASTA: ID = "KOD|znormalizowananazwa", cache zbioru + toggle z natychmiastowym zapisem ---
         window._cityId = function(cc, name){ return (cc || "") + "|" + window._normCity(name).toUpperCase(); };
+        // --- Czy kraj MA realna stolice? Zrodlo = FACTBOOK.capital (to samo, z ktorego liczy sie
+        // capitalRaw w updateFactbookPanel: puste -> wiersz pokazuje "N/A"). Terytoria bezludne/naukowe
+        // (AQ/UM/HM/BV) maja w CAPITAL_COORDS punkt CELOWO - dla local time/pogody/obrotu globusa - ale
+        // NIE maja stolicy. Ten helper odcina im warstwe "stolicowa": zolta kropka "capital"
+        // (renderCountryPlaces) i klikalny wiersz CAPITAL linkujacy do syntetycznego miasta.
+        // TF ma prawdziwa stolice (Port-aux-Francais) i przechodzi - wiec nie ruszamy jej gwiazdki. ---
+        window._hasCapital = function(id){
+            if (typeof FACTBOOK === "undefined") return false;
+            var fb = FACTBOOK[id];
+            if (!fb || !fb.capital || !fb.capital.length) return false;
+            var c0 = String(fb.capital[0] || "").trim().toLowerCase();
+            return c0 !== "" && c0 !== "n/a";
+        };
         // --- Znajduje indeks stolicy w liscie miast danego kraju. Najpierw po NAZWIE (CAPITAL_NAMES,
         // dopasowanie czesciowe po normalizacji - np. "San Marino" pasuje do "City of San Marino"),
         // dopiero potem po najblizszych wspolrzednych (CAPITAL_COORDS) jako fallback. Samo dopasowanie
@@ -4479,9 +4492,12 @@
                     // resolveCityIntel dopasowuje capitalRaw do wiersza w CITIES_DB (z fallbackiem na syntetyczne
                     // linki, gdy stolicy nie ma w bazie), showCityIntel renderuje panel. Bez rotacji globusa/zoomu -
                     // uzytkownik juz patrzy na ten kraj (kliknal go, zeby zobaczyc ten profil).
+                    // Klikalne TYLKO gdy kraj ma realna stolice (_hasCapital). Terytoria bez stolicy
+                    // (AQ/UM/HM/BV) maja coords dla local time, ale capitalRaw="N/A" - link prowadzilby
+                    // do syntetycznego profilu miasta "N/A". _hasCapital(id) === (capitalRaw!=="N/A").
                     const _capRow = document.getElementById("capital-row");
                     if (_capRow) {
-                        if (coords && window.resolveCityIntel && window.showCityIntel) {
+                        if (coords && window._hasCapital(id) && window.resolveCityIntel && window.showCityIntel) {
                             _capRow.onclick = function(){
                                 window.showCityIntel(window.resolveCityIntel(capitalRaw, coords[0], coords[1]));
                             };
@@ -5277,9 +5293,11 @@
                             }));
                             if (window.showCityLegend) window.showCityLegend(true);
                         }
-                        if (c && !capMatched) {
+                        if (c && !capMatched && window._hasCapital(id)) {
                             pointSeries.data.setAll([{ geometry: { type: "Point", coordinates: [c[1], c[0]] }, type: "capital" }]);
                         } else {
+                            // _hasCapital gasi phantomowa "stolice" terytoriow bez stolicy (AQ/UM/HM/BV):
+                            // maja coords (dla local time), ale FACTBOOK.capital puste -> zadnej zoltej kropki.
                             pointSeries.data.clear();
                         }
                     }
