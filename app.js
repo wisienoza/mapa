@@ -4518,7 +4518,7 @@
 
                     fPanel.innerHTML = `
                         ${anthemUrl
-                            ? `<a href="${anthemUrl}" target="_blank" rel="noopener" title="Posłuchaj hymnu narodowego (nationalanthems.info)" class="fact-flag-box" style="text-decoration:none; color:inherit; cursor:pointer;"><img src="${flagUrl}" class="fact-img" alt="Flag"><span class="ext-ico" style="position:absolute; top:6px; right:8px; margin-left:0; opacity:1; background:rgba(0,0,0,0.6); padding:1px 6px; border-radius:4px; font-size:0.85em;">🎵 ↗</span></a>`
+                            ? `<a href="${anthemUrl}" target="_blank" rel="noopener" title="Posłuchaj hymnu narodowego (nationalanthems.info)" class="fact-flag-box" style="text-decoration:none; color:inherit; cursor:pointer;"><img src="${flagUrl}" class="fact-img" alt="Flag"><span class="ext-ico" style="position:absolute; top:6px; right:8px; margin-left:0; opacity:1; background:rgba(0,0,0,0.6); padding:1px 6px; border-radius:4px; font-size:0.85em;">↗</span></a>`
                             : `<div class="fact-flag-box"><img src="${flagUrl}" class="fact-img" alt="Flag"></div>`}
                         
                         <div class="fact-row" style="border: none;"><span class="fact-key">SAFETY:</span><span class="fact-val" style="color:${safeInfo.color}; font-weight:bold; text-shadow: 0 0 5px ${safeInfo.color}44;">${_extVal(safeInfo.text, fcdoTravelUrl, "Oficjalne ostrzeżenia dla podróżnych (gov.uk FCDO)")}<span id="live-safety-badge" title="Sprawdzanie zgodności z danymi live..." style="margin-left:6px; font-size:0.85em; opacity:0.5;">⏳</span></span></div>
