@@ -49,7 +49,7 @@ window.HELP_SECTIONS = [
         { icon: "🕐", text: "ZONES — koloruje mapę według stref czasowych i pokazuje, która jest tam teraz godzina." },
         { icon: "☾", text: "NIGHT — pokazuje na żywo, gdzie na świecie jest teraz dzień, a gdzie noc." },
         { icon: "🌡", text: "CLIMATE — koloruje kraje według komfortu temperaturowego w wybranym miesiącu (niebieski zimno, zielony idealnie, czerwony upał). Miesiąc wybierasz u góry ekranu. To narzędzie do decyzji „gdzie mi w lutym ciepło”, a nie prognoza." },
-        { icon: "👆", text: "Te cztery tryby wykluczają się — naraz działa tylko jeden. W trybie VISA lub CLIMATE kliknięcie w kraj wyłącza tryb i od razu otwiera jego profil." },
+        { icon: "👆", text: "Te cztery tryby wykluczają się — naraz działa tylko jeden. W trybie VISA lub CLIMATE kliknięcie w kraj wyłącza tryb i od razu otwiera jego profil. Co więcej, każde pokazanie czegoś na globusie — MAX RANGE, kontynent, cel misji, cud świata, rekordowy lot czy lotnisko — także wyłącza aktywny tryb, żeby kolorowa nakładka nie zasłaniała tego, co chcesz zobaczyć." },
         { icon: "🌐", text: "DETAIL (LOW / HIGH / ULTRA) — poziom szczegółowości granic globu. HIGH jest domyślny; ULTRA daje najdokładniejsze wybrzeża, ale na słabszym sprzęcie może zwalniać, a LOW jest najlżejszy." }
     ]}
 ];

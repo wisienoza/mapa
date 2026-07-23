@@ -4727,6 +4727,7 @@
                     const { id, name } = e.detail;
 
                     stopRot();   // bylo: autoRot.pause() - stopRot robi to samo + sprzata samolot
+                    if (window._exitActiveOverlayMode) window._exitActiveOverlayMode();   // klik we flage w pasku gasi VISA/CLIMATE/ZONES (patrz focusContinent)
 
                     // GLOB I GLOWNY ZNACZNIK ZAWSZE NA STOLICY. Najdalsze odwiedzone miasto dostaje
                     // WLASNY, zloty znacznik + przerywany luk ze stolicy - dzieki temu widac i "gdzie
@@ -5833,6 +5834,7 @@
                         if (counterEl) counterEl.innerText = `${window.selectedMissionIndex + 1}/${missions.length}`;
                         flagBtn.onclick = () => {
                             stopRot();
+                            if (window._exitActiveOverlayMode) window._exitActiveOverlayMode();   // gasi VISA/CLIMATE/ZONES (patrz focusContinent)
                             // Ten handler podmienial tylko pointSeries i jako JEDYNY nie czyscil lineSeries -
                             // wiec kreska narysowana wczesniej (MAX RANGE albo trasa misji) zostawala na globusie
                             // obok nowego celownika. Czyscimy TU, a nie w resetIntelPanels(): displayMissionRoute
