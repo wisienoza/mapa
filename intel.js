@@ -1280,7 +1280,6 @@ const ATLAS_LINKS = {
     "BB": "https://www.atlasobscura.com/things-to-do/barbados",
     "BM": "https://www.atlasobscura.com/things-to-do/bermuda",
     "VG": "https://www.atlasobscura.com/things-to-do/british-virgin-islands",
-    "BQ": "https://www.atlasobscura.com/things-to-do/caribbean-netherlands",
     "KY": "https://www.atlasobscura.com/things-to-do/cayman-islands",
     "CU": "https://www.atlasobscura.com/things-to-do/cuba",
     "CW": "https://www.atlasobscura.com/things-to-do/curacao",
@@ -1891,7 +1890,7 @@ const COST_INDEX = {
     "DE": "$$$", "FR": "$$$", "NL": "$$$", "SE": "$$$", "AT": "$$$", 
     "BE": "$$$", "FI": "$$$", "IT": "$$$", "ES": "$$$", "JP": "$$$", 
     "KR": "$$$", "HK": "$$$", "TW": "$$$", "CY": "$$$", "MT": "$$$",
-    "KW": "$$$", "SA": "$$$", "UY": "$$$", "PR": "$$$",
+    "KW": "$$$", "SA": "$$$", "UY": "$$$",
 
     // $$ - ŚREDNIO (Polska i okolice)
     "PL": "$$", "CZ": "$$", "SK": "$$", "HU": "$$", "HR": "$$", 
