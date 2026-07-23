@@ -2470,6 +2470,58 @@ const DIAL_LINKS = {
     "AU":"https://dialcode.org/Oceania/Australia/", "NZ":"https://dialcode.org/Oceania/New_Zealand/", "PG":"https://dialcode.org/Oceania/Papua_New_Guinea/",
     "FJ":"https://dialcode.org/Oceania/Fiji/",
 };
+// RAIL_LINKS - przewodnik po podrozach koleja danego kraju na seat61.com. iso2 -> PELNY URL (jak DIAL_LINKS/
+// ANTHEM_LINKS), bo slugi seat61 sa nieregularne: raz sama nazwa (France.htm, Czech.htm), raz opisowa
+// (Burma.htm dla Myanmaru, NorthKorea.htm), a Ameryka Pn/Srodkowa/Poludniowa czesciowo siedzi jako KOTWICE na
+// wspolnej stronie SouthAmerica.htm#Kraj (Mexico, Panama i cala Ameryka Pd. procz Peru, ktore ma wlasna strone).
+// Gruzja/Armenia/Azerbejdzan dziela JEDEN wspolny przewodnik (te same 3 wpisy -> ten sam URL). Uzywane w
+// links-grid profilu kraju (app.js, updateFactbookPanel): przycisk "POCIAGI (SEAT61)" pojawia sie TYLKO gdy iso2
+// jest w tej bazie - brak wpisu = brak przycisku (seat61 nie pokrywa calego swiata, nie zgadujemy slugu).
+const RAIL_LINKS = {
+    // --- EUROPA ---
+    "AL":"https://www.seat61.com/Albania.htm", "AD":"https://www.seat61.com/Andorra.htm", "AT":"https://www.seat61.com/Austria.htm",
+    "BE":"https://www.seat61.com/Belgium.htm", "BA":"https://www.seat61.com/Bosnia.htm", "BG":"https://www.seat61.com/Bulgaria.htm",
+    "HR":"https://www.seat61.com/Croatia.htm", "CY":"https://www.seat61.com/Cyprus.htm", "CZ":"https://www.seat61.com/Czech.htm",
+    "DK":"https://www.seat61.com/Denmark.htm", "EE":"https://www.seat61.com/Estonia.htm", "FI":"https://www.seat61.com/Finland.htm",
+    "FR":"https://www.seat61.com/France.htm", "DE":"https://www.seat61.com/Germany.htm", "GI":"https://www.seat61.com/Gibraltar.htm",
+    "GR":"https://www.seat61.com/Greece.htm", "HU":"https://www.seat61.com/Hungary.htm", "IS":"https://www.seat61.com/Iceland.htm",
+    "IT":"https://www.seat61.com/Italy.htm", "LV":"https://www.seat61.com/Latvia.htm", "LT":"https://www.seat61.com/Lithuania.htm",
+    "LU":"https://www.seat61.com/Luxembourg.htm", "RS":"https://www.seat61.com/Serbia.htm", "MT":"https://www.seat61.com/Malta.htm",
+    "MD":"https://www.seat61.com/Moldova.htm", "ME":"https://www.seat61.com/Montenegro.htm", "NL":"https://www.seat61.com/Netherlands.htm",
+    "NO":"https://www.seat61.com/Norway.htm", "PL":"https://www.seat61.com/Poland.htm", "PT":"https://www.seat61.com/Portugal.htm",
+    "RO":"https://www.seat61.com/Romania.htm", "RU":"https://www.seat61.com/Russia.htm", "SK":"https://www.seat61.com/Slovakia.htm",
+    "SI":"https://www.seat61.com/Slovenia.htm", "ES":"https://www.seat61.com/Spain.htm", "SE":"https://www.seat61.com/Sweden.htm",
+    "CH":"https://www.seat61.com/Switzerland.htm", "TR":"https://www.seat61.com/Turkey.htm", "UA":"https://www.seat61.com/Ukraine.htm",
+    // --- AZJA (Gruzja/Armenia/Azerbejdzan: jeden wspolny przewodnik) ---
+    "BD":"https://www.seat61.com/Bangladesh.htm", "MM":"https://www.seat61.com/Burma.htm", "KH":"https://www.seat61.com/Cambodia.htm",
+    "CN":"https://www.seat61.com/China.htm", "GE":"https://www.seat61.com/georgia-armenia-and-azerbaijan-by-train.htm",
+    "AM":"https://www.seat61.com/georgia-armenia-and-azerbaijan-by-train.htm", "AZ":"https://www.seat61.com/georgia-armenia-and-azerbaijan-by-train.htm",
+    "HK":"https://www.seat61.com/HongKong.htm", "IN":"https://www.seat61.com/India.htm", "ID":"https://www.seat61.com/Indonesia.htm",
+    "IR":"https://www.seat61.com/Iran.htm", "IQ":"https://www.seat61.com/Iraq.htm", "IL":"https://www.seat61.com/Israel.htm",
+    "JP":"https://www.seat61.com/Japan.htm", "JO":"https://www.seat61.com/Jordan.htm", "LA":"https://www.seat61.com/Laos.htm",
+    "MY":"https://www.seat61.com/Malaysia.htm", "NP":"https://www.seat61.com/Nepal.htm", "KP":"https://www.seat61.com/NorthKorea.htm",
+    "PK":"https://www.seat61.com/Pakistan.htm", "PH":"https://www.seat61.com/Philippines.htm", "SA":"https://www.seat61.com/Saudi-Arabia.htm",
+    "KR":"https://www.seat61.com/SouthKorea.htm", "LK":"https://www.seat61.com/SriLanka.htm", "SY":"https://www.seat61.com/Syria.htm",
+    "TW":"https://www.seat61.com/Taiwan.htm", "TH":"https://www.seat61.com/Thailand.htm", "UZ":"https://www.seat61.com/Uzbekistan.htm",
+    "VN":"https://www.seat61.com/Vietnam.htm",
+    // --- AFRYKA ---
+    "DZ":"https://www.seat61.com/Algeria.htm", "BW":"https://www.seat61.com/Botswana.htm", "CM":"https://www.seat61.com/Cameroon.htm",
+    "EG":"https://www.seat61.com/Egypt.htm", "ET":"https://www.seat61.com/Ethiopia.htm", "GA":"https://www.seat61.com/Gabon.htm",
+    "KE":"https://www.seat61.com/Kenya.htm", "SN":"https://www.seat61.com/Senegal.htm", "MA":"https://www.seat61.com/Morocco.htm",
+    "MZ":"https://www.seat61.com/Mozambique.htm", "NA":"https://www.seat61.com/Namibia.htm", "ZA":"https://www.seat61.com/SouthAfrica.htm",
+    "SD":"https://www.seat61.com/Sudan.htm", "ZM":"https://www.seat61.com/Zambia.htm", "TN":"https://www.seat61.com/Tunisia.htm",
+    "ZW":"https://www.seat61.com/Zimbabwe.htm",
+    // --- AMERYKA PN + SRODKOWA (Peru ma wlasna strone; Mexico/Panama to kotwice na SouthAmerica.htm) ---
+    "CA":"https://www.seat61.com/Canada.htm", "CU":"https://www.seat61.com/Cuba.htm", "US":"https://www.seat61.com/UnitedStates.htm",
+    "PE":"https://www.seat61.com/Peru.htm", "MX":"https://www.seat61.com/SouthAmerica.htm#Mexico", "PA":"https://www.seat61.com/SouthAmerica.htm#Panama",
+    // --- AMERYKA POLUDNIOWA (kotwice na wspolnej stronie SouthAmerica.htm) ---
+    "AR":"https://www.seat61.com/SouthAmerica.htm#Argentina", "BO":"https://www.seat61.com/SouthAmerica.htm#Bolivia",
+    "BR":"https://www.seat61.com/SouthAmerica.htm#Brazil", "CL":"https://www.seat61.com/SouthAmerica.htm#Chile",
+    "CO":"https://www.seat61.com/SouthAmerica.htm#Colombia", "EC":"https://www.seat61.com/SouthAmerica.htm#Train%20travel%20in%20Ecuador",
+    "PY":"https://www.seat61.com/SouthAmerica.htm#Paraguay", "UY":"https://www.seat61.com/SouthAmerica.htm#Uruguay",
+    // --- OCEANIA ---
+    "AU":"https://www.seat61.com/Australia.htm", "NZ":"https://www.seat61.com/NewZealand.htm",
+};
 // RELIGION_LINKS - religie-bazy; uzywane, gdy w dominujacej grupie nie ma zadnego odlamu z SUBLINKS. Bierzemy
 // slowo-klucz o NAJMNIEJSZYM indeksie w calej wartosci (= pierwsza wymieniona wiara). "Brak (...)" / bezludne
 // terytoria nie maja klucza -> brak linku. "Brak wyznania" swiadomie bez klucza (samo -> bez linku; w zlozeniu
