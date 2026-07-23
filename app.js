@@ -5834,7 +5834,7 @@
                         // Nazwa misji moze zawierac apostrof / < > - budujemy link przez DOM (textContent + onclick),
                         // a nie interpolacja do inline onclick/innerHTML (lamalo przycisk i grozilo wstrzyknieciem).
                         var _subText = info.querySelector(".range-sub-text");
-                        _subText.innerHTML = 'TARGET: <a class="mission-target-link" style="color:#00ff00; cursor:pointer; text-decoration:underline;"></a>';
+                        _subText.innerHTML = 'TARGET: <a class="mission-target-link" style="color:#00ff00; cursor:pointer; text-decoration:none;"></a>';
                         var _mTargetLink = _subText.querySelector(".mission-target-link");
                         if (_mTargetLink) {
                             _mTargetLink.textContent = activeMission.name;
