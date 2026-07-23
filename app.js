@@ -4240,7 +4240,7 @@
                     <div class="fact-row"><span class="fact-key">STATUS:</span><span class="fact-val" style="color:#ef4444">MILITARY / RESTRICTED</span></div>
                     <div class="fact-row"><span class="fact-key">POWER:</span><span class="fact-val" style="color:${pColor}">${_extVal(intel.p, "https://www.iec.ch/world-plugs", "Wtyczki i napięcia świata (IEC World Plugs) — kraj wybierasz z listy na stronie")}</span></div>
                     <div class="fact-row"><span class="fact-key">WATER:</span><span class="fact-val" style="color:#dc2626">${intel.w}</span></div>
-                    <div class="fact-row"><span class="fact-key">TIPPING:</span><span class="fact-val">${intel.t.toUpperCase()}</span></div>
+                    <div class="fact-row"><span class="fact-key">TIPPING:</span><span class="fact-val">${_extVal(intel.t.toUpperCase(), "https://www.visualcapitalist.com/cp/mapped-how-much-should-you-tip-in-each-country/", "Ile dać napiwku w każdym kraju — mapa (Visual Capitalist)")}</span></div>
                     <div class="fact-row"><span class="fact-key">INFO:</span><span class="fact-val">BRAK STAŁYCH MIESZKAŃCÓW</span></div>
                     <div style="margin-top:15px; color:#aab4c0; font-size:0.8rem; font-family:'JetBrains Mono'; line-height:1.4;">
                         > Te obiekty nie figurują w publicznych bazach API.<br>
@@ -4407,7 +4407,7 @@
                         
                         <div class="fact-row"><span class="fact-key">POWER:</span><span class="fact-val" style="color:${pColor}">${_extVal(intel.p, "https://www.iec.ch/world-plugs", "Wtyczki i napięcia świata (IEC World Plugs) — kraj wybierasz z listy na stronie")}</span></div>
                         <div class="fact-row"><span class="fact-key">WATER:</span><span class="fact-val" style="color:${intel.w.includes('✅') ? '#00ff00' : '#dc2626'}">${_extVal(intel.w, waterUrl, "Sprawdź, czy woda z kranu jest bezpieczna (isthewatersafe.com)")}</span></div>
-                        <div class="fact-row"><span class="fact-key">TIPPING:</span><span class="fact-val">${intel.t.toUpperCase()}</span></div>
+                        <div class="fact-row"><span class="fact-key">TIPPING:</span><span class="fact-val">${_extVal(intel.t.toUpperCase(), "https://www.visualcapitalist.com/cp/mapped-how-much-should-you-tip-in-each-country/", "Ile dać napiwku w każdym kraju — mapa (Visual Capitalist)")}</span></div>
 
                         ${countryVisitedRowHtml}
                         <div class="fact-row"><span class="fact-key">POPULATION:</span><span class="fact-val">${pop}</span></div>
