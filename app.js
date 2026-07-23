@@ -2729,6 +2729,18 @@
                 _isV = !!(window._visitedCitySet && window._visitedCitySet()[_vid]);
                 _cVisitedRow = '<div class="fact-row" id="city-visited-row" style="cursor:' + (_isV ? 'default' : 'pointer') + ';" title="' + (_isV ? '' : 'Kliknij, zeby oznaczyc jako odwiedzone') + '"><span class="fact-key">ODWIEDZONE:</span><span class="fact-val" id="city-visited-val" style="color:' + (_isV ? '#22c55e' : '#8f9ba8') + ';">' + (_isV ? '✅ TAK' : '☐ NIE (kliknij)') + '</span></div>';
             }
+            // Rome2Rio: planer trasy z Warszawy do tego miasta (jak wiersz DIST. WAW w profilu kraju).
+            // Pomijamy, gdy miasto to praktycznie sama Warszawa (dist < 1 km) - trasa Warsaw->Warsaw jest bez sensu.
+            // Booking: wyszukiwarka noclegow w tym miescie - zawsze. stripDiacritics zywe z intel.js (guard na wszelki wypadek).
+            var _r2rUrl = null, _bkgUrl = null;
+            if (dc.cname) {
+                _bkgUrl = "https://www.booking.com/searchresults.html?ss=" + encodeURIComponent(dc.cname);
+                var _dwKm = (typeof getDist === 'function' && dc.lat != null && dc.lng != null) ? Math.round(getDist(52.2297, 21.0122, dc.lat, dc.lng)) : null;
+                if (_dwKm == null || _dwKm >= 1) {
+                    var _r2rCity = (typeof stripDiacritics === 'function') ? stripDiacritics(dc.cname) : dc.cname;
+                    _r2rUrl = "https://www.rome2rio.com/map/Warsaw/" + encodeURIComponent(_r2rCity);
+                }
+            }
             fPanel.innerHTML =
                 '<img id="city-banner-img" alt="" style="display:none; width:100%; height:88px; object-fit:cover; object-position:center; border-radius:4px; margin-bottom:10px; border:1px solid rgba(250,204,21,0.35);">'
               + '<div class="fact-row" style="border:none;"><span class="fact-key">CITY:</span><span class="fact-val" style="color:#facc15; font-weight:bold;">'+ dc.cname +'</span></div>'
@@ -2743,6 +2755,8 @@
               + btn(dc.wiki, "📖 WIKIPEDIA", "0,212,255")
               + btn(dc.ta, "🍽️ TASTEATLAS", "244,164,96")
               + btn(gm, "📍 GOOGLE MAPS", "250,204,21")
+              + btn(_r2rUrl, "🚄 ROME2RIO", "129,140,248")
+              + btn(_bkgUrl, "🏨 BOOKING", "0,159,235")
               + btnWide(dc.un, "📷 UNSPLASH", "255,255,255")
               + '</div>';
             window._cityIntelToken = (window._cityIntelToken || 0) + 1;
