@@ -4349,7 +4349,36 @@
                     // /weather/ nigdy sie nie rozjechaly (np. US -> "usa").
                     const tadCountrySlug = (typeof TAD_COUNTRY_OVERRIDES !== 'undefined' && TAD_COUNTRY_OVERRIDES[id]) ? TAD_COUNTRY_OVERRIDES[id] : window._tadCountrySlug(c.name.common);
                     const timeUrl = `https://www.timeanddate.com/worldclock/${tadCountrySlug}`;
-                    
+
+                    // AREA -> thetruesize.com z krajem X "upuszczonym" na Polske (porownanie realnej wielkosci).
+                    // Format hasha rozszyfrowany z ich bundla (main.*.bundle.js), bo nie ma publicznego API:
+                    //   #?borders=1~!<n>.<s>*<e>(<w>~!<ISO>*<offsetDistance>.<offsetHeading>
+                    // isoCode = ISO alpha-2 (== nasze id; potwierdzone: /api/entity/PL -> 200, /POL,/pl -> 404).
+                    // Enkoder liczb: base64url(round(v*10^p)) z '=' obcietym i +/ -> -/_ ; p=5 dla wspolrzednych
+                    // i heading (dt=lat+90, ft=lng+180), p=0 dla metrow. offsetDistance = haversine(m), offsetHeading
+                    // = bearing - OBA liczone od SRODKA kraju X do SRODKA Polski (turf.distance/bearing, R=6371008.8).
+                    // Polygon X renderuje sie wtedy nad Polska w swoim prawdziwym (mercatorowym) rozmiarze, a sama
+                    // Polske widac na mapie bazowej. UWAGA: prywatny, nieudokumentowany format - przy ich redeployu
+                    // moze przestac dzialac (kraj i tak sie otworzy, tylko pozycja/widok sie rozjada).
+                    let trueSizeUrl = null;
+                    if (id !== 'PL' && c.latlng && c.latlng.length === 2) {
+                        const _b64 = function(num){ return btoa(String(num)).replace(/=+$/, '').replace(/[+/]/g, function(ch){ return ch === '+' ? '-' : '_'; }); };
+                        const _enc = function(v, add, p){ return _b64(Math.round((v + add) * Math.pow(10, p))); };
+                        const _toRad = function(d){ return d * Math.PI / 180; };
+                        const _plLat = 51.92, _plLng = 19.13;   // srodek bbox Polski (jak computeCenter w thetruesize)
+                        const _xLat = c.latlng[0], _xLng = c.latlng[1];
+                        const _R = 6371008.8;
+                        const _dLat = _toRad(_plLat - _xLat), _dLng = _toRad(_plLng - _xLng);
+                        const _la1 = _toRad(_xLat), _la2 = _toRad(_plLat);
+                        const _ha = Math.sin(_dLat / 2) * Math.sin(_dLat / 2) + Math.sin(_dLng / 2) * Math.sin(_dLng / 2) * Math.cos(_la1) * Math.cos(_la2);
+                        const _dist = 2 * _R * Math.asin(Math.min(1, Math.sqrt(_ha)));
+                        const _bearing = Math.atan2(Math.sin(_dLng) * Math.cos(_la2), Math.cos(_la1) * Math.sin(_la2) - Math.sin(_la1) * Math.cos(_la2) * Math.cos(_dLng)) * 180 / Math.PI;
+                        // Naglowek mapy: widok wycentrowany na Europie (Polska + nakladka widoczne od razu).
+                        const _hdr = '1~!' + _enc(66, 90, 5) + '.' + _enc(34, 90, 5) + '*' + _enc(50, 180, 5) + '(' + _enc(-12, 180, 5);
+                        const _poly = '~!' + id + '*' + _b64(Math.round(_dist)) + '.' + _b64(Math.round((_bearing + 180) * 100000));
+                        trueSizeUrl = 'https://www.thetruesize.com/#?borders=' + _hdr + _poly;
+                    }
+
                     const countryNameSlug = stripDiacritics(c.name.common).toLowerCase().replace(/ /g, "-");
                     const countryNameWiki = stripDiacritics(c.name.common).replace(/ /g, "_");
 
@@ -4506,7 +4535,7 @@
 
                         ${countryVisitedRowHtml}
                         <div class="fact-row"><span class="fact-key">POPULATION:</span><span class="fact-val">${pop}</span></div>
-                        <div class="fact-row"><span class="fact-key">AREA:</span><span class="fact-val">${area}</span></div>
+                        <div class="fact-row"><span class="fact-key">AREA:</span><span class="fact-val">${_extVal(area, trueSizeUrl, "Porównaj wielkość tego kraju z Polską (thetruesize.com) — kraj nałożony na Polskę w prawdziwym rozmiarze")}</span></div>
                         ${citiesRowHtml}
                         <div class="fact-row"><span class="fact-key">LANG:</span><span class="fact-val">${_extVal(_langDisplay, `https://www.localingual.com/?ISO=${id}`, _langTitle)}</span></div>
                         
