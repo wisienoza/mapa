@@ -2477,9 +2477,9 @@ const DIAL_LINKS = {
 // strone przez _extVal (ze strzalka "↗"). Brak wpisu = sam tekst bez linku (terytoria UM, Kosowo itp. nie maja
 // wpisu - nie zgadujemy). Klucz to cca2 (jak FACTBOOK); nazwy UN dopasowane do iso2 przez zbior mledoze/countries.
 // UWAGA: dla CF (Rep. Srodkowoafrykanska) baza UN ma bledny href="www.governo.cv" (domena Zielonego Przyladka),
-// ale WIDOCZNY tekst linku to http://primature.govcf.org - wzielismy to drugie (poprawne). ~189 krajow.
+// ale WIDOCZNY tekst linku to http://primature.govcf.org - wzielismy to drugie (poprawne). ~193 krajow.
 const GOV_LINKS = {
-    "AD":"http://www.govern.ad/", "AF":"http://president.gov.af/en", "AG":"http://www.ab.gov.ag",
+    "AD":"http://www.govern.ad/", "AE":"https://u.ae/", "AF":"http://president.gov.af/en", "AG":"http://www.ab.gov.ag",
     "AL":"http://www.e-albania.al", "AM":"http://www.gov.am", "AO":"http://www.governo.gov.ao/",
     "AR":"https://www.argentina.gob.ar", "AT":"https://www.digitales.oesterreich.gv.at", "AU":"http://australia.gov.au",
     "AZ":"https://www.e-gov.az", "BA":"http://www.fbihvlada.gov.ba", "BB":"https://www.gov.bb",
@@ -2511,7 +2511,7 @@ const GOV_LINKS = {
     "KH":"http://www.cdc-crdb.gov.kh", "KI":"http://www.president.gov.ki", "KM":"https://gouvernement.km",
     "KN":"https://www.gov.kn", "KP":"http://korea-dpr.com", "KR":"https://www.gov.kr",
     "KW":"http://www.e.gov.kw/", "KZ":"http://www.government.kz/", "LA":"http://www.laogov.gov.la",
-    "LB":"http://www.dawlati.gov.lb", "LC":"http://www.govt.lc", "LR":"http://www.eliberia.gov.lr",
+    "LB":"http://www.dawlati.gov.lb", "LC":"http://www.govt.lc", "LI":"http://regierung.li", "LK":"http://www.gov.lk", "LR":"http://www.eliberia.gov.lr",
     "LS":"http://www.gov.ls", "LT":"https://lrv.lt", "LU":"http://www.gouvernement.lu",
     "LV":"http://www.latvija.lv", "LY":"http://www.pm.gov.ly", "MA":"http://www.egov.ma",
     "MC":"http://www.gouv.mc/", "MD":"http://www.gov.md", "ME":"http://www.gov.me",
@@ -2524,7 +2524,7 @@ const GOV_LINKS = {
     "NL":"http://www.overheid.nl", "NO":"http://www.regjeringen.no", "NP":"http://www.nepal.gov.np/",
     "NR":"http://www.naurugov.nr", "NZ":"https://www.govt.nz", "OM":"http://www.oman.om",
     "PA":"http://www.presidencia.gob.pa", "PE":"http://www.peru.gob.pe", "PG":"http://www.pm.gov.pg",
-    "PH":"http://www.gov.ph", "PK":"http://www.pakistan.gov.pk", "PT":"http://www.portugal.gov.pt",
+    "PH":"http://www.gov.ph", "PK":"http://www.pakistan.gov.pk", "PL":"https://www.gov.pl/", "PT":"http://www.portugal.gov.pt",
     "PW":"http://palaugov.pw", "PY":"https://www.paraguay.gov.py", "QA":"http://portal.www.gov.qa",
     "RO":"http://www.gov.ro", "RS":"http://www.srbija.gov.rs", "RU":"http://www.gov.ru",
     "RW":"http://gov.rw", "SA":"http://www.saudi.gov.sa", "SB":"http://www.parliament.gov.sb",
