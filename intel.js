@@ -862,7 +862,8 @@ const QPP_LINKS = {
 			"City of San Marino": "San Marino",
 			"Ngerulmud": "koror",
 			"South tarawa": "Bikenibeu",
-			"El Aaiun": "Laayoune"
+			"El Aaiun": "Laayoune",
+			"Sana'a": "Sanaa"
         };
 		
 		// --- NUMBEO COUNTRY FIX ---
