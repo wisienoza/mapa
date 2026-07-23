@@ -4344,6 +4344,11 @@
                     const capitalNameSafe = capitalForNumbeo.replace(/ /g, "+");
                     const numbeoUrl = `https://www.numbeo.com/cost-of-living/compare_cities.jsp?country1=Poland&country2=${countryNameSafe}&city1=Warsaw&city2=${capitalNameSafe}`;
                     const numbeoCountryUrl = `https://www.numbeo.com/cost-of-living/country_result.jsp?country=${countryNameSafe}&displayCurrency=PLN`;
+                    // LOCAL TIME -> zegar swiatowy kraju na timeanddate.com. Slug bierzemy z tego samego
+                    // TAD_COUNTRY_OVERRIDES (+ _tadCountrySlug) co przycisk CLIMATE, zeby /worldclock/ i
+                    // /weather/ nigdy sie nie rozjechaly (np. US -> "usa").
+                    const tadCountrySlug = (typeof TAD_COUNTRY_OVERRIDES !== 'undefined' && TAD_COUNTRY_OVERRIDES[id]) ? TAD_COUNTRY_OVERRIDES[id] : window._tadCountrySlug(c.name.common);
+                    const timeUrl = `https://www.timeanddate.com/worldclock/${tadCountrySlug}`;
                     
                     const countryNameSlug = stripDiacritics(c.name.common).toLowerCase().replace(/ /g, "-");
                     const countryNameWiki = stripDiacritics(c.name.common).replace(/ /g, "_");
@@ -4400,6 +4405,11 @@
                     }
                     if (_flagAT && typeof CONVENTION_VIENNA !== 'undefined' && CONVENTION_VIENNA.indexOf(id) >= 0) {
                         conventionHtml += `<a href="${_idpGovUrl}" target="_blank" rel="noopener" title="Strona Konwencji Wiedeńskiej 1968 o Ruchu Drogowym - jak zdobyć Międzynarodowe Prawo Jazdy (gov.pl)"><img src="${_flagAT}" alt="VIE" style="height:11px; width:auto; vertical-align:middle; margin-left:3px; border-radius:1px;"></a>`;
+                    }
+                    // Druga strzalka ↗ dla grupy konwencji (obok tej od kierunku ruchu z _extVal) - zeby bylo
+                    // widac, ze ikonki CH/AT to osobny link na zewnatrz (gov.pl, jak zdobyc MPU).
+                    if (conventionHtml) {
+                        conventionHtml += `<a href="${_idpGovUrl}" target="_blank" rel="noopener" title="Jak zdobyć Międzynarodowe Prawo Jazdy (gov.pl)" style="color:inherit; text-decoration:none;"><span class="ext-ico">↗</span></a>`;
                     }
 
                     const currKey = Object.keys(c.currencies || {})[0] || "N/A";
@@ -4514,7 +4524,7 @@
 
                         <div class="fact-row"><span class="fact-key">DIAL CODE:</span><span class="fact-val">${_iddHtml}</span></div>
                         
-                        <div class="fact-row"><span class="fact-key">LOCAL TIME:</span><span class="fact-val" id="live-local-time" style="color:#facc15; animation: blink 1s infinite;">CONNECTING...</span></div>
+                        <div class="fact-row"><span class="fact-key">LOCAL TIME:</span><span class="fact-val">${_extVal('<span id="live-local-time" style="color:#facc15; animation: blink 1s infinite;">CONNECTING...</span>', timeUrl, "Zegar światowy tego kraju (timeanddate.com)")}</span></div>
                         
                         <div class="links-grid">
                             <a href="${numbeoUrl}" target="_blank" class="numbeo-btn">💲 NUMBEO</a>
