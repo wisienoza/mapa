@@ -68,6 +68,7 @@
             window._clearCitySeries();
             if (window.myFlightsOn) window.clearMyFlights();
             if (window._clearMaxRangePlane) window._clearMaxRangePlane();
+            if (window._clearHomeArrow) window._clearHomeArrow();   // strzalka najdalsze miasto -> Warszawa
             if (window.groundLegSeries) window.groundLegSeries.data.clear();   // odcinek lotnisko -> miasto
             var fT = document.getElementById("factbook-target"), fC = document.getElementById("factbook-content");
             if (fT) fT.innerText = "TARGET: NONE";
@@ -4742,9 +4743,10 @@
                     if (window._exitActiveOverlayMode) window._exitActiveOverlayMode();   // klik we flage w pasku gasi VISA/CLIMATE/ZONES (patrz focusContinent)
 
                     // GLOB I GLOWNY ZNACZNIK ZAWSZE NA STOLICY. Najdalsze odwiedzone miasto dostaje
-                    // WLASNY, zloty znacznik + przerywany luk ze stolicy - dzieki temu widac i "gdzie
-                    // jest ten kraj", i "jak daleko w nim dotarles", bez przenoszenia kamery na peryferie
-                    // (np. Hiszpania: Madryt zostaje w kadrze, a Arona na Teneryfie jest podpieta lukiem).
+                    // WLASNY, zloty znacznik + krotka strzalke w strone Warszawy (window._drawHomeArrow) -
+                    // dzieki temu widac i "gdzie jest ten kraj", i "w ktora strone / jak daleko od domu
+                    // dotarles", bez przenoszenia kamery na peryferie (np. Hiszpania: Madryt zostaje w
+                    // kadrze, a Arona na Teneryfie dostaje grot wskazujacy z powrotem ku Warszawie).
                     // Fallback na miasto, gdyby kraj nie mial wpisu w CAPITAL_COORDS.
                     var _stats = window._countryCityStats(id);
                     var _far = _stats.farthest;
@@ -4773,9 +4775,9 @@
                             distLabel: _far ? "MAX DISTANCE" : "CAPITAL"
                         }];
 
-                        // Drugi znacznik + luk TYLKO gdy najdalsze miasto realnie lezy gdzie indziej niz
-                        // stolica. Bez tego progu kraje, w ktorych jedynym odwiedzonym miastem jest sama
-                        // stolica, dostawalyby dwa znaczniki jeden na drugim i luk o zerowej dlugosci.
+                        // Drugi znacznik + strzalka do domu TYLKO gdy najdalsze miasto realnie lezy gdzie
+                        // indziej niz stolica. Bez tego progu kraje, w ktorych jedynym odwiedzonym miastem
+                        // jest sama stolica, dostawalyby dwa znaczniki jeden na drugim.
                         var _apart = _far && _cap && !window._isSameSpot(_far.lat, _far.lon, _cap[0], _cap[1]);
                         if (_apart) {
                             _pts.push({
@@ -4783,11 +4785,15 @@
                                 type: "farcity",
                                 title: _far.name.toUpperCase()
                             });
-                            lineSeries.pushDataItem({ geometry: { type: "LineString", coordinates: [[_cap[1], _cap[0]], [_far.lon, _far.lat]] } });
                         }
                         pointSeries.data.setAll(_pts);
 
                         window.resetIntelPanels();
+                        // Strzalka "do domu" od najdalszego miasta w strone Warszawy (kierunek, w ktorym
+                        // liczymy MAX DISTANCE). MUSI byc PO resetIntelPanels - ono czysci homeArrow, wiec
+                        // rysujemy dopiero po nim. Tylko przy _apart: gdy miasto = stolica, grot pokrylby
+                        // sie z glownym znacznikiem i boxem statystyk.
+                        if (_apart) window._drawHomeArrow(_far.lat, _far.lon);
                     }
                     // MUSI byc PO resetIntelPanels - ono zdejmuje podswietlenie z paska. Poza if(c),
                     // zeby kraj bez wpisu w CAPITAL_COORDS tez pokazal, ktora flage klikneto.
@@ -5431,6 +5437,55 @@
                 groundLegSeries.mapLines.template.setAll({ stroke: am5.color(0x22c55e), strokeOpacity: 0.9, strokeWidth: 2 });
                 window.groundLegSeries = groundLegSeries;
 
+                // --- STRZALKA "DO DOMU": krotki, przerywany ogonek od najdalszego odwiedzonego miasta w
+                // strone Warszawy, zakonczony grotem. Zastapila dawny przerywany luk stolica->miasto, ktory
+                // mylil: "najdalsze" liczymy od WARSZAWY (getDist(52.23,21.01,...) w _countryCityStats), wiec
+                // luk do STOLICY pokazywalby zupelnie inny odcinek niz liczba MAX DISTANCE. Rysujemy tylko
+                // kawalek wielkiego kola ku Warszawie (~650 km) - dzieki temu nie chowa sie za horyzontem
+                // globu dla dalekich krajow (kamera stoi na stolicy, Warszawa czesto po drugiej stronie kuli),
+                // a autoRotate obraca grot wzdluz linii - ten sam patent co samolot MAX RANGE nizej.
+                var homeArrowLine = chart.series.push(am5map.MapLineSeries.new(root, {}));
+                homeArrowLine.mapLines.template.setAll({ stroke: am5.color(0xfacc15), strokeOpacity: 0.9, strokeWidth: 2, strokeDasharray: [5, 5] });
+                var homeArrowPoints = chart.series.push(am5map.MapPointSeries.new(root, {}));
+                homeArrowPoints.bullets.push(function() {
+                    return am5.Bullet.new(root, { sprite: am5.Graphics.new(root, {
+                        svgPath: "M -3,-6 L 11,0 L -3,6 L 1,0 Z",   // grot wskazujacy +x; autoRotate ustawi go wzdluz linii (ku Warszawie)
+                        fill: am5.color(0xfacc15), stroke: am5.color(0x111111), strokeWidth: 0.5,
+                        shadowColor: am5.color(0xfacc15), shadowBlur: 6, centerX: am5.p50, centerY: am5.p50
+                    }) });
+                });
+                homeArrowPoints.hide(0);
+                var _WAW_HOME = [52.2297, 21.0122];
+                // Punkt posredni na wielkim kole miasto->Warszawa, oddalony o frac calej drogi. Liczony
+                // przez slerp na wektorach jednostkowych (bez azymutu). frac = staly ~650 km / dystans,
+                // przyciety do 0.4, zeby dla bliskich krajow strzalka nie przelatywala za polowe trasy.
+                function _gcWaypoint(lat1, lon1, lat2, lon2, frac) {
+                    var d2r = Math.PI / 180, r2d = 180 / Math.PI;
+                    var f1 = lat1 * d2r, l1 = lon1 * d2r, f2 = lat2 * d2r, l2 = lon2 * d2r;
+                    var x1 = Math.cos(f1) * Math.cos(l1), y1 = Math.cos(f1) * Math.sin(l1), z1 = Math.sin(f1);
+                    var x2 = Math.cos(f2) * Math.cos(l2), y2 = Math.cos(f2) * Math.sin(l2), z2 = Math.sin(f2);
+                    var dot = Math.max(-1, Math.min(1, x1 * x2 + y1 * y2 + z1 * z2));
+                    var D = Math.acos(dot);
+                    if (D < 1e-9) return [lat1, lon1];
+                    var a = Math.sin((1 - frac) * D) / Math.sin(D), b = Math.sin(frac * D) / Math.sin(D);
+                    var x = a * x1 + b * x2, y = a * y1 + b * y2, z = a * z1 + b * z2;
+                    return [Math.atan2(z, Math.sqrt(x * x + y * y)) * r2d, Math.atan2(y, x) * r2d];
+                }
+                window._drawHomeArrow = function(lat, lon) {
+                    window._clearHomeArrow();
+                    var total = (typeof getDist === 'function') ? getDist(lat, lon, _WAW_HOME[0], _WAW_HOME[1]) : 0;
+                    if (!total || total < 1) return;   // miasto = Warszawa (nie zdarza sie: PL wykluczone) -> brak strzalki
+                    var wp = _gcWaypoint(lat, lon, _WAW_HOME[0], _WAW_HOME[1], Math.min(650 / total, 0.4));
+                    var ld = homeArrowLine.pushDataItem({ geometry: { type: "LineString", coordinates: [[lon, lat], [wp[1], wp[0]]] } });
+                    homeArrowPoints.pushDataItem({ lineDataItem: ld, positionOnLine: 1, autoRotate: true });
+                    homeArrowPoints.show();
+                };
+                window._clearHomeArrow = function() {
+                    homeArrowPoints.hide(0);
+                    homeArrowPoints.data.clear();
+                    homeArrowLine.data.clear();
+                };
+
                 // --- Rysuje miasta ALBO lotniska dla podanego kraju, wg aktualnego window.airportMode.
                 // Wywolywana z klikniecia w kraj ORAZ z przycisku trybu lotnisk (instant przelaczenie,
                 // bez potrzeby ponownego klikania w mape). Nie rusza rotacji/pogody/factbooka. ---
@@ -5591,6 +5646,7 @@
                     window._selectedCountryId = null;
                     if (autoRot) autoRot.pause();
                     if (window._clearMaxRangePlane) window._clearMaxRangePlane();   // powrot do orbity = koniec lotu
+                    if (window._clearHomeArrow) window._clearHomeArrow();
                     autoRot = chart.animate({ key: "rotationX", from: chart.get("rotationX"), to: chart.get("rotationX") + 360, duration: 60000, loops: Infinity });
                     pointSeries.data.clear();
                     lineSeries.data.clear();
