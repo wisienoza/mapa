@@ -1870,7 +1870,7 @@ const CAPITAL_COORDS = {
     "NF": "Anglikanizm", // Norfolk
     "PN": "Adwentyzm Dnia Siódmego", // Pitcairn (Ciekawostka!)
     "CX": "Buddyzm / Islam", // Wyspa Bożego Narodzenia
-    "CC": "Sunnizm", // Wyspy Kokosowe
+    "CC": "Islam", // Wyspy Kokosowe (dawniej Sunnizm - ujednolicone do parasola, jak reszta krajow sunnickich)
 
     // BEZLUDNE / NAUKOWE
     "TF": "Brak (Nauka)", // Francuskie Terytoria Płd.
