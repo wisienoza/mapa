@@ -168,7 +168,7 @@ const INTEL_DB = {
     "KE": { p: "240V [ADAPTER: TAK]", w: "☠️ TYLKO BUTELKA", t: "10%" },
     "LS": { p: "220V [ADAPTER: TAK]", w: "⚠️ RACZEJ BUTELKA", t: "10%" },
     "LR": { p: "120V [ADAPTER: TAK]", w: "☠️ TYLKO BUTELKA", t: "Oczekiwane" },
-    "LY": { p: "127V [ADAPTER: NIE]", w: "☠️ TYLKO BUTELKA", t: "Bakszysz" },
+    "LY": { p: "230V [ADAPTER: NIE]", w: "☠️ TYLKO BUTELKA", t: "Bakszysz" },
     "MG": { p: "220V [ADAPTER: NIE]", w: "☠️ TYLKO BUTELKA", t: "10%" },
     "MW": { p: "230V [ADAPTER: TAK]", w: "☠️ TYLKO BUTELKA", t: "10%" },
     "ML": { p: "220V [ADAPTER: NIE]", w: "☠️ TYLKO BUTELKA", t: "Oczekiwane" },
@@ -1779,7 +1779,7 @@ const CAPITAL_COORDS = {
     "DJ": "Islam",
     "ER": "Chrześcijaństwo / Islam",
     "SZ": "Chrześcijaństwo", // Eswatini
-    "LS": "Protestantyzm",
+    "LS": "Katolicyzm",
     "GM": "Islam",
     "MW": "Chrześcijaństwo",
     "BI": "Katolicyzm",
@@ -2506,7 +2506,7 @@ const WONDER_INTEL = {
     "DE": { img: "foty/NEUSCHWANSTEIN.jpg", desc: "Zamek Neuschwanstein to bajkowa budowla wzniesiona na stromym wzgórzu w bawarskich Alpach przez króla Ludwika II. Inspirowany operami Ryszarda Wagnera i średniowiecznymi legendami, zamek nigdy nie został w pełni ukończony za życia ekscentrycznego monarchy. Jego smukłe wieże i romantyczny styl stały się później pierwowzorem dla słynnego zamku z animacji Walta Disneya. Obecnie jest to jedna z najbardziej malowniczych i najczęściej fotografowanych atrakcji w Niemczech.", unsplash: "https://unsplash.com/s/photos/NEUSCHWANSTEIN", wiki: "https://pl.wikipedia.org/wiki/Neuschwanstein" },
     "US": { img: "foty/STATUE_OF_LIBERTY.jpg", desc: "Statua Wolności to potężny miedziany posąg na wyspie w Nowym Jorku, podarowany narodowi amerykańskiemu przez Francuzów w 1886 roku. Przedstawia rzymską boginię Libertas, trzymającą w dłoniach płonącą pochodnię oraz tablicę z datą ogłoszenia niepodległości USA. Przez dekady była pierwszym widokiem dla milionów imigrantów przybywających do Stanów Zjednoczonych drogą morską. Dziś stanowi powszechnie rozpoznawalny na całym świecie symbol wolności, nadziei i samej Ameryki.", unsplash: "https://unsplash.com/s/photos/STATUE-OF-LIBERTY", wiki: "https://pl.wikipedia.org/wiki/Statua_Wolno%C5%9Bci" },
     "GB": { img: "foty/STONEHENGE.jpg", desc: "Stonehenge to tajemniczy krąg ogromnych głazów, wzniesiony na równinie Salisbury w południowej Anglii. Konstrukcja pochodzi z epoki neolitu i brązu, a jej budowa trwała w kilku etapach przez setki lat. Prawdopodobnie pełnił rolę kalendarza astronomicznego, świątyni lub bardzo ważnego miejsca pochówku pradawnych ludów. Sposób przetransportowania i precyzyjnego ułożenia tych wielkich kamieni do dziś budzi żywe dyskusje wśród badaczy i archeologów.", unsplash: "https://unsplash.com/s/photos/STONEHENGE", wiki: "https://pl.wikipedia.org/wiki/Stonehenge" },
-    "AU": { img: "foty/SYDNEY_OPERA HOUSE.jpg", desc: "Opera w Sydney to jedno z najwspanialszych osiągnięć współczesnej architektury, położone nad wodami zatoki Port Jackson. Jej ikoniczny dach przypomina białe żagle wydęte na wietrze lub ogromne muszle wyrzucone na brzeg. Budynek gości liczne spektakle operowe, teatralne i muzyczne, będąc głównym ośrodkiem kulturalnym w Australii. Nowoczesna bryła opery stała się niezaprzeczalnym symbolem tego miasta i całego kontynentu.", unsplash: "https://unsplash.com/s/photos/SYDNEY-OPERA-HOUSE", wiki: "https://pl.wikipedia.org/wiki/Sydney_Opera_House" },
+    "AU": { img: "foty/SYDNEY_OPERA_HOUSE.jpg", desc: "Opera w Sydney to jedno z najwspanialszych osiągnięć współczesnej architektury, położone nad wodami zatoki Port Jackson. Jej ikoniczny dach przypomina białe żagle wydęte na wietrze lub ogromne muszle wyrzucone na brzeg. Budynek gości liczne spektakle operowe, teatralne i muzyczne, będąc głównym ośrodkiem kulturalnym w Australii. Nowoczesna bryła opery stała się niezaprzeczalnym symbolem tego miasta i całego kontynentu.", unsplash: "https://unsplash.com/s/photos/SYDNEY-OPERA-HOUSE", wiki: "https://pl.wikipedia.org/wiki/Sydney_Opera_House" },
     "ML": { img: "foty/TIMBUKTU.jpg", desc: "Timbuktu to historyczne miasto w Mali, niegdyś słynące jako kluczowe centrum handlu i nauki islamskiej w Afryce Zachodniej. Swoje największe bogactwo czerpało z lukratywnego handlu złotem, solą i kością słoniową przemierzającymi szlaki Sahary. Znajdują się tam unikalne meczety zbudowane z gliny oraz bezcenne biblioteki przechowujące starożytne, cenne rękopisy. Choć z biegiem lat miasto utraciło dawny blask, wciąż pobudza wyobraźnię jako synonim odległego, bardzo tajemniczego miejsca.", unsplash: "https://unsplash.com/s/photos/TIMBUKTU", wiki: "https://pl.wikipedia.org/wiki/Timbuktu" },
 };
 
