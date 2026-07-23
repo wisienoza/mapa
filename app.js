@@ -4535,6 +4535,9 @@
                     const _isCountryVisited = (typeof VISITED_COUNTRIES !== 'undefined') && VISITED_COUNTRIES.indexOf(id) >= 0;
                     const countryVisitedRowHtml = '<div class="fact-row" id="country-visited-row" style="cursor:' + (_isCountryVisited ? 'default' : 'pointer') + ';" title="' + (_isCountryVisited ? '' : 'Kliknij, zeby oznaczyc jako odwiedzone') + '"><span class="fact-key">ODWIEDZONE:</span><span class="fact-val" id="country-visited-val" style="color:' + (_isCountryVisited ? '#22c55e' : '#8f9ba8') + ';">' + (_isCountryVisited ? '✅ TAK' : '☐ NIE (kliknij)') + '</span></div>';
 
+                    // POPULATION -> strona populacji na worldometers.info (WORLDOMETER_LINKS w intel.js): licznik
+                    // na zywo, gestosc, mediana wieku, urbanizacja. Brak wpisu -> _extVal zwraca sama liczbe bez linku.
+                    const worldometerUrl = (typeof WORLDOMETER_LINKS !== 'undefined' && WORLDOMETER_LINKS[id]) ? WORLDOMETER_LINKS[id] : null;
                     let citiesRowHtml = "";
                     if (typeof CITIES_DB !== 'undefined' && CITIES_DB[id] && CITIES_DB[id].length) {
                         const _cList = CITIES_DB[id];
@@ -4562,7 +4565,7 @@
                         <div class="fact-row"><span class="fact-key">TIPPING:</span><span class="fact-val">${_extVal(intel.t.toUpperCase(), "https://www.visualcapitalist.com/cp/mapped-how-much-should-you-tip-in-each-country/", "Ile dać napiwku w każdym kraju — mapa (Visual Capitalist)")}</span></div>
 
                         ${countryVisitedRowHtml}
-                        <div class="fact-row"><span class="fact-key">POPULATION:</span><span class="fact-val">${pop}</span></div>
+                        <div class="fact-row"><span class="fact-key">POPULATION:</span><span class="fact-val">${_extVal(pop, worldometerUrl, "Populacja na żywo: licznik, gęstość, mediana wieku, urbanizacja (Worldometer)")}</span></div>
                         <div class="fact-row"><span class="fact-key">AREA:</span><span class="fact-val">${_extVal(area, trueSizeUrl, "Porównaj wielkość tego kraju z Polską (thetruesize.com) — kraj nałożony na Polskę w prawdziwym rozmiarze")}</span></div>
                         ${citiesRowHtml}
                         <div class="fact-row"><span class="fact-key">LANG:</span><span class="fact-val">${_extVal(_langDisplay, `https://www.localingual.com/?ISO=${id}`, _langTitle)}</span></div>
