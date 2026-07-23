@@ -4379,6 +4379,11 @@
                     const wawLat = 52.2297; const wawLon = 21.0122;
                     let distance = "N/A";
                     if (c.latlng) distance = Math.round(getDist(wawLat, wawLon, c.latlng[0], c.latlng[1])).toLocaleString() + " KM";
+                    // DIST. WAW -> planer trasy z Warszawy do stolicy (rome2rio). Pomijamy dla domu (PL,
+                    // Warszawa->Warszawa) i gdy nie znamy stolicy lub dystansu.
+                    const rome2rioUrl = (id !== "PL" && capitalRaw !== "N/A" && distance !== "N/A")
+                        ? "https://www.rome2rio.com/map/Warsaw/" + encodeURIComponent(stripDiacritics(capitalRaw))
+                        : null;
 
                     const _isCountryVisited = (typeof VISITED_COUNTRIES !== 'undefined') && VISITED_COUNTRIES.indexOf(id) >= 0;
                     const countryVisitedRowHtml = '<div class="fact-row" id="country-visited-row" style="cursor:' + (_isCountryVisited ? 'default' : 'pointer') + ';" title="' + (_isCountryVisited ? '' : 'Kliknij, zeby oznaczyc jako odwiedzone') + '"><span class="fact-key">ODWIEDZONE:</span><span class="fact-val" id="country-visited-val" style="color:' + (_isCountryVisited ? '#22c55e' : '#8f9ba8') + ';">' + (_isCountryVisited ? '✅ TAK' : '☐ NIE (kliknij)') + '</span></div>';
@@ -4403,7 +4408,7 @@
 
                         <div class="fact-row" id="capital-row" style="cursor:pointer;" title="Pokaż profil stolicy"><span class="fact-key">CAPITAL:</span><span class="fact-val">${capitalRaw.toUpperCase()}</span></div>
                         <div class="fact-row"><span class="fact-key">DRIVING:</span><span class="fact-val">${drivingHtml}${conventionHtml}</span></div>
-                        <div class="fact-row"><span class="fact-key">DIST. WAW:</span><span class="fact-val" style="color:#00ccff">${distance}</span></div>
+                        <div class="fact-row"><span class="fact-key">DIST. WAW:</span><span class="fact-val" style="color:#00ccff">${_extVal(distance, rome2rioUrl, "Jak dojechać z Warszawy do: " + capitalRaw + " (rome2rio)")}</span></div>
                         
                         <div class="fact-row"><span class="fact-key">POWER:</span><span class="fact-val" style="color:${pColor}">${_extVal(intel.p, "https://www.iec.ch/world-plugs", "Wtyczki i napięcia świata (IEC World Plugs) — kraj wybierasz z listy na stronie")}</span></div>
                         <div class="fact-row"><span class="fact-key">WATER:</span><span class="fact-val" style="color:${intel.w.includes('✅') ? '#00ff00' : '#dc2626'}">${_extVal(intel.w, waterUrl, "Sprawdź, czy woda z kranu jest bezpieczna (isthewatersafe.com)")}</span></div>
