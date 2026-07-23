@@ -2492,6 +2492,7 @@ const RAIL_LINKS = {
     "RO":"https://www.seat61.com/Romania.htm", "RU":"https://www.seat61.com/Russia.htm", "SK":"https://www.seat61.com/Slovakia.htm",
     "SI":"https://www.seat61.com/Slovenia.htm", "ES":"https://www.seat61.com/Spain.htm", "SE":"https://www.seat61.com/Sweden.htm",
     "CH":"https://www.seat61.com/Switzerland.htm", "TR":"https://www.seat61.com/Turkey.htm", "UA":"https://www.seat61.com/Ukraine.htm",
+    "GB":"https://www.seat61.com/train-travel-in-britain.htm", "IE":"https://www.seat61.com/train-and-ferry-to-dublin.htm",
     // --- AZJA (Gruzja/Armenia/Azerbejdzan: jeden wspolny przewodnik) ---
     "BD":"https://www.seat61.com/Bangladesh.htm", "MM":"https://www.seat61.com/Burma.htm", "KH":"https://www.seat61.com/Cambodia.htm",
     "CN":"https://www.seat61.com/China.htm", "GE":"https://www.seat61.com/georgia-armenia-and-azerbaijan-by-train.htm",
@@ -2504,6 +2505,7 @@ const RAIL_LINKS = {
     "KR":"https://www.seat61.com/SouthKorea.htm", "LK":"https://www.seat61.com/SriLanka.htm", "SY":"https://www.seat61.com/Syria.htm",
     "TW":"https://www.seat61.com/Taiwan.htm", "TH":"https://www.seat61.com/Thailand.htm", "UZ":"https://www.seat61.com/Uzbekistan.htm",
     "VN":"https://www.seat61.com/Vietnam.htm",
+    "KZ":"https://www.seat61.com/central-asia-by-train.htm", "KG":"https://www.seat61.com/central-asia-by-train.htm",
     // --- AFRYKA ---
     "DZ":"https://www.seat61.com/Algeria.htm", "BW":"https://www.seat61.com/Botswana.htm", "CM":"https://www.seat61.com/Cameroon.htm",
     "EG":"https://www.seat61.com/Egypt.htm", "ET":"https://www.seat61.com/Ethiopia.htm", "GA":"https://www.seat61.com/Gabon.htm",
