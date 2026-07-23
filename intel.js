@@ -2477,21 +2477,29 @@ const DIAL_LINKS = {
 // Gruzja/Armenia/Azerbejdzan dziela JEDEN wspolny przewodnik (te same 3 wpisy -> ten sam URL). Uzywane w
 // links-grid profilu kraju (app.js, updateFactbookPanel): przycisk "POCIAGI (SEAT61)" pojawia sie TYLKO gdy iso2
 // jest w tej bazie - brak wpisu = brak przycisku (seat61 nie pokrywa calego swiata, nie zgadujemy slugu).
+// KONWENCJA CELU (audyt 2026-07-23): preferuj DEDYKOWANA strone krajowa "train-travel-in-<kraj>.htm" (czysty
+// przewodnik "jak jezdzic po kraju"), a nie ogolna "<Kraj>.htm" (ta u europejskich sasiadow to strona "London
+// to <Kraj>" - opis krajowy dopiero na dole). Dedykowana strona istnieje tylko dla czesci krajow, wiec bazuje
+// na FAKCIE (HTTP 200), nie zgadywaniu: FR, IT, DE, ES, CH, TR, RU, MA, TN. Kraje zamorskie (Japonia, Indie,
+// Chiny, Tajlandia, USA, Australia...) NIE maja osobnej strony, bo ich "<Kraj>.htm" i tak JEST juz krajowe
+// (nie ma sensownej trasy "z Londynu") - zostaja na ogolnym adresie. Europejscy sasiedzi bez dedykowanej strony
+// (AT, BE, NL, PT, GR, PL, CZ, HU, SK, SI, HR, DK, SE, NO, FI, RO, BG i in.) zostaja na "London to <Kraj>" -
+// seat61 nie ma dla nich czystej strony krajowej, wiec nie ma czego podmienic.
 const RAIL_LINKS = {
     // --- EUROPA ---
     "AL":"https://www.seat61.com/Albania.htm", "AD":"https://www.seat61.com/Andorra.htm", "AT":"https://www.seat61.com/Austria.htm",
     "BE":"https://www.seat61.com/Belgium.htm", "BA":"https://www.seat61.com/Bosnia.htm", "BG":"https://www.seat61.com/Bulgaria.htm",
     "HR":"https://www.seat61.com/Croatia.htm", "CY":"https://www.seat61.com/Cyprus.htm", "CZ":"https://www.seat61.com/Czech.htm",
     "DK":"https://www.seat61.com/Denmark.htm", "EE":"https://www.seat61.com/Estonia.htm", "FI":"https://www.seat61.com/Finland.htm",
-    "FR":"https://www.seat61.com/France.htm", "DE":"https://www.seat61.com/Germany.htm", "GI":"https://www.seat61.com/Gibraltar.htm",
+    "FR":"https://www.seat61.com/train-travel-in-france.htm", "DE":"https://www.seat61.com/train-travel-in-germany.htm", "GI":"https://www.seat61.com/Gibraltar.htm",
     "GR":"https://www.seat61.com/Greece.htm", "HU":"https://www.seat61.com/Hungary.htm", "IS":"https://www.seat61.com/Iceland.htm",
-    "IT":"https://www.seat61.com/Italy.htm", "LV":"https://www.seat61.com/Latvia.htm", "LT":"https://www.seat61.com/Lithuania.htm",
+    "IT":"https://www.seat61.com/train-travel-in-italy.htm", "LV":"https://www.seat61.com/Latvia.htm", "LT":"https://www.seat61.com/Lithuania.htm",
     "LU":"https://www.seat61.com/Luxembourg.htm", "RS":"https://www.seat61.com/Serbia.htm", "MT":"https://www.seat61.com/Malta.htm",
     "MD":"https://www.seat61.com/Moldova.htm", "ME":"https://www.seat61.com/Montenegro.htm", "NL":"https://www.seat61.com/Netherlands.htm",
     "NO":"https://www.seat61.com/Norway.htm", "PL":"https://www.seat61.com/Poland.htm", "PT":"https://www.seat61.com/Portugal.htm",
-    "RO":"https://www.seat61.com/Romania.htm", "RU":"https://www.seat61.com/Russia.htm", "SK":"https://www.seat61.com/Slovakia.htm",
-    "SI":"https://www.seat61.com/Slovenia.htm", "ES":"https://www.seat61.com/Spain.htm", "SE":"https://www.seat61.com/Sweden.htm",
-    "CH":"https://www.seat61.com/Switzerland.htm", "TR":"https://www.seat61.com/Turkey.htm", "UA":"https://www.seat61.com/Ukraine.htm",
+    "RO":"https://www.seat61.com/Romania.htm", "RU":"https://www.seat61.com/train-travel-in-russia.htm", "SK":"https://www.seat61.com/Slovakia.htm",
+    "SI":"https://www.seat61.com/Slovenia.htm", "ES":"https://www.seat61.com/train-travel-in-spain.htm", "SE":"https://www.seat61.com/Sweden.htm",
+    "CH":"https://www.seat61.com/train-travel-in-switzerland.htm", "TR":"https://www.seat61.com/train-travel-in-turkey.htm", "UA":"https://www.seat61.com/Ukraine.htm",
     "GB":"https://www.seat61.com/train-travel-in-britain.htm", "IE":"https://www.seat61.com/train-and-ferry-to-dublin.htm",
     // Bialorus i Macedonia Pln. nie maja wlasnej strony - seat61 linkuje je do sasiadow (Russia.htm / Serbia.htm).
     "BY":"https://www.seat61.com/Russia.htm#london-to-minsk-by-train", "MK":"https://www.seat61.com/Serbia.htm",
@@ -2512,9 +2520,9 @@ const RAIL_LINKS = {
     // --- AFRYKA ---
     "DZ":"https://www.seat61.com/Algeria.htm", "BW":"https://www.seat61.com/Botswana.htm", "CM":"https://www.seat61.com/Cameroon.htm",
     "EG":"https://www.seat61.com/Egypt.htm", "ET":"https://www.seat61.com/Ethiopia.htm", "GA":"https://www.seat61.com/Gabon.htm",
-    "KE":"https://www.seat61.com/Kenya.htm", "SN":"https://www.seat61.com/Senegal.htm", "MA":"https://www.seat61.com/Morocco.htm",
+    "KE":"https://www.seat61.com/Kenya.htm", "SN":"https://www.seat61.com/Senegal.htm", "MA":"https://www.seat61.com/train-travel-in-morocco.htm",
     "MZ":"https://www.seat61.com/Mozambique.htm", "NA":"https://www.seat61.com/Namibia.htm", "ZA":"https://www.seat61.com/SouthAfrica.htm",
-    "SD":"https://www.seat61.com/Sudan.htm", "ZM":"https://www.seat61.com/Zambia.htm", "TN":"https://www.seat61.com/Tunisia.htm",
+    "SD":"https://www.seat61.com/Sudan.htm", "ZM":"https://www.seat61.com/Zambia.htm", "TN":"https://www.seat61.com/train-travel-in-tunisia.htm",
     "ZW":"https://www.seat61.com/Zimbabwe.htm",
     // Mali i Tanzania nie maja wlasnej strony - wspoldziela ja z sasiadem: kolej Dakar-Bamako (Senegal.htm)
     // oraz kolej TAZARA Tanzania-Zambia (Zambia.htm).
