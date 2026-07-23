@@ -4768,6 +4768,7 @@
                         var _pts = [{
                             geometry: { type: "Point", coordinates: [c[1], c[0]] },
                             type: "visited",
+                            id: id,
                             title: name,
                             cities: _stats.count,
                             dist: dist,
@@ -4793,7 +4794,7 @@
                         // liczymy MAX DISTANCE). MUSI byc PO resetIntelPanels - ono czysci homeArrow, wiec
                         // rysujemy dopiero po nim. Tylko przy _apart: gdy miasto = stolica, grot pokrylby
                         // sie z glownym znacznikiem i boxem statystyk.
-                        if (_apart) window._drawHomeArrow(_far.lat, _far.lon);
+                        if (_apart) window._drawHomeArrow(_far.lat, _far.lon, _cap[0], _cap[1]);
                     }
                     // MUSI byc PO resetIntelPanels - ono zdejmuje podswietlenie z paska. Poza if(c),
                     // zeby kraj bez wpisu w CAPITAL_COORDS tez pokazal, ktora flage klikneto.
@@ -5455,6 +5456,11 @@
                     }) });
                 });
                 homeArrowPoints.hide(0);
+                // Cienka, przygaszona linia stolica -> najdalsze miasto: sama "smycz przynaleznosci"
+                // (ten daleki punkt nalezy do tego kraju). WIZUALNIE PODRZEDNA wobec zoltego grotu do domu -
+                // dlatego 1px i niskie krycie, zeby nikt nie czytal jej jako pomiaru dystansu (to robi grot).
+                var capTetherLine = chart.series.push(am5map.MapLineSeries.new(root, {}));
+                capTetherLine.mapLines.template.setAll({ stroke: am5.color(0xffffff), strokeOpacity: 0.28, strokeWidth: 1 });
                 var _WAW_HOME = [52.2297, 21.0122];
                 // Punkt posredni na wielkim kole miasto->Warszawa, oddalony o frac calej drogi. Liczony
                 // przez slerp na wektorach jednostkowych (bez azymutu). frac = staly ~650 km / dystans,
@@ -5471,8 +5477,12 @@
                     var x = a * x1 + b * x2, y = a * y1 + b * y2, z = a * z1 + b * z2;
                     return [Math.atan2(z, Math.sqrt(x * x + y * y)) * r2d, Math.atan2(y, x) * r2d];
                 }
-                window._drawHomeArrow = function(lat, lon) {
+                // lat/lon = najdalsze miasto; capLat/capLon (opcjonalne) = stolica dla cienkiej smyczy.
+                window._drawHomeArrow = function(lat, lon, capLat, capLon) {
                     window._clearHomeArrow();
+                    if (capLat !== undefined && capLon !== undefined) {
+                        capTetherLine.pushDataItem({ geometry: { type: "LineString", coordinates: [[capLon, capLat], [lon, lat]] } });
+                    }
                     var total = (typeof getDist === 'function') ? getDist(lat, lon, _WAW_HOME[0], _WAW_HOME[1]) : 0;
                     if (!total || total < 1) return;   // miasto = Warszawa (nie zdarza sie: PL wykluczone) -> brak strzalki
                     var wp = _gcWaypoint(lat, lon, _WAW_HOME[0], _WAW_HOME[1], Math.min(650 / total, 0.4));
@@ -5484,6 +5494,7 @@
                     homeArrowPoints.hide(0);
                     homeArrowPoints.data.clear();
                     homeArrowLine.data.clear();
+                    capTetherLine.data.clear();
                 };
 
                 // --- Rysuje miasta ALBO lotniska dla podanego kraju, wg aktualnego window.airportMode.
@@ -5601,21 +5612,17 @@
                         container.children.push(am5.Circle.new(root, { radius: 12, fill: am5.color(0x00ff00), fillOpacity: 0.1 }));
 
                         if (dataItem.dataContext.title) {
-                            // UKLAD ETYKIETY (3 wiersze, kazdy opcjonalny poza pierwszym):
-                            //   FLAGA NAZWA_KRAJU
-                            //   VISITED CITIES: n
+                            // UKLAD ETYKIETY (kontener PIONOWY z tlem = zielona ramka):
+                            //   [FLAGA] NAZWA_KRAJU        <- rzad POZIOMY (naglowek)
+                            //   VISITED CITIES: n           <- wiersze statystyk (osobna etykieta), opcjonalne
                             //   MAX DISTANCE: MIASTO - n KM
-                            // Wiersze dokladamy TYLKO gdy sa dane. To wazne, bo ta sama gadka ("else")
-                            // obsluguje rowniez punkty trasy misji, ktore maja sam title (nazwe miasta)
-                            // i zadnych statystyk - tam etykieta ma zostac jednowierszowa jak dotad.
+                            // FLAGA to am5.Picture z base64 FLAGS[id], a NIE emoji: w canvasie amCharts na
+                            // Windows/Chrome emoji flagi renderuje sie jako gole litery ("PL") - ten sam
+                            // powod, dla ktorego caly DOM jedzie na obrazkach z FLAGS. Punkty trasy misji
+                            // maja sam title (bez id/statystyk) - dostaja wtedy sama nazwe, bez flagi, jak dotad.
                             var _dc = dataItem.dataContext;
-                            var _lines = [];
-                            // BEZ emoji flagi przed nazwa: etykieta to tekst w canvasie amCharts, a na
-                            // Windows/Chrome emoji flag renderuje sie jako gole litery ("PL POLAND") -
-                            // ten sam problem, przez ktory caly DOM przeszedl na obrazki z FLAGS.
-                            // W canvasie obrazka tanio nie wstawimy, wiec etykieta niesie sama nazwe.
-                            _lines.push(_dc.title);
-                            if (_dc.cities !== undefined && _dc.cities !== null) _lines.push("VISITED CITIES: " + _dc.cities);
+                            var _statLines = [];
+                            if (_dc.cities !== undefined && _dc.cities !== null) _statLines.push("VISITED CITIES: " + _dc.cities);
                             if (_dc.dist !== undefined && _dc.dist !== null) {
                                 // distLabel rozroznia "najdalsze odwiedzone miasto" od fallbacku na stolice,
                                 // zeby podpis nie klamal, gdy w kraju nie ma jeszcze zadnego miasta.
@@ -5624,17 +5631,31 @@
                                 // Watykan, Monako, Singapur) - bez tego wychodzi "VATICAN CITY / CAPITAL:
                                 // VATICAN CITY - 1317 KM".
                                 if (_dc.distCity && _dc.distCity !== String(_dc.title).toUpperCase()) _dl += _dc.distCity + " - ";
-                                _lines.push(_dl + _dc.dist + " KM");
+                                _statLines.push(_dl + _dc.dist + " KM");
                             }
-                            var _label = _lines.join("\n");
-                            var tooltipCont = container.children.push(am5.Container.new(root, { y: -20, centerX: am5.p50, centerY: am5.p100 }));
-                            tooltipCont.children.push(am5.Label.new(root, {
-                                text: _label,
-                                fill: am5.color(0xffffff), fontSize: 17, fontFamily: "Courier New", fontWeight: "bold",
+                            var _flagSrc = (typeof FLAGS !== 'undefined' && _dc.id && FLAGS[_dc.id]) ? FLAGS[_dc.id] : null;
+
+                            var tooltipCont = container.children.push(am5.Container.new(root, {
+                                y: -20, centerX: am5.p50, centerY: am5.p100, layout: root.verticalLayout,
                                 paddingTop: 5, paddingBottom: 5, paddingLeft: 10, paddingRight: 10,
-                                centerX: am5.p50, textAlign: "center",
                                 background: am5.RoundedRectangle.new(root, { fill: am5.color(0x000000), fillOpacity: 0.8, stroke: am5.color(0x00ff00), strokeWidth: 1, cornerRadiusTL: 5, cornerRadiusTR: 5, cornerRadiusBL: 5, cornerRadiusBR: 5 })
                             }));
+                            var _head = tooltipCont.children.push(am5.Container.new(root, { layout: root.horizontalLayout, centerX: am5.p50, x: am5.p50 }));
+                            if (_flagSrc) {
+                                _head.children.push(am5.Picture.new(root, { src: _flagSrc, width: 24, height: 16, centerY: am5.p50, marginRight: 8 }));
+                            }
+                            _head.children.push(am5.Label.new(root, {
+                                text: _dc.title,
+                                fill: am5.color(0xffffff), fontSize: 17, fontFamily: "Courier New", fontWeight: "bold",
+                                centerY: am5.p50
+                            }));
+                            if (_statLines.length) {
+                                tooltipCont.children.push(am5.Label.new(root, {
+                                    text: _statLines.join("\n"),
+                                    fill: am5.color(0xffffff), fontSize: 17, fontFamily: "Courier New", fontWeight: "bold",
+                                    centerX: am5.p50, x: am5.p50, textAlign: "center", marginTop: 3
+                                }));
+                            }
                         }
                     }
                     return am5.Bullet.new(root, { sprite: container });
