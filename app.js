@@ -4317,7 +4317,14 @@
             // fetcha zegara (ponizej) nie ma prawa juz nadpisac interwalu / pokazac obcej strefy czasowej.
             const _fbToken = (window._factbookToken = (window._factbookToken || 0) + 1);
 
-            fTarget.innerText = "INTEL: " + name + " · " + id.toUpperCase();
+            // Nazwa + kod kraju w naglowku sa LINKIEM do oficjalnej strony rzadowej (GOV_LINKS w intel.js,
+            // baza UN e-Government). _extVal daje spojna strzalke "↗" i zwraca sam tekst gdy brak wpisu -
+            // wiec kraje spoza bazy (terytoria UM, Kosowo...) zostaja zwyklym tekstem, bez martwego linku.
+            // innerHTML zamiast innerText -> nazwe trzeba zescapowac (Cote d'Ivoire itp. sa bezpieczne, ale
+            // &/</> w nazwie rozbilyby markup); URL z GOV_LINKS jest zaufany (na sztywno, bez cudzyslowow).
+            var _govUrl = (typeof GOV_LINKS !== 'undefined' && GOV_LINKS[id]) ? GOV_LINKS[id] : null;
+            var _nameEsc = String(name).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+            fTarget.innerHTML = "INTEL: " + _extVal(_nameEsc + " · " + id.toUpperCase(), _govUrl, "Oficjalna strona rządowa kraju (baza UN e-Government)");
             fPanel.innerHTML = '<div class="scanning-text">RETRIEVING DOSSIER...</div>';
 
             if (id.startsWith("UM-") || id === "UM") {
