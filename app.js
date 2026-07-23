@@ -4393,6 +4393,14 @@
                     const mszUrl = getMszLink(id); 
                     const unsplashUrl = `https://unsplash.com/s/photos/${countryNameSlug}`;
                     const atlasUrl = (typeof ATLAS_LINKS !== 'undefined' && ATLAS_LINKS[id]) ? ATLAS_LINKS[id] : `https://www.atlasobscura.com/things-to-do/${countryNameSlug}`;
+                    // POCIĄGI: przewodnik kolejowy seat61.com. PEŁNA baza RAIL_LINKS (intel.js) iso2->pełny URL -
+                    // slugi seat61 są nieregularne (France.htm, Czech.htm, SouthAmerica.htm#Brazil, wspólny wpis dla
+                    // Gruzji/Armenii/Azerbejdżanu...), więc trzymamy gotowy adres, nie generujemy slugu. Brak wpisu =
+                    // brak przycisku (nie zgadujemy - seat61 nie ma stron dla wszystkich krajów).
+                    const railUrl = (typeof RAIL_LINKS !== 'undefined' && RAIL_LINKS[id]) ? RAIL_LINKS[id] : null;
+                    const railBtnHtml = railUrl
+                        ? `<a href="${railUrl}" target="_blank" class="windy-btn" style="background: rgba(129, 140, 248, 0.15); border: 1px solid #818cf8; color: #818cf8;">🚆 POCIĄGI (SEAT61)</a>`
+                        : '';
                     // WATER: link do isthewatersafe.com WYŁĄCZNIE dla krajów z jawnej bazy WATER_SAFE_LINKS (intel.js).
                     // Nie zgadujemy slugu generycznie - brak wpisu = brak linku (serwis nie ma tej strony), sam tekst.
                     const waterSlug = (typeof WATER_SAFE_LINKS !== 'undefined' && WATER_SAFE_LINKS[id]) ? WATER_SAFE_LINKS[id] : null;
@@ -4567,6 +4575,7 @@
                             <a href="${tripUrl}" target="_blank" class="windy-btn" style="background: rgba(52, 224, 161, 0.15); border: 1px solid #34e0a1; color: #34e0a1;">🦉 TRIP ADVISOR</a>
                             <a href="${wikiUrl}" target="_blank" class="windy-btn" style="background: rgba(0, 212, 255, 0.15); border: 1px solid #00d4ff; color: #00d4ff;">🌐 WIKIVOYAGE</a>
                             <a href="${gmapsUrl}" target="_blank" class="windy-btn" style="background: rgba(66, 133, 244, 0.15); border: 1px solid #4285F4; color: #4285F4;">🗺️ GOOGLE MAPS</a>
+                            ${railBtnHtml}
                             <a href="${vaccinationsUrl}" target="_blank" class="windy-btn" style="background: rgba(106, 27, 154, 0.15); border: 1px solid #8E24AA; color: #BA68C8;">💉 SZCZEPIENIA</a>
                         </div>
                     `;
