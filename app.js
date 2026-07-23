@@ -6702,8 +6702,6 @@
         // (hideMissionDossier), czyszczenie kolejki (hideAchievementSplash). Ustawienie display:none
         // wprost zepsuloby te sciezki. #wherenow-overlay jako jedyny nie ma funkcji (zamykany inline
         // w swoim onclick) - dla niego jawny fallback nizej.
-        //
-        // Bramka PIN (#access-gate) CELOWO nie jest na liscie - nie ma byc zamykana klawiszem.
         window._ESC_OVERLAYS = [
             { id: "ach-splash-overlay",        hide: "hideAchievementSplash" },
             { id: "ach-detail-overlay",        hide: "hideAchievementDetail" },
