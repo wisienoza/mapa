@@ -4399,7 +4399,7 @@
                     // brak przycisku (nie zgadujemy - seat61 nie ma stron dla wszystkich krajów).
                     const railUrl = (typeof RAIL_LINKS !== 'undefined' && RAIL_LINKS[id]) ? RAIL_LINKS[id] : null;
                     const railBtnHtml = railUrl
-                        ? `<a href="${railUrl}" target="_blank" class="windy-btn" style="background: rgba(129, 140, 248, 0.15); border: 1px solid #818cf8; color: #818cf8;">🚆 POCIĄGI (SEAT61)</a>`
+                        ? `<a href="${railUrl}" target="_blank" class="windy-btn" style="grid-column:1 / -1; background: rgba(129, 140, 248, 0.15); border: 1px solid #818cf8; color: #818cf8;">🚆 POCIĄGI (SEAT61)</a>`
                         : '';
                     // WATER: link do isthewatersafe.com WYŁĄCZNIE dla krajów z jawnej bazy WATER_SAFE_LINKS (intel.js).
                     // Nie zgadujemy slugu generycznie - brak wpisu = brak linku (serwis nie ma tej strony), sam tekst.
@@ -4575,8 +4575,8 @@
                             <a href="${tripUrl}" target="_blank" class="windy-btn" style="background: rgba(52, 224, 161, 0.15); border: 1px solid #34e0a1; color: #34e0a1;">🦉 TRIP ADVISOR</a>
                             <a href="${wikiUrl}" target="_blank" class="windy-btn" style="background: rgba(0, 212, 255, 0.15); border: 1px solid #00d4ff; color: #00d4ff;">🌐 WIKIVOYAGE</a>
                             <a href="${gmapsUrl}" target="_blank" class="windy-btn" style="background: rgba(66, 133, 244, 0.15); border: 1px solid #4285F4; color: #4285F4;">🗺️ GOOGLE MAPS</a>
-                            ${railBtnHtml}
                             <a href="${vaccinationsUrl}" target="_blank" class="windy-btn" style="background: rgba(106, 27, 154, 0.15); border: 1px solid #8E24AA; color: #BA68C8;">💉 SZCZEPIENIA</a>
+                            ${railBtnHtml}
                         </div>
                     `;
 
