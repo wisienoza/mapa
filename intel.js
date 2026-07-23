@@ -1663,7 +1663,7 @@ const CAPITAL_COORDS = {
     "VN": "Brak wyznania / Buddyzm",
     "ID": "Islam",
     "MY": "Islam",
-    "BN": "Sunnizm",
+    "BN": "Islam",
     "PH": "Katolicyzm",
     "SG": "Buddyzm / Chrześcijaństwo",
     "KH": "Buddyzm",
