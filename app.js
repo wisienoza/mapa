@@ -2951,6 +2951,71 @@
             }).join('');
             el.style.display = "flex";
         };
+        // --- LISTA MIAST KRAJU (klik w licznik "MIASTA: X / Y" w profilu kraju) ---
+        // Zrodlo listy: CITIES_DB[id] (te same wpisy, z ktorych liczy sie licznik w updateFactbookPanel) -
+        // liczba pozycji zawsze zgadza sie z mianownikiem. Okno w tej samej konwencji co showContinentCountries
+        // (overlay budowany leniwie, zielone = odwiedzone, czerwone = nie). Sort CZYSTO ALFABETYCZNY (A-Z, pl),
+        // bo user prosil wprost o "liste alfabetyczna" - inaczej niz przy panstwach, gdzie zaliczone ida pierwsze.
+        // Klik w miasto: hideCountryCities() + showCityIntel(resolveCityIntel(...)) - dokladnie jak wiersz CAPITAL
+        // (profil miasta laduje sie w tym samym prawym panelu factbook, bez rotacji globusa).
+        window.hideCountryCities = function(){
+            var el = document.getElementById("country-cities-overlay");
+            if (el) el.style.display = "none";
+        };
+        window.showCountryCities = function(id){
+            if (typeof CITIES_DB === 'undefined' || !CITIES_DB[id] || !CITIES_DB[id].length) return;
+            var el = document.getElementById("country-cities-overlay");
+            if (!el) {
+                el = document.createElement("div");
+                el.id = "country-cities-overlay";
+                el.style.cssText = "display:none; position:fixed; inset:0; z-index:200; background:rgba(0,0,0,0.75); backdrop-filter:blur(4px); align-items:center; justify-content:center;";
+                el.innerHTML =
+                    '<div style="background:rgba(8,8,10,0.96); border:1px solid rgba(250,204,21,0.4); border-radius:8px; padding:22px; width:min(820px,92vw); max-height:85vh; overflow-y:auto; box-shadow:0 8px 40px rgba(0,0,0,0.6); font-family:\'Rajdhani\',sans-serif;">'
+                  +   '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">'
+                  +     '<h1 id="country-cities-title" style="margin:0; border:none; padding:0; font-size:1.3rem; display:flex; align-items:center; gap:10px;"></h1>'
+                  +     '<span id="country-cities-close" style="cursor:pointer; font-size:1.5rem; color:#8f9ba8; line-height:1;">✕</span>'
+                  +   '</div>'
+                  +   '<div id="country-cities-progress" style="font-family:\'JetBrains Mono\',monospace; font-size:0.85rem; letter-spacing:0.5px; color:#facc15; margin-bottom:14px;"></div>'
+                  +   '<div id="country-cities-body" style="display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:7px;"></div>'
+                  + '</div>';
+                document.body.appendChild(el);
+                el.addEventListener("click", function(e){ if (e.target === el) window.hideCountryCities(); });
+                document.getElementById("country-cities-close").onclick = window.hideCountryCities;
+            }
+            var vSet = window._visitedCitySet ? window._visitedCitySet() : {};
+            var rows = CITIES_DB[id].map(function(ci){
+                return { name: ci[0], lat: ci[1], lon: ci[2], on: !!vSet[window._cityId(id, ci[0])] };
+            }).sort(function(a,b){ return a.name.localeCompare(b.name, 'pl'); });
+            var done = rows.filter(function(r){ return r.on; }).length;
+            var cname = (typeof FACTBOOK !== 'undefined' && FACTBOOK[id]) ? FACTBOOK[id].name.common : id;
+            var flagSrc = window._flagSrc && window._flagSrc(id);
+            document.getElementById("country-cities-title").innerHTML =
+                (flagSrc ? '<img src="' + flagSrc + '" style="width:30px; height:20px; object-fit:cover; border:1px solid rgba(255,255,255,0.25);" alt="">' : '')
+              + '<span>🏙️ ' + cname + '</span>';
+            document.getElementById("country-cities-progress").innerText =
+                done + " / " + rows.length + " (" + Math.round((done / rows.length) * 100) + "%) — ODWIEDZONE";
+            var body = document.getElementById("country-cities-body");
+            body.innerHTML = rows.map(function(r, i){
+                var col = r.on ? "#86efac" : "#ff4d4d";
+                return '<div class="ccity-row" data-i="' + i + '" '
+                  +   'style="display:flex; gap:10px; align-items:center; padding:8px 10px; cursor:pointer; border:1px solid rgba(255,255,255,0.08); border-left:3px solid ' + col + '; border-radius:3px; background:rgba(255,255,255,0.04);">'
+                  +   '<span style="font-size:0.95rem; font-weight:600; letter-spacing:0.4px; color:' + col + '; line-height:1.25;">' + r.name + '</span>'
+                  +   '<span style="margin-left:auto; font-size:0.9rem; font-weight:700; color:' + col + ';">' + (r.on ? '✔' : '✕') + '</span>'
+                  + '</div>';
+            }).join('');
+            // Handlery przez addEventListener (nie inline onclick) - nazwy miast moga miec apostrof (N'Djamena)
+            // i rozwaliłyby onclick="...('N'Djamena')". Referencja do wiersza po data-i, wiec zero escapowania.
+            Array.prototype.forEach.call(body.querySelectorAll(".ccity-row"), function(node){
+                var r = rows[parseInt(node.getAttribute("data-i"), 10)];
+                node.onclick = function(){
+                    if (window.resolveCityIntel && window.showCityIntel) {
+                        window.hideCountryCities();
+                        window.showCityIntel(window.resolveCityIntel(r.name, r.lat, r.lon));
+                    }
+                };
+            });
+            el.style.display = "flex";
+        };
         // --- SPIS ODWIEDZONYCH PANSTW (klik w duzy licznik "38" w Operative Status) ---
         // "38" = currentScore = rankedVisits (uniqueVisited - EXCLUDED_CODES), liczone w refreshVisitedUI.
         // Sasiedzi licznika maja juz swoje klik-cele (nazwa rangi -> paszport, pasek XP -> plan rangi,
@@ -4394,7 +4459,7 @@
                         const _vSet = window._visitedCitySet ? window._visitedCitySet() : {};
                         const _vCount = _cList.filter(function(ci){ return !!_vSet[window._cityId(id, ci[0])]; }).length;
                         const _pct = Math.round((_vCount / _cList.length) * 100);
-                        citiesRowHtml = `<div class="fact-row"><span class="fact-key">MIASTA:</span><span class="fact-val" style="color:${_vCount > 0 ? '#22c55e' : '#8f9ba8'}">${_vCount} / ${_cList.length} (${_pct}%)</span></div>`;
+                        citiesRowHtml = `<div class="fact-row" id="cities-row" style="cursor:pointer;" title="Pokaż alfabetyczną listę miast"><span class="fact-key">MIASTA:</span><span class="fact-val" style="color:${_vCount > 0 ? '#22c55e' : '#8f9ba8'}">${_vCount} / ${_cList.length} (${_pct}%)</span></div>`;
                     }
 
                     fPanel.innerHTML = `
@@ -4510,6 +4575,13 @@
                             _capRow.style.cursor = "default";
                             _capRow.title = "";
                         }
+                    }
+
+                    // MIASTA: klik w licznik -> okno z alfabetyczna lista miast kraju (showCountryCities).
+                    // Wiersz istnieje tylko gdy CITIES_DB[id] niepuste (citiesRowHtml), wiec lista nigdy nie jest pusta.
+                    const _citiesRow = document.getElementById("cities-row");
+                    if (_citiesRow && window.showCountryCities) {
+                        _citiesRow.onclick = function(){ window.showCountryCities(id); };
                     }
 
                     if(coords) {
