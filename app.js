@@ -4343,6 +4343,7 @@
                     const countryNameSafe = stripDiacritics(countryBase).replace(/ /g, "+");
                     const capitalNameSafe = capitalForNumbeo.replace(/ /g, "+");
                     const numbeoUrl = `https://www.numbeo.com/cost-of-living/compare_cities.jsp?country1=Poland&country2=${countryNameSafe}&city1=Warsaw&city2=${capitalNameSafe}`;
+                    const numbeoCountryUrl = `https://www.numbeo.com/cost-of-living/country_result.jsp?country=${countryNameSafe}&displayCurrency=PLN`;
                     
                     const countryNameSlug = stripDiacritics(c.name.common).toLowerCase().replace(/ /g, "-");
                     const countryNameWiki = stripDiacritics(c.name.common).replace(/ /g, "_");
@@ -4500,7 +4501,7 @@
                         <div class="fact-row"><span class="fact-key">LANG:</span><span class="fact-val">${_extVal(_langDisplay, `https://www.localingual.com/?ISO=${id}`, _langTitle)}</span></div>
                         
                         <div class="fact-row"><span class="fact-key">RELIGION:</span><span class="fact-val" style="color:#ddd;">${religionHtml}</span></div>
-                        <div class="fact-row"><span class="fact-key">COST INDEX:</span><span class="fact-val" style="color:${costColor}; letter-spacing: 2px;">${costVal}</span></div>
+                        <div class="fact-row"><span class="fact-key">COST INDEX:</span><span class="fact-val" style="color:${costColor}; letter-spacing: 2px;">${_extVal(costVal, numbeoCountryUrl, "Koszty życia w tym kraju vs. PLN (Numbeo)")}</span></div>
 
                         <div class="fact-row" id="live-rate-row" style="display:none;">
                             <span class="fact-key">1 PLN =</span>
