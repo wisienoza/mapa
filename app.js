@@ -36,6 +36,7 @@
             if (typeof window.stopRot === 'function') window.stopRot();
             if (window.myFlightsOn) window.clearMyFlights();
             if (window.lineSeries) window.lineSeries.data.clear();
+            if (window._clearHomeArrow) window._clearHomeArrow();   // strzalka do domu + cienka smycz stolica->miasto
             if (window.groundLegSeries) window.groundLegSeries.data.clear();
             if (window.airportSeries) window.airportSeries.data.clear();
             window._clearCitySeries();
@@ -5647,13 +5648,14 @@
                             _head.children.push(am5.Label.new(root, {
                                 text: _dc.title,
                                 fill: am5.color(0xffffff), fontSize: 17, fontFamily: "Courier New", fontWeight: "bold",
-                                centerY: am5.p50
+                                lineHeight: am5.percent(100), paddingTop: 0, paddingBottom: 0, centerY: am5.p50
                             }));
                             if (_statLines.length) {
                                 tooltipCont.children.push(am5.Label.new(root, {
                                     text: _statLines.join("\n"),
                                     fill: am5.color(0xffffff), fontSize: 17, fontFamily: "Courier New", fontWeight: "bold",
-                                    centerX: am5.p50, x: am5.p50, textAlign: "center", marginTop: 3
+                                    lineHeight: am5.percent(130), paddingTop: 0, paddingBottom: 0,
+                                    centerX: am5.p50, x: am5.p50, textAlign: "center", marginTop: 2
                                 }));
                             }
                         }
