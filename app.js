@@ -4400,6 +4400,12 @@
 
                     const countryNameSlug = stripDiacritics(c.name.common).toLowerCase().replace(/ /g, "-");
                     const countryNameWiki = stripDiacritics(c.name.common).replace(/ /g, "_");
+                    // QPP (qppstudio) ma WLASNA konwencje slugow: male litery + PODKRESLENIA (costa_rica.htm,
+                    // bosnia_and_herzegovina.htm), a nie myslniki jak countryNameSlug. Fallback jechal wczesniej
+                    // na countryNameSlug, wiec KAZDA nazwa wielowyrazowa spoza QPP_LINKS wpadala w 404 serwisu
+                    // (audyt 2026-07-23: western-sahara / french-guiana lecialy w 404, a western_sahara /
+                    // french_guiana istnieja). Jednowyrazowe dzialaly przypadkiem - stad blad byl niewidoczny.
+                    const qppNameSlug = stripDiacritics(c.name.common).toLowerCase().replace(/ /g, "_");
 
                     let radioCode = id.toLowerCase();
                     if (id === 'GB') radioCode = 'uk'; 
@@ -4407,7 +4413,7 @@
 
                     let taSlug = (typeof TASTEATLAS_OVERRIDES !== 'undefined' && TASTEATLAS_OVERRIDES[id]) ? TASTEATLAS_OVERRIDES[id] : countryNameSlug;
                     const tasteAtlasUrl = `https://www.tasteatlas.com/${taSlug}`;
-                    const holidaysUrl = (typeof QPP_LINKS !== 'undefined' && QPP_LINKS[id]) ? QPP_LINKS[id] : `https://www.qppstudio.net/public-holidays/${countryNameSlug}.htm`;
+                    const holidaysUrl = (typeof QPP_LINKS !== 'undefined' && QPP_LINKS[id]) ? QPP_LINKS[id] : `https://www.qppstudio.net/public-holidays/${qppNameSlug}.htm`;
                     const simWikiUrl = (typeof SIM_WIKI_LINKS !== 'undefined' && SIM_WIKI_LINKS[id]) ? SIM_WIKI_LINKS[id] : `https://prepaid-data-sim-card.fandom.com/wiki/${countryNameWiki}`;
                     const mszUrl = getMszLink(id); 
                     const unsplashUrl = `https://unsplash.com/s/photos/${countryNameSlug}`;
