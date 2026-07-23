@@ -2,6 +2,7 @@
         // --- RYSOWANIE TRASY MISJI (nowe) ---
         window.displayMissionRoute = function(missionName) {
             if (typeof stopRot === 'function') stopRot();
+            if (window._exitActiveOverlayMode) window._exitActiveOverlayMode();   // klik w TARGET misji gasi VISA/CLIMATE/ZONES (patrz focusContinent)
             const mission = MISSIONS_DB.find(m => m.name === missionName);
             if (!mission || !mission.route) { console.log("Brak danych trasy dla misji: " + missionName); return; }
             lineSeries.data.clear();
@@ -2797,6 +2798,7 @@
             }
             if (typeof FLIGHTS_AP === 'undefined' || typeof FLIGHTS_LEGS === 'undefined') return;
             if (typeof window.stopRot === 'function') window.stopRot();
+            if (window._exitActiveOverlayMode) window._exitActiveOverlayMode();   // SHOW ON GLOBE gasi VISA/CLIMATE/ZONES (patrz focusContinent)
             if (window.pointSeries) window.pointSeries.data.clear();
             if (window.lineSeries) window.lineSeries.data.clear();
             if (window.airportSeries) window.airportSeries.data.clear();
@@ -6605,6 +6607,7 @@
                             // Pelne czyszczenie warstw: wczesniej klik w wynik-kraj czyscil tylko linie,
                             // wiec miasta i highlight POPRZEDNIO wybranego kraju zostawaly na globusie.
                             window._clearFocusLayers();
+                            if (window._exitActiveOverlayMode) window._exitActiveOverlayMode();   // wynik wyszukiwarki (kraj) gasi VISA/CLIMATE/ZONES (patrz focusContinent)
                             pointSeries.data.setAll([{
                                 geometry: { type: "Point", coordinates: [coords[1], coords[0]] },
                                 type: "target-search"
@@ -6651,6 +6654,7 @@
 
                     d.onclick = () => {
                         window._clearFocusLayers();
+                        if (window._exitActiveOverlayMode) window._exitActiveOverlayMode();   // wynik wyszukiwarki (miasto) gasi VISA/CLIMATE/ZONES (patrz focusContinent)
 
                         window._selectedCountryId = cc;
                         window.airportMode = false;
