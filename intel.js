@@ -2493,6 +2493,8 @@ const RAIL_LINKS = {
     "SI":"https://www.seat61.com/Slovenia.htm", "ES":"https://www.seat61.com/Spain.htm", "SE":"https://www.seat61.com/Sweden.htm",
     "CH":"https://www.seat61.com/Switzerland.htm", "TR":"https://www.seat61.com/Turkey.htm", "UA":"https://www.seat61.com/Ukraine.htm",
     "GB":"https://www.seat61.com/train-travel-in-britain.htm", "IE":"https://www.seat61.com/train-and-ferry-to-dublin.htm",
+    // Bialorus i Macedonia Pln. nie maja wlasnej strony - seat61 linkuje je do sasiadow (Russia.htm / Serbia.htm).
+    "BY":"https://www.seat61.com/Russia.htm#london-to-minsk-by-train", "MK":"https://www.seat61.com/Serbia.htm",
     // --- AZJA (Gruzja/Armenia/Azerbejdzan: jeden wspolny przewodnik) ---
     "BD":"https://www.seat61.com/Bangladesh.htm", "MM":"https://www.seat61.com/Burma.htm", "KH":"https://www.seat61.com/Cambodia.htm",
     "CN":"https://www.seat61.com/China.htm", "GE":"https://www.seat61.com/georgia-armenia-and-azerbaijan-by-train.htm",
@@ -2505,6 +2507,7 @@ const RAIL_LINKS = {
     "KR":"https://www.seat61.com/SouthKorea.htm", "LK":"https://www.seat61.com/SriLanka.htm", "SY":"https://www.seat61.com/Syria.htm",
     "TW":"https://www.seat61.com/Taiwan.htm", "TH":"https://www.seat61.com/Thailand.htm", "UZ":"https://www.seat61.com/Uzbekistan.htm",
     "VN":"https://www.seat61.com/Vietnam.htm",
+    "SG":"https://www.seat61.com/Malaysia.htm", // Singapur: linia Singapur-KL-Bangkok opisana na stronie Malezji
     "KZ":"https://www.seat61.com/central-asia-by-train.htm", "KG":"https://www.seat61.com/central-asia-by-train.htm",
     // --- AFRYKA ---
     "DZ":"https://www.seat61.com/Algeria.htm", "BW":"https://www.seat61.com/Botswana.htm", "CM":"https://www.seat61.com/Cameroon.htm",
@@ -2513,6 +2516,9 @@ const RAIL_LINKS = {
     "MZ":"https://www.seat61.com/Mozambique.htm", "NA":"https://www.seat61.com/Namibia.htm", "ZA":"https://www.seat61.com/SouthAfrica.htm",
     "SD":"https://www.seat61.com/Sudan.htm", "ZM":"https://www.seat61.com/Zambia.htm", "TN":"https://www.seat61.com/Tunisia.htm",
     "ZW":"https://www.seat61.com/Zimbabwe.htm",
+    // Mali i Tanzania nie maja wlasnej strony - wspoldziela ja z sasiadem: kolej Dakar-Bamako (Senegal.htm)
+    // oraz kolej TAZARA Tanzania-Zambia (Zambia.htm).
+    "ML":"https://www.seat61.com/Senegal.htm", "TZ":"https://www.seat61.com/Zambia.htm",
     // --- AMERYKA PN + SRODKOWA (Peru ma wlasna strone; Mexico/Panama to kotwice na SouthAmerica.htm) ---
     "CA":"https://www.seat61.com/Canada.htm", "CU":"https://www.seat61.com/Cuba.htm", "US":"https://www.seat61.com/UnitedStates.htm",
     "PE":"https://www.seat61.com/Peru.htm", "MX":"https://www.seat61.com/SouthAmerica.htm#Mexico", "PA":"https://www.seat61.com/SouthAmerica.htm#Panama",
