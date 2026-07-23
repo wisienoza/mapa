@@ -2890,6 +2890,10 @@
             `;
         };
         window.focusContinent = function(cid) {
+            // Przyciski prezentujace cos na globusie (kontynent, misja, MAX RANGE, trasy lotow, cele rang,
+            // lotniska) gasza aktywny tryb kolorowy VISA/CLIMATE/ZONES - tak samo jak klik w kraj w tych
+            // trybach (feedback 2026-07-23). _exitActiveOverlayMode jest no-opem gdy zaden tryb nie swieci.
+            if (window._exitActiveOverlayMode) window._exitActiveOverlayMode();
             var cont = (typeof CONTINENT_DATA !== 'undefined') ? CONTINENT_DATA.find(function(x){ return x.id === cid; }) : null;
             if (!cont || cont.lat === undefined) return;
             window._clearFocusLayers();
@@ -3313,6 +3317,7 @@
         };
         // Klik w kandydata: to samo co wybor kraju z wyszukiwarki (globus + pogoda + factbook).
         window.focusRankTarget = function(code) {
+            if (window._exitActiveOverlayMode) window._exitActiveOverlayMode();   // gasi VISA/CLIMATE/ZONES (patrz focusContinent)
             var coords = (typeof CAPITAL_COORDS !== 'undefined') ? CAPITAL_COORDS[code] : null;
             if (!coords) return;
             var name = (typeof FACTBOOK !== 'undefined' && FACTBOOK[code]) ? FACTBOOK[code].name.common.toUpperCase() : code;
@@ -3397,6 +3402,7 @@
                     var w = WONDERS.find(function(x){ return x.id === el.getAttribute("data-wid"); });
                     if (!w) return;
                     window._clearFocusLayers();
+                    if (window._exitActiveOverlayMode) window._exitActiveOverlayMode();   // gasi VISA/CLIMATE/ZONES (patrz focusContinent)
                     if (window.pointSeries) window.pointSeries.data.setAll([{ geometry: { type: "Point", coordinates: [w.lon, w.lat] }, type: "wonder", icon: w.icon }]);
                     if (typeof rotateGlobe === 'function') rotateGlobe(w.lat, w.lon);
                     if (window.updateWonderIntel) window.updateWonderIntel(w);
@@ -3609,6 +3615,7 @@
         // Poprzedniego samolota sprzata stopRot() nizej (jedyne miejsce sprzatajace - patrz jego definicja),
         // dlatego klik w NAJKROTSZY po NAJDLUZSZYM gasi lot zamiast zostawiac go nad niewidoczna trasa.
         window.focusFlightLeg = function(from, to, fly) {
+            if (window._exitActiveOverlayMode) window._exitActiveOverlayMode();   // gasi VISA/CLIMATE/ZONES (patrz focusContinent)
             var A = (typeof FLIGHTS_AP !== 'undefined') ? FLIGHTS_AP[from] : null;
             var B = (typeof FLIGHTS_AP !== 'undefined') ? FLIGHTS_AP[to] : null;
             if (!A || !B) return;
@@ -3626,6 +3633,7 @@
             if (fly && window._flyMaxRange) window._flyMaxRange([A[0], A[1]], [B[0], B[1]]);
         };
         window.focusAirport = function(iata) {
+            if (window._exitActiveOverlayMode) window._exitActiveOverlayMode();   // gasi VISA/CLIMATE/ZONES (patrz focusContinent)
             var a = (typeof FLIGHTS_AP !== 'undefined') ? FLIGHTS_AP[iata] : null;
             if (!a) return;
             window._clearFocusLayers();
@@ -5777,6 +5785,7 @@
                 window.cycleMission = function(delta) {
                     const missions = (typeof MISSIONS_DB !== 'undefined') ? MISSIONS_DB : [];
                     if (missions.length < 2) return;
+                    if (window._exitActiveOverlayMode) window._exitActiveOverlayMode();   // gasi VISA/CLIMATE/ZONES (patrz focusContinent)
                     if (window.selectedMissionIndex === null || window.selectedMissionIndex === undefined) window.selectedMissionIndex = 0;
                     window.missionManual = true;
                     window._missionManualTs = Date.now();   // od tego momentu liczy sie minuta recznego wyboru
@@ -6037,6 +6046,7 @@
                 window._dossierGo = function(delta){
                     var missions = (typeof MISSIONS_DB !== "undefined") ? MISSIONS_DB : [];
                     if (missions.length < 2) return;
+                    if (window._exitActiveOverlayMode) window._exitActiveOverlayMode();   // gasi VISA/CLIMATE/ZONES (patrz focusContinent)
                     window.missionManual = true;
                     window._missionManualTs = Date.now();   // minuta recznego wyboru liczy sie od ostatniego kliku
                     window.selectedMissionIndex = ((window.selectedMissionIndex || 0) + delta + missions.length) % missions.length;
@@ -6331,6 +6341,7 @@
                     // miasto realnie lezy gdzie indziej niz lotnisko - przy zwyklych danych lotnisko stoi
                     // przy miescie (OKA i Naha dzieli ~5 km), wiec linia bylaby niewidocznym punktem.
                     var _maxRangeClick = function(ev) {
+                        if (window._exitActiveOverlayMode) window._exitActiveOverlayMode();   // gasi VISA/CLIMATE/ZONES (patrz focusContinent)
                         // Klik w SAM wiersz MIASTO (.mr-city): zamiast rysowac trase robimy MAX ZOOM na najdalsze
                         // miasto + jego intel. Sprawdzamy realny cel klika przez closest() - dziala tak samo, czy
                         // klik wpadl w div, czy w span "MIASTO:" wewnatrz, i BEZ wyscigu z bubbling (dawny osobny
@@ -6406,6 +6417,7 @@
                         el.innerHTML = `<span>${isV?'[✓]':'[🔒]'} ${w.icon} ${w.name}${(w.winner||w.honorary)?' 🏆':''}</span>`;
                         el.onclick = function() {
                             window._clearFocusLayers();
+                            if (window._exitActiveOverlayMode) window._exitActiveOverlayMode();   // gasi VISA/CLIMATE/ZONES (patrz focusContinent)
                             pointSeries.data.setAll([{ geometry: { type: "Point", coordinates: [w.lon, w.lat] }, type: "wonder", icon: w.icon }]);
                             rotateGlobe(w.lat, w.lon);
                             window.updateWonderIntel(w);
