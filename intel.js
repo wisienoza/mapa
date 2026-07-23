@@ -74,7 +74,7 @@ const INTEL_DB = {
     "KG": { p: "220V [ADAPTER: NIE]", w: "☠️ TYLKO BUTELKA", t: "5-10%" },
     "LA": { p: "230V [ADAPTER: MOŻE]", w: "☠️ TYLKO BUTELKA", t: "Opcjonalne" },
     "LB": { p: "220V [ADAPTER: NIE]", w: "☠️ TYLKO BUTELKA", t: "10%" },
-    "MY": { p: "240V [ADAPTER: TAK]", w: "☠️ RACZEJ BUTELKA", t: "10% (Wliczone)" },
+    "MY": { p: "240V [ADAPTER: TAK]", w: "⚠️ RACZEJ BUTELKA", t: "10% (Wliczone)" },
     "MV": { p: "230V [ADAPTER: TAK]", w: "⚠️ RACZEJ BUTELKA", t: "10%" },
     "MN": { p: "220V [ADAPTER: NIE]", w: "☠️ TYLKO BUTELKA", t: "Drobne" },
     "MM": { p: "230V [ADAPTER: MOŻE]", w: "☠️ TYLKO BUTELKA", t: "Opcjonalne" },
@@ -223,7 +223,7 @@ const INTEL_DB = {
     "KY": { p: "120V [ADAPTER: TAK]", w: "✅ OK (Odsalana)", t: "10-15%" }, // Kajmany
     "BM": { p: "120V [ADAPTER: TAK]", w: "✅ OK (Deszczówka)", t: "15-17% (Automat)" }, // Bermudy
     "FK": { p: "240V [ADAPTER: TAK]", w: "✅ OK", t: "10%" }, // Falklandy
-    "PS": { p: "230V [ADAPTER: TAK]", w: "⚠️ TYLKO BUTELKA", t: "Oczekiwane" }, // Palestyna
+    "PS": { p: "230V [ADAPTER: TAK]", w: "☠️ TYLKO BUTELKA", t: "Oczekiwane" }, // Palestyna
     "EH": { p: "220V [ADAPTER: NIE]", w: "☠️ TYLKO BUTELKA", t: "Oczekiwane" }, // Sahara Zach.
 	
 	// === DODATEK: DROBNICA, WYSPY I TERYTORIA ZALEŻNE (FULL ISO) ===
@@ -597,7 +597,6 @@ const QPP_LINKS = {
 					"PR": "puerto-rico/san-juan",
 					"FK": "falkland/stanley",
 					"RE": "reunion/saint-pierre",
-					"PF": "france/papeete",
 					"GP": "guadeloupe/basse-terre",
 					"MQ": "martinique/fort-de-france",
 					"NC": "france/noumea",
@@ -891,9 +890,7 @@ const QPP_LINKS = {
             "MK": "macedonia",
             "BA": "bih",
             "XK": "kosovo", // TasteAtlas czasem to ma, czasem nie, ale warto spróbować
-            "CD": "congo",
             "CI": "ivory-coast",
-            "FM": "micronesia",
             "KN": "saint-kitts-and-nevis",
             "LC": "saint-lucia",
             "VC": "saint-vincent-and-the-grenadines",
@@ -1694,7 +1691,6 @@ const CAPITAL_COORDS = {
     "AZ": "Szyizm",
     "TW": "Buddyzm / Taoizm",
     "HK": "Brak wyznania / Buddyzm",
-    "MO": "Brak wyznania / Buddyzm",
     "BT": "Buddyzm",
     "MV": "Islam",
     "TL": "Katolicyzm", // Timor Wschodni
@@ -1802,8 +1798,6 @@ const CAPITAL_COORDS = {
     "PG": "Protestantyzm",
     "SB": "Protestantyzm",
     "VU": "Protestantyzm",
-    "NC": "Katolicyzm",
-    "PF": "Protestantyzm",
     "WS": "Protestantyzm", // Samoa
     "TO": "Protestantyzm", // Tonga
     "TV": "Protestantyzm", // Tuvalu
