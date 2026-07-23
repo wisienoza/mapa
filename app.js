@@ -2720,7 +2720,7 @@
             var _cDistRow = '';
             if (typeof getDist === 'function' && dc.lat != null && dc.lng != null) {
                 var _cDist = Math.round(getDist(52.2297, 21.0122, dc.lat, dc.lng));
-                _cDistRow = '<div class="fact-row"><span class="fact-key">DIST. WAW:</span><span class="fact-val" style="color:#00ccff;">' + (_cDist < 1 ? "0 KM (HOME)" : _cDist.toLocaleString("pl-PL") + " KM") + '</span></div>';
+                _cDistRow = '<div class="fact-row"><span class="fact-key">DISTANCE TO WARSAW:</span><span class="fact-val" style="color:#00ccff;">' + (_cDist < 1 ? "0 KM (HOME)" : _cDist.toLocaleString("pl-PL") + " KM") + '</span></div>';
             }
             var _cVisitedRow = '';
             var _isV = false;
@@ -2729,7 +2729,7 @@
                 _isV = !!(window._visitedCitySet && window._visitedCitySet()[_vid]);
                 _cVisitedRow = '<div class="fact-row" id="city-visited-row" style="cursor:' + (_isV ? 'default' : 'pointer') + ';" title="' + (_isV ? '' : 'Kliknij, zeby oznaczyc jako odwiedzone') + '"><span class="fact-key">ODWIEDZONE:</span><span class="fact-val" id="city-visited-val" style="color:' + (_isV ? '#22c55e' : '#8f9ba8') + ';">' + (_isV ? '✅ TAK' : '☐ NIE (kliknij)') + '</span></div>';
             }
-            // Rome2Rio: planer trasy z Warszawy do tego miasta (jak wiersz DIST. WAW w profilu kraju).
+            // Rome2Rio: planer trasy z Warszawy do tego miasta (jak wiersz DISTANCE TO WARSAW w profilu kraju).
             // Pomijamy, gdy miasto to praktycznie sama Warszawa (dist < 1 km) - trasa Warsaw->Warsaw jest bez sensu.
             // Booking: wyszukiwarka noclegow w tym miescie - zawsze. stripDiacritics zywe z intel.js (guard na wszelki wypadek).
             var _r2rUrl = null, _bkgUrl = null;
@@ -4506,11 +4506,14 @@
                     const wawLat = 52.2297; const wawLon = 21.0122;
                     let distance = "N/A";
                     if (c.latlng) distance = Math.round(getDist(wawLat, wawLon, c.latlng[0], c.latlng[1])).toLocaleString() + " KM";
-                    // DIST. WAW -> planer trasy z Warszawy do stolicy (rome2rio). Pomijamy dla domu (PL,
+                    // DISTANCE TO WARSAW -> planer trasy z Warszawy do stolicy (rome2rio). Pomijamy dla domu (PL,
                     // Warszawa->Warszawa) i gdy nie znamy stolicy lub dystansu.
                     const rome2rioUrl = (id !== "PL" && capitalRaw !== "N/A" && distance !== "N/A")
                         ? "https://www.rome2rio.com/map/Warsaw/" + encodeURIComponent(stripDiacritics(capitalRaw))
                         : null;
+                    // Wiersz DIST. WARSAW pomijamy CALKOWICIE dla domu (PL): Warszawa->srodek Polski to bezsens.
+                    const distWawRowHtml = (id === "PL") ? "" :
+                        `<div class="fact-row"><span class="fact-key">DISTANCE TO WARSAW:</span><span class="fact-val" style="color:#00ccff">${_extVal(distance, rome2rioUrl, "Jak dojechać z Warszawy do: " + capitalRaw + " (rome2rio)")}</span></div>`;
 
                     const _isCountryVisited = (typeof VISITED_COUNTRIES !== 'undefined') && VISITED_COUNTRIES.indexOf(id) >= 0;
                     const countryVisitedRowHtml = '<div class="fact-row" id="country-visited-row" style="cursor:' + (_isCountryVisited ? 'default' : 'pointer') + ';" title="' + (_isCountryVisited ? '' : 'Kliknij, zeby oznaczyc jako odwiedzone') + '"><span class="fact-key">ODWIEDZONE:</span><span class="fact-val" id="country-visited-val" style="color:' + (_isCountryVisited ? '#22c55e' : '#8f9ba8') + ';">' + (_isCountryVisited ? '✅ TAK' : '☐ NIE (kliknij)') + '</span></div>';
@@ -4535,8 +4538,8 @@
 
                         <div class="fact-row" id="capital-row" style="cursor:pointer;" title="Pokaż profil stolicy"><span class="fact-key">CAPITAL:</span><span class="fact-val">${capitalRaw.toUpperCase()}</span></div>
                         <div class="fact-row"><span class="fact-key">DRIVING:</span><span class="fact-val">${drivingHtml}${conventionHtml}</span></div>
-                        <div class="fact-row"><span class="fact-key">DIST. WAW:</span><span class="fact-val" style="color:#00ccff">${_extVal(distance, rome2rioUrl, "Jak dojechać z Warszawy do: " + capitalRaw + " (rome2rio)")}</span></div>
-                        
+                        ${distWawRowHtml}
+
                         <div class="fact-row"><span class="fact-key">POWER:</span><span class="fact-val" style="color:${pColor}">${_extVal(intel.p, "https://www.iec.ch/world-plugs", "Wtyczki i napięcia świata (IEC World Plugs) — kraj wybierasz z listy na stronie")}</span></div>
                         <div class="fact-row"><span class="fact-key">WATER:</span><span class="fact-val" style="color:${intel.w.includes('✅') ? '#00ff00' : '#dc2626'}">${_extVal(intel.w, waterUrl, "Sprawdź, czy woda z kranu jest bezpieczna (isthewatersafe.com)")}</span></div>
                         <div class="fact-row"><span class="fact-key">TIPPING:</span><span class="fact-val">${_extVal(intel.t.toUpperCase(), "https://www.visualcapitalist.com/cp/mapped-how-much-should-you-tip-in-each-country/", "Ile dać napiwku w każdym kraju — mapa (Visual Capitalist)")}</span></div>
