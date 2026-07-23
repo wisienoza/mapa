@@ -1514,7 +1514,10 @@ const CAPITAL_COORDS = {
 	"TF": [-49.35, 70.21],  // Port-aux-Français
 	"HM": [-53.01, 73.39],  // Heard Island
 	"BV": [-54.42, 3.34],   // Bouvet Island
-	"AQ": [-77.85, 166.67], // McMurdo Station (Antarktyda)
+	// AQ (Antarktyda) NIE MA wpisu: to nie panstwo i nie ma stolicy. Wspolrzedne McMurdo
+	// [-77.85,166.67] robily z niej phantomowa "stolice" - zolta kropka "capital" po kliknieciu
+	// (renderCountryPlaces) + klikalny wiersz CAPITAL "N/A" linkujacy do syntetycznego miasta
+	// (updateFactbookPanel). AQ jest w EXCLUDED_CODES, wiec brak coords niczego wiecej nie psuje.
 	// Koordynaty dla poszczególnych wysp UM:
 "UM-DQ": [-0.37, -160.02], // Jarvis Island
 "UM-FQ": [0.18, -176.47],  // Baker Island
