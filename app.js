@@ -4473,7 +4473,7 @@
                         const _vSet = window._visitedCitySet ? window._visitedCitySet() : {};
                         const _vCount = _cList.filter(function(ci){ return !!_vSet[window._cityId(id, ci[0])]; }).length;
                         const _pct = Math.round((_vCount / _cList.length) * 100);
-                        citiesRowHtml = `<div class="fact-row" id="cities-row" style="cursor:pointer;" title="Pokaż alfabetyczną listę miast"><span class="fact-key">MIASTA:</span><span class="fact-val" style="color:${_vCount > 0 ? '#22c55e' : '#8f9ba8'}">${_vCount} / ${_cList.length} (${_pct}%)</span></div>`;
+                        citiesRowHtml = `<div class="fact-row" id="cities-row" style="cursor:pointer;" title="Pokaż alfabetyczną listę miast"><span class="fact-key">MIASTA:</span><span class="fact-val" style="color:${_vCount > 0 ? '#22c55e' : '#8f9ba8'}">${_vCount} / ${_cList.length} (${_pct}%)<span class="int-ico">›</span></span></div>`;
                     }
 
                     fPanel.innerHTML = `
@@ -4585,6 +4585,9 @@
                             _capRow.onclick = function(){
                                 window.showCityIntel(window.resolveCityIntel(capitalRaw, coords[0], coords[1]));
                             };
+                            // Znaczek linku wewnetrznego - tylko gdy wiersz jest realnie klikalny (jest stolica).
+                            const _capVal = _capRow.querySelector(".fact-val");
+                            if (_capVal && !_capVal.querySelector(".int-ico")) _capVal.insertAdjacentHTML("beforeend", '<span class="int-ico">›</span>');
                         } else {
                             _capRow.style.cursor = "default";
                             _capRow.title = "";

@@ -237,6 +237,10 @@
         /* Znaczek zewnetrznego linku (strzalka) dopisywany PO wartosci wiersza fact-row - patrz _extVal() w app.js.
            Przygaszony i mniejszy niz tekst, zeby nie konkurowal z kolorem wartosci (zielony/cyan/zolty itd). */
         .ext-ico { font-size: 0.7em; opacity: 0.55; margin-left: 4px; }
+        /* Znaczek linku WEWNETRZNEGO (chevron) - wiersz nie prowadzi na zewnatrz (nowa karta jak .ext-ico),
+           tylko otwiera inny panel/okno w aplikacji (profil stolicy z #capital-row, lista miast z #cities-row).
+           Inny glif niz ↗, zeby uzytkownik odroznil "wejdz w panel" od "otworz strone". */
+        .int-ico { font-size: 0.95em; opacity: 0.5; margin-left: 5px; font-weight: 400; }
         /* Wiersze list w intelu rangi/misji niosa dluzszy opis niz zwykly factbook (dystans + punkt
            odniesienia + wiza + ceny), a globalny .fact-val jest jednolinijkowy z wielokropkiem - tu
            pozwalamy zawijac zamiast ucinac. */
