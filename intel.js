@@ -948,8 +948,20 @@ const QPP_LINKS = {
 			// WF: dziala TYLKO z makronem. To wlasnie dla tego wpisu app.js NIE strippuje juz diakrytykow
 			// z wartosci override - po stripie ("Mata'utu") Numbeo tego miasta nie znajduje.
 			"Mata-Utu": "Mata Utu (Matā'utu)",
-			"Sana'a": "Sanaa"
-        };
+			"Sana'a": "Sanaa",
+			// --- AUDYT 2026-07-24 (pelny przebieg 245/245) ---
+			// WZOR: FACTBOOK podaje stolice OFICJALNA, a Numbeo zbiera dane tam, gdzie mieszkaja ludzie.
+			// Dla tych krajow stolica byla w bazie Numbeo, ale BEZ CEN (strona ~14,5 KB z komunikatem
+			// "No data for one of these cities") - czyli link dzialal i nie dawal nic. Podmiana na
+			// najwieksze/gospodarcze miasto daje pelne dane. Wszystkie sprawdzone na zywo.
+			"Gitega": "Bujumbura",        // BI: dawna stolica, Gitega bez danych
+			"Porto-Novo": "Cotonou",      // BJ: Cotonou to faktyczne centrum kraju
+			"Lobamba": "Mbabane",         // SZ: Lobamba krolewska, Mbabane administracyjna
+			"South Tarawa": "Tarawa",     // KI: Numbeo indeksuje atol bez czlonu "South"
+			// MF: KOMPROMIS ZAAKCEPTOWANY PRZEZ USERA. Numbeo nie prowadzi Marigot (strona francuska).
+			// Philipsburg lezy po HOLENDERSKIEJ stronie tej samej wyspy - dane sa z Sint Maarten, nie
+			// z Saint-Martin. Idzie w parze z podmiana kraju na "Sint+Maarten" w slowniku nizej.
+			"Marigot": "Philipsburg"
 		
 		// --- NUMBEO COUNTRY FIX ---
         const NUMBEO_COUNTRY_OVERRIDES = {
