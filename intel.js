@@ -1115,40 +1115,6 @@ const QPP_LINKS = {
 		
 		
 
-        // --- MSZ MAPPING (HARDCODED from your list) ---
-        const MSZ_MAPPING = {
-            "AF": "afganistan", "AL": "albania", "DZ": "algieriainformacje", "AD": "andora", "AO": "angola", "AG": "antigua-i-barbuda",
-            "SA": "arabia-saudyjska", "AR": "argentyna", "AM": "armenia", "AU": "australia", "AT": "austria", "AZ": "azerbejdzan",
-            "BS": "bahamy", "BH": "bahrajn", "BD": "bangladesz", "BB": "barbados", "BE": "belgia", "BZ": "belize", "BJ": "benin",
-            "BT": "bhutan", "BY": "bialorus", "BO": "boliwia", "BA": "bosnia-i-hercegowina", "BW": "botswana", "BR": "brazylia",
-            "BN": "brunei-darussalam", "BG": "bulgaria", "BF": "burkina-faso", "BI": "burundi", "CL": "chile", "CN": "chiny",
-            "HR": "chorwacja", "CY": "cypr", "TD": "czad", "ME": "czarnogora", "CZ": "czechy", "DK": "dania", "CD": "demokratyczna-republika-konga",
-            "DM": "dominika", "DO": "dominikana", "DJ": "dzibuti", "EG": "egipt", "EC": "ekwador", "ER": "erytrea", "EE": "estonia",
-            "SZ": "eswatini", "ET": "etiopia", "FJ": "fidzi", "PH": "filipiny", "FI": "finlandia", "FR": "francja", "GA": "gabon",
-            "GM": "gambia", "GH": "ghana", "GR": "grecja", "GD": "grenada", "GE": "gruzja", "GY": "gujana", "GT": "gwatemala",
-            "GN": "gwinea", "GW": "gwinea-bissau", "GQ": "gwinea-rownikowa", "HT": "haiti", "ES": "hiszpania", "NL": "holandia",
-            "HN": "honduras", "HK": "hongkong", "IN": "indie", "ID": "indonezja", "IQ": "irak1", "IR": "iran", "IE": "irlandia",
-            "IS": "islandia", "IL": "izrael", "JM": "jamajka", "JP": "japonia", "YE": "jemen", "JO": "jordania", "KH": "kambodza",
-            "CM": "kamerun", "CA": "kanada", "QA": "katar", "KZ": "kazachstan", "KE": "kenia", "KG": "kirgistan", "KI": "kiribati",
-            "CO": "kolumbia", "KM": "komory", "CG": "kongo", "KP": "korea-polnocna", "KR": "korea-poludniowa", "XK": "kosowo",
-            "CR": "kostaryka", "CU": "kuba", "KW": "kuwejt", "LA": "laos", "LS": "lesotho", "LB": "liban", "LR": "liberia",
-            "LY": "libia", "LI": "liechtenstein", "LT": "litwa", "LU": "luksemburg", "MK": "macedoniapolnocna", "MG": "madagaskar",
-            "MW": "malawi", "MV": "malediwy", "MY": "malezja", "ML": "mali", "MT": "malta", "MA": "maroko", "MR": "mauretania",
-            "MU": "mauritius", "MX": "meksyk", "FM": "mikronezja", "MM": "mjanma", "MD": "moldawia", "MC": "monako", "MN": "mongolia",
-            "MZ": "mozambik", "NA": "namibia", "NR": "nauru", "NP": "nepal", "DE": "niemcy", "NE": "niger", "NG": "nigeria",
-            "NI": "nikaragua", "NU": "niue", "NO": "norwegia", "NZ": "nowa-zelandia", "OM": "oman", "LV": "otwa", "PK": "pakistan",
-            "PW": "palau", "PS": "palestyna", "PA": "panama", "PG": "papua-nowa-gwinea", "PY": "paragwaj", "PE": "peru", "PT": "portugalia",
-            "ZA": "republika-poludniowej-afryki", "CF": "republika-rodkowoafrykanska", "CV": "republika-zielonego-przyladka", "RU": "rosja",
-            "RO": "rumunia", "RW": "rwanda", "LC": "saint-lucia", "VC": "saint-vincent-i-grenadyny", "SV": "salwador", "WS": "samoa",
-            "SM": "san-marino", "SN": "senegal", "RS": "serbia", "SC": "seszele", "SL": "sierra-leone", "SG": "singapur", "SK": "slowacja",
-            "SI": "slowenia", "SO": "somalia", "LK": "sri-lanka", "KN": "st-kitts-nevis", "US": "stany-zjednoczone-ameryki", "SD": "sudan",
-            "SS": "sudan-poludniowy", "SR": "surinam", "SY": "syria", "CH": "szwajcaria", "SE": "szwecja", "TJ": "tadzykistan",
-            "TH": "tajlandia", "TW": "tajwan", "TZ": "tanzania", "TL": "timor-wschodni", "TG": "togo", "TO": "tonga", "TT": "trynidad-i-tobago",
-            "TN": "tunezja", "TR": "turcja", "TM": "turkmenistan", "TV": "tuvalu", "UG": "uganda", "UA": "ukraina", "UY": "urugwaj",
-            "UZ": "uzbekistan", "VU": "vanuatu", "VA": "watykan", "HU": "wegry", "VE": "wenezuela", "GB": "wielka-brytania", "VN": "wietnam",
-            "IT": "wlochy", "CI": "wybrzeze-kosci-sloniowej", "CK": "wyspy-cooka", "MH": "wyspy-marshalla", "SB": "wyspy-salomona",
-            "ST": "wyspy-wietego-tomasza-i-ksiazeca", "ZM": "zambia", "ZW": "zimbabwe", "AE": "zjednoczone-emiraty-arabskie"
-        };
 		
 // --- SAFETY INTEL (GLOBAL PEACE INDEX + WIKTOR'S CORRECTION) ---
         // 1=🟢 SAFE (Luz), 2=🟡 CAUTION (Oczy dookoła głowy), 3=🟠 RISKY (Nie chodź nocą), 
@@ -2408,84 +2374,6 @@ function getMszLink(cca2) {
 // Wake) - nie da się ich odwiedzić, nie mają flag ani wpisu w FACTBOOK, a liczyły się do XP.
 const EXCLUDED_CODES = ["GL", "PR", "GF", "RE", "PF", "GP", "MQ", "NC", "KY", "BM", "FK", "PS", "EH", "FO", "GI", "IM", "JE", "GG", "AX", "SJ", "AW", "CW", "SX", "BQ", "BL", "MF", "PM", "AI", "VG", "VI", "TC", "MS", "SH", "GS", "YT", "IO", "MO", "HK", "GU", "MP", "AS", "CK", "NU", "TK", "WF", "NF", "PN", "CX", "CC", "TF", "HM", "BV", "AQ", "PL", "UM", "UM-DQ", "UM-FQ", "UM-HQ", "UM-JQ", "UM-KQ", "UM-MQ", "UM-NQ", "UM-PQ", "UM-WQ"];
 
-// === MAPA LOTNISK: kod kraju -> slug guide'u na sleepinginairports.net ===
-// URL: https://www.sleepinginairports.net/guides/${slug}.htm
-// Glowny (najruchliwszy miedzynarodowy) port kraju/terytorium. 189 pozycji. Reszta -> fallback wyszukiwania.
-const AIRPORT_GUIDES = {
-    // --- EUROPA ---
-    "AL": "tirana-airport-guide", "AT": "vienna-airport-guide", "BE": "brussels-zaventem-airport-guide",
-    "BA": "sarajevo-airport-guide", "BG": "sofia-airport-guide", "BY": "minsk-airport-guide",
-    "HR": "zagreb-airport-guide", "CY": "larnaca-airport-guide", "CZ": "prague-airport-guide",
-    "DK": "copenhagen-kastrup-airport-guide", "EE": "tallinn-airport-guide", "FI": "helsinki-vantaa-airport-guide",
-    "FR": "paris-charles-de-gaulle-airport-guide", "DE": "frankfurt-airport-guide", "GR": "athens-airport-guide",
-    "HU": "budapest-airport-guide", "IS": "reykjavik-keflavik-airport-guide", "IE": "dublin-airport-guide",
-    "IT": "rome-fiumicino-airport-guide", "XK": "pristina-airport-guide", "LV": "riga-airport-guide",
-    "LT": "vilnius-airport-guide", "LU": "luxembourg-airport-guide", "MT": "malta-airport-guide",
-    "MD": "chisinau-airport-guide", "ME": "podgorica-airport-guide", "NL": "amsterdam-airport-guide",
-    "MK": "skopje-airport-guide", "NO": "oslo-gardermoen-airport-guide", "PL": "warsaw-chopin-airport-guide",
-    "PT": "lisbon-airport-guide", "RO": "bucharest-airport-guide", "RU": "moscow-sheremetyevo-airport-guide",
-    "RS": "belgrade-airport-guide", "SK": "bratislava-airport-guide", "SI": "ljubljana-airport-guide",
-    "ES": "madrid-barajas-airport-guide", "SE": "stockholm-arlanda-airport-guide", "CH": "zurich-airport-guide",
-    "UA": "kyiv-boryspil-airport-guide", "GB": "london-heathrow-airport-guide",
-    // --- Europejskie terytoria zalezne ---
-    "FO": "faroe-islands-vagar-airport-guide", "GG": "guernsey-airport-guide", "JE": "jersey-airport-guide",
-    "IM": "isle-of-man-airport-guide", "SJ": "svalbard-airport-guide",
-    // --- AZJA ---
-    "CN": "beijing-capital-airport-guide", "HK": "hong-kong-airport-guide", "MO": "macau-airport-guide",
-    "TW": "taipei-taoyuan-airport-guide", "JP": "tokyo-narita-airport-guide", "KR": "seoul-incheon-airport-guide",
-    "KP": "pyongyang-airport-guide", "MN": "ulaanbaatar-airport-guide", "TH": "bangkok-suvarnabhumi-airport-guide",
-    "VN": "hanoi-airport-guide", "LA": "vientiane-airport-guide", "KH": "phnom-penh-airport-guide",
-    "MM": "yangon-airport-guide", "MY": "kuala-lumpur-airport-guide", "SG": "singapore-changi-airport-guide",
-    "ID": "jakarta-soekarno-hatta-airport-guide", "PH": "manila-airport-guide", "IN": "new-delhi-airport-guide",
-    "PK": "karachi-airport-guide", "BD": "dhaka-airport-guide", "LK": "colombo-bandaranaike-airport-guide",
-    "MV": "male-airport-guide", "NP": "kathmandu-airport-guide", "BT": "paro-airport-guide",
-    "AF": "kabul-airport-guide", "KZ": "almaty-airport-guide", "KG": "bishkek-manas-airport-guide",
-    "TJ": "dushanbe-airport-guide", "UZ": "tashkent-airport-guide", "GE": "tbilisi-airport-guide",
-    "AM": "yerevan-airport-guide", "AZ": "baku-airport-guide",
-    // --- BLISKI WSCHOD ---
-    "TR": "istanbul-airport-guide", "IR": "tehran-airport-guide", "IQ": "baghdad-airport-guide",
-    "LB": "beirut-airport-guide", "IL": "tel-aviv-airport-guide", "JO": "amman-airport-guide",
-    "SA": "jeddah-airport-guide", "AE": "dubai-airport-guide", "QA": "doha-airport-guide",
-    "OM": "muscat-airport-guide", "KW": "kuwait-city-airport-guide", "BH": "bahrain-airport-guide",
-    // --- AFRYKA ---
-    "EG": "cairo-airport-guide", "MA": "casablanca-airport-guide", "DZ": "algiers-airport-guide",
-    "TN": "tunis-airport-guide", "SD": "khartoum-airport-guide", "SS": "juba-airport-guide",
-    "ET": "addis-ababa-airport-guide", "KE": "nairobi-airport-guide", "TZ": "dar-es-salaam-airport-guide",
-    "UG": "entebbe-airport-guide", "RW": "kigali-airport-guide", "NG": "lagos-airport-guide",
-    "GH": "accra-airport-guide", "CI": "abidjan-airport-guide", "SN": "dakar-blaise-diagne-airport-guide",
-    "GM": "banjul-airport-guide", "GW": "bissau-airport-guide", "ML": "bamako-airport-guide",
-    "BF": "ouagadougou-airport-guide", "NE": "niamey-airport-guide", "TD": "ndjamena-airport-guide",
-    "MR": "nouakchott-airport-guide", "CM": "douala-airport-guide", "CF": "bangui-airport-guide",
-    "CG": "pointe-noire-airport-guide", "CD": "kinshasa-ndjili-airport-guide", "GQ": "malabo-airport-guide",
-    "AO": "luanda-airport-guide", "ZM": "lusaka-airport-guide", "ZW": "harare-airport-guide",
-    "MW": "lilongwe-airport-guide", "MZ": "maputo-airport-guide", "BW": "gaborone-airport-guide",
-    "NA": "windhoek-airport-guide", "ZA": "johannesburg-airport-guide", "BJ": "cotonou-airport-guide",
-    "TG": "lome-airport-guide", "LR": "monrovia-airport-guide", "CV": "amilcar-cabral-airport-guide",
-    "DJ": "djibouti-airport-guide", "MG": "ivato-airport-guide", "MU": "port-louis-airport-guide",
-    "SC": "seychelles-airport-guide", "RE": "reunion-airport-guide",
-    // --- AMERYKA POLNOCNA / SRODKOWA + Karaiby ---
-    "US": "new-york-city-jfk-airport-guide", "CA": "toronto-airport-guide", "MX": "mexico-city-airport-guide",
-    "GT": "guatemala-city-airport-guide", "SV": "san-salvador-airport-guide", "HN": "san-pedro-sula-airport-guide",
-    "NI": "managua-airport-guide", "CR": "san-jose-airport-guide-cr", "PA": "panama-city-airport-guide",
-    "GL": "kangerlussuaq-airport-guide", "CU": "havana-airport-guide", "JM": "montego-bay-airport-guide",
-    "HT": "port-au-prince-airport-guide", "DO": "punta-cana-airport-guide", "BS": "nassau-airport-guide",
-    "BB": "bridgetown-airport-guide", "TT": "piarco-airport-guide", "PR": "san-juan-airport-guide",
-    "AW": "aruba-airport-guide", "SX": "st-maarten-airport-guide", "AG": "antigua-airport-guide",
-    "LC": "castries-airport-guide", "GD": "maurice-bishop-airport-guide", "VC": "st-vincent-grenadines-airport-guide",
-    "KN": "st-kitts-airport-guide", "DM": "roseau-airport-guide", "VI": "st-thomas-airport-guide",
-    "BM": "bermuda-airport-guide", "GP": "pointe-a-pitre-airport-guide", "MQ": "fort-de-france-airport-guide",
-    "PM": "st-pierre-miquelon-airport-guide",
-    // --- AMERYKA POLUDNIOWA ---
-    "CO": "bogota-airport-guide", "VE": "caracas-airport-guide", "EC": "quito-airport-guide",
-    "PE": "lima-airport-guide", "BO": "la-paz-airport-guide", "CL": "santiago-de-chile-airport-guide",
-    "AR": "buenos-aires-ezeiza-airport-guide", "PY": "asuncion-airport-guide", "UY": "montevideo-airport-guide",
-    "BR": "sao-paulo-guarulhos-airport-guide", "GY": "timehri-airport-guide", "SR": "paramaribo-airport-guide",
-    // --- OCEANIA ---
-    "AU": "sydney-airport-guide", "NZ": "auckland-airport-guide", "FJ": "nadi-airport-guide",
-    "PG": "port-moresby-airport-guide", "SB": "honiara-airport-guide", "VU": "port-vila-airport-guide",
-    "NC": "noumea-airport-guide", "PF": "papeete-airport-guide", "WS": "apia-airport-guide",
-    "NR": "nauru-airport-guide", "CK": "rarotonga-airport-guide", "GU": "guam-airport-guide",
-};
 
 // === WATER SAFE LINKS (isthewatersafe.com) ===
 // PELNA baza slugow (iso2 -> slug) dla wiersza WATER w profilu kraju (app.js). NIE zgadujemy generycznie:
