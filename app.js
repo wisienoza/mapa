@@ -4356,8 +4356,13 @@
             try {
                     const capitalRaw = (c.capital && c.capital.length) ? c.capital[0] : "N/A";
                     
-                    let capitalBase = (typeof NUMBEO_OVERRIDES !== 'undefined' && NUMBEO_OVERRIDES[capitalRaw]) ? NUMBEO_OVERRIDES[capitalRaw] : capitalRaw;
-                    let capitalForNumbeo = stripDiacritics(capitalBase);
+                    // WPIS Z NUMBEO_OVERRIDES IDZIE DOSLOWNIE, BEZ stripDiacritics (poprawka 2026-07-23).
+                    // Override to dokladna nazwa miasta skopiowana z Numbeo, wiec okrawanie jej z diakrytykow
+                    // moze ja tylko zepsuc: WF dziala WYLACZNIE jako "Mata Utu (Matā'utu)" - po stripie
+                    // ("Mata Utu (Mata'utu)") Numbeo juz tego miasta nie znajduje. Strip zostaje tam, gdzie
+                    // bierzemy nazwe wprost z FACTBOOK (tam diakrytyki faktycznie przeszkadzaja, np. Bogotá).
+                    const _capOverride = (typeof NUMBEO_OVERRIDES !== 'undefined') ? NUMBEO_OVERRIDES[capitalRaw] : null;
+                    let capitalForNumbeo = _capOverride ? _capOverride : stripDiacritics(capitalRaw);
                     let countryBase = (typeof NUMBEO_COUNTRY_OVERRIDES !== 'undefined' && NUMBEO_COUNTRY_OVERRIDES[id]) ? NUMBEO_COUNTRY_OVERRIDES[id] : c.name.common;
                     const countryNameSafe = stripDiacritics(countryBase).replace(/ /g, "+");
                     const capitalNameSafe = capitalForNumbeo.replace(/ /g, "+");
