@@ -907,7 +907,15 @@ const QPP_LINKS = {
 		
 		        const NUMBEO_OVERRIDES = {
             "Ulan Bator": "Ulaanbaatar",
+            // AUDYT 2026-07-23: klucz MUSI byc doslownie taki, jak capital[0] w FACTBOOK. Byl tu tylko wariant
+            // Z PRZECINKIEM, a dane maja "Washington D.C." (bez) - override NIGDY nie trafial i USA szly do
+            // Numbeo jako "Washington+D.C.", czyli "cannot find city". Trzymamy OBA warianty, zeby dopasowanie
+            // nie zalezalo od tego, ktory zapis siedzi akurat w bazie. Ten sam typ bledu co przy Sana'a.
             "Washington, D.C.": "Washington, DC",
+            "Washington D.C.": "Washington, DC",
+            // HK: stolica w bazie to "City of Victoria", a Numbeo zna to miasto jako "Hong Kong"
+            // (kraj podmienia NUMBEO_COUNTRY_OVERRIDES na "Hong Kong (China)").
+            "City of Victoria": "Hong Kong",
             "Kyiv": "Kiev+(Kyiv)", 
             "Rangoon": "Yangon",
             "Astana": "Astana+(Nur-Sultan)",
@@ -925,7 +933,14 @@ const QPP_LINKS = {
 		
 		// --- NUMBEO COUNTRY FIX ---
         const NUMBEO_COUNTRY_OVERRIDES = {
-            "CD": "Democratic+Republic+of+the+Congo"
+            "CD": "Democratic+Republic+of+the+Congo",
+            // VA: Numbeo nie zna panstwa "Vatican City". NUMBEO_OVERRIDES kieruje juz miasto na Rzym, ale bez
+            // podmiany KRAJU zapytanie i tak padalo (Vatican City/Rome = "cannot find city"). Italy/Rome dziala.
+            "VA": "Italy",
+            // HK: Numbeo trzyma Hongkong pod nazwa kraju "Hong Kong (China)" - nawias jest czescia NAZWY KRAJU,
+            // nie miasta (miasto to zwykle "Hong Kong"; podmiane stolicy robi NUMBEO_OVERRIDES dla
+            // "City of Victoria"). Nawiasy w query dzialaja tak samo surowe jak %28/%29 - zostawiamy surowe.
+            "HK": "Hong+Kong+(China)"
         };
 
         // --- GOOGLE MAPS FIX (przycisk 🗺️ GOOGLE MAPS w updateFactbookPanel, app.js) ---
@@ -939,6 +954,11 @@ const QPP_LINKS = {
         };
 		
 				const TASTEATLAS_OVERRIDES = {
+            // AUDYT 2026-07-23: przebieg po WSZYSTKICH 250 krajach - 244 dzialaly, wiec fallback na
+            // countryNameSlug ZOSTAJE (w przeciwienstwie do Atlas Obscura/SIM Wiki). Zepsute bylo 6:
+            // CG (naprawione ponizej) oraz EH, TF, HM, IO, UM - te nie maja strony w zadnym wariancie
+            // (bezludne terytoria / brak odrebnej kuchni), wiec nie ma czego podmienic.
+            "CG": "republic-of-the-congo", // "Congo" -> 404; TasteAtlas uzywa pelnej nazwy
             "US": "usa", // United States -> usa
             "GB": "united-kingdom", // United Kingdom -> united-kingdom (czasem england, ale ogólny bezpieczniejszy)
             "AE": "uae", // UAE
