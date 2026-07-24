@@ -2531,10 +2531,57 @@
         };
         // --- Slugi timeanddate.com (przycisk CLIMATE, AVG) - jedna transformacja wspolna dla panelu
         // kraju (updateWeatherPanel, wg stolicy) i miasta (updateCityWeather, wg nazwy miasta). Kraj:
-        // diakrytyki->ascii, lower, spacja->"-". Miasto: dodatkowo usuwa apostrofy. Lookupy TAD_*_OVERRIDES
-        // zostaja u wywolujacego (rozne klucze: cc/id vs nazwa stolicy). ---
+        // diakrytyki->ascii, lower, spacja->"-". Miasto: dodatkowo usuwa apostrofy. To sa tylko
+        // TRANSFORMACJE TEKSTU - pelny adres sklada _tadClimateUrl ponizej (tam tez ida lookupy
+        // TAD_*_OVERRIDES; dawniej robil je kazdy panel u siebie i wlasnie tak sie rozjechaly). ---
         window._tadCountrySlug = function(nameRaw){ return stripDiacritics(String(nameRaw).toLowerCase()).replace(/ /g, "-"); };
         window._tadCitySlug = function(nameRaw){ return stripDiacritics(String(nameRaw).toLowerCase()).replace(/['’]/g, "").replace(/ /g, "-"); };
+        // --- ADRES STRONY KLIMATU - JEDYNE miejsce, w ktorym powstaje link przycisku CLIMATE. ---
+        // POWOD ISTNIENIA: panel kraju i panel miasta budowaly go OSOBNO i zdazyly sie rozjechac.
+        // Wersja miejska pomijala TAD_CITY_OVERRIDES i nie miala ZADNEGO zabezpieczenia - pokazywala
+        // przycisk zawsze. Audyt 2026-07-25 (pelny przebieg 5927 sciezek) wykazal, ze timeanddate ma
+        // strone klimatu tylko dla 2294 miast CITIES_DB (38.7%), wiec ~2 na 3 klikniecia szly w 404.
+        // Zwraca null, gdy pewnego adresu nie da sie zbudowac - _weatherEnvHTML pomija wtedy przycisk.
+        //
+        // mode "city"    - panel miasta, cel = DOWOLNE z ~5900 miast. Wymaga potwierdzenia w
+        //                  TAD_CLIMATE_OK (link-coverage-data.js). Brak wpisu => null.
+        // mode "capital" - panel kraju, cel = STOLICA. NIE pyta o whitelist i tak ma zostac: stolice
+        //                  maja wlasny, wczesniejszy audyt (240/252), a CAPITAL_NAMES bywa zapisane
+        //                  inaczej niz nazwa w CITIES_DB, wiec whitelist chowalby DZIALAJACE linki.
+        window._tadClimateUrl = function(iso2, cityNameRaw, mode) {
+            var BASE = "https://www.timeanddate.com/weather/";
+            if (!iso2 || !cityNameRaw) return null;
+            var fb = (typeof FACTBOOK !== "undefined") ? FACTBOOK[iso2] : null;
+            var countrySlug = (typeof TAD_COUNTRY_OVERRIDES !== "undefined" && TAD_COUNTRY_OVERRIDES[iso2])
+                ? TAD_COUNTRY_OVERRIDES[iso2]
+                : (fb ? window._tadCountrySlug(fb.name.common) : null);
+            if (!countrySlug) return null;
+            var citySlug = (typeof TAD_CITY_OVERRIDES !== "undefined" && TAD_CITY_OVERRIDES[cityNameRaw])
+                ? TAD_CITY_OVERRIDES[cityNameRaw]
+                : window._tadCitySlug(cityNameRaw);
+            if (mode === "city") {
+                // Override kraju bywa PELNA sciezka ze stolica ("usa/pago-pago") albo wewnetrznym ID
+                // lokalizacji ("@1547315"). ID dziala tylko dla tej jednej lokalizacji, wiec dla
+                // dowolnego miasta jest bezuzyteczne. Z pelnej sciezki bierzemy sam czlon kraju -
+                // dokladnie tak liczyl to audyt, wiec klucze zgadzaja sie z TAD_CLIMATE_OK.
+                if (countrySlug.charAt(0) === "@") return null;
+                var cBase = (countrySlug.indexOf("/") >= 0) ? countrySlug.split("/")[0] : countrySlug;
+                var okList = (typeof TAD_CLIMATE_OK !== "undefined") ? TAD_CLIMATE_OK[cBase] : null;
+                if (!okList || okList.indexOf(citySlug) < 0) return null;   // audyt: strony nie ma
+                return BASE + cBase + "/" + citySlug + "/climate";
+            }
+            // mode "capital": forma BEZ czlonu miasta (/weather/<kraj>/climate) zwraca 404 ZAWSZE -
+            // sprawdzone wprost na Polsce. Ma sens WYLACZNIE gdy override zawiera juz oba czlony
+            // ("usa/pago-pago") albo jest wewnetrznym ID ("@1547315" = HM, potwierdzone 200).
+            // W pozostalych przypadkach chowamy przycisk - lepiej brak niz martwy link (tak
+            // zalatwione jest GO / Juan de Nova, ktorego serwis nie ma w zadnym wariancie).
+            if (cityNameRaw === "unknown" || iso2 === "VA" || iso2 === "SG") {
+                return (countrySlug.indexOf("/") >= 0 || countrySlug.charAt(0) === "@")
+                    ? BASE + countrySlug + "/climate"
+                    : null;
+            }
+            return BASE + countrySlug + "/" + citySlug + "/climate";
+        };
         // --- Wspolny markup panelu pogody (siatka TEMP/WIND/ATMOSPHERE + linki WINDY/CLIMATE) -
         // uzywany zarowno dla kraju (updateWeatherPanel) jak i miasta (updateCityWeather), zeby
         // zmiana stylu/ukladu nie wymagala pilnowania dwoch kopii tego samego HTML-a. climateUrl
@@ -2611,14 +2658,10 @@
                     var pres = (cur.surface_pressure != null) ? Math.round(cur.surface_pressure) : null;
                     var desc = getWeatherDesc(code), icon = getWeatherIcon(code);
                     var windyUrl = 'https://www.windy.com/?' + dc.lat + ',' + dc.lng + ',11';
-                    var climateUrl = "";
-                    if (dc.cc && typeof FACTBOOK !== 'undefined' && FACTBOOK[dc.cc]) {
-                        var tadCountrySlug = (typeof TAD_COUNTRY_OVERRIDES !== 'undefined' && TAD_COUNTRY_OVERRIDES[dc.cc])
-                            ? TAD_COUNTRY_OVERRIDES[dc.cc]
-                            : window._tadCountrySlug(FACTBOOK[dc.cc].name.common);
-                        var citySlug = window._tadCitySlug(dc.cname);
-                        climateUrl = 'https://www.timeanddate.com/weather/' + tadCountrySlug + '/' + citySlug + '/climate';
-                    }
+                    // Adres sklada _tadClimateUrl (jedno miejsce dla obu paneli). W trybie "city"
+                    // zwraca null dla miast, ktorych timeanddate nie ma - przycisk sie wtedy nie
+                    // pojawia. Dawniej ta galaz budowala link ZAWSZE i trafiala w 404 w 61% klikniec.
+                    var climateUrl = window._tadClimateUrl(dc.cc, dc.cname, "city");
                     wPanel.innerHTML = window._weatherEnvHTML(temp, wind, desc, icon, windyUrl, climateUrl, hum, pres);
                 })
                 .catch(function(err){
