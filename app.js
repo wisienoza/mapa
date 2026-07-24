@@ -4484,8 +4484,19 @@
                     const fcdoSlug = (typeof FCDO_SLUGS !== 'undefined' && FCDO_SLUGS[id]) ? FCDO_SLUGS[id] : countryNameSlug;
                     const fcdoTravelUrl = `https://www.gov.uk/foreign-travel-advice/${fcdoSlug}`;
                     const tripUrl = `https://www.tripadvisor.com/Search?q=${countryNameSafe}`;
-                    let wikiSlug = (typeof WIKIVOYAGE_OVERRIDES !== 'undefined' && WIKIVOYAGE_OVERRIDES[id]) ? WIKIVOYAGE_OVERRIDES[id] : countryNameWiki;
-                    const wikiUrl = `https://en.wikivoyage.org/wiki/${wikiSlug}`;
+                    // WIKIVOYAGE: audyt 2026-07-24 (API MediaWiki, wszystkie 252 tytuly) potwierdzil, ze
+                    // generyczny slug z nazwy trafia w 251/252 przypadkach - Wikivoyage samo przekierowuje
+                    // wersje bez diakrytykow. Slownik WIKIVOYAGE_OVERRIDES lata tylko realne wyjatki.
+                    // null we wpisie = SWIADOMY BRAK ARTYKULU (UM) -> chowamy przycisk, jak przy
+                    // POCIAGI/WODA/CLIMATE. Stad hasOwnProperty zamiast zwyklej prawdziwosci: null musi
+                    // sie roznic od "brak wpisu" (ktore nadal ma znaczyc slug zbudowany z nazwy kraju).
+                    const _wvHasEntry = (typeof WIKIVOYAGE_OVERRIDES !== 'undefined')
+                        && Object.prototype.hasOwnProperty.call(WIKIVOYAGE_OVERRIDES, id);
+                    const wikiSlug = _wvHasEntry ? WIKIVOYAGE_OVERRIDES[id] : countryNameWiki;
+                    const wikiUrl = wikiSlug ? `https://en.wikivoyage.org/wiki/${wikiSlug}` : null;
+                    const wikiBtnHtml = wikiUrl
+                        ? `<a href="${wikiUrl}" target="_blank" class="windy-btn" style="background: rgba(0, 212, 255, 0.15); border: 1px solid #00d4ff; color: #00d4ff;">🌐 WIKIVOYAGE</a>`
+                        : '';
                     
                     // GMAPS_OVERRIDES mieszka w intel.js (obok NUMBEO/TASTEATLAS/WIKIVOYAGE_OVERRIDES,
                     // przeniesione 2026-07-22). Guard typeof jak przy pozostalych: stara kopia intel.js
@@ -4650,7 +4661,7 @@
                             <a href="${unsplashUrl}" target="_blank" class="windy-btn" style="background: rgba(255, 255, 255, 0.1); border: 1px solid #ffffff; color: #ffffff;">📸 FOTO</a>
                             ${atlasBtnHtml}
                             <a href="${tripUrl}" target="_blank" class="windy-btn" style="background: rgba(52, 224, 161, 0.15); border: 1px solid #34e0a1; color: #34e0a1;">🦉 TRIP ADVISOR</a>
-                            <a href="${wikiUrl}" target="_blank" class="windy-btn" style="background: rgba(0, 212, 255, 0.15); border: 1px solid #00d4ff; color: #00d4ff;">🌐 WIKIVOYAGE</a>
+                            ${wikiBtnHtml}
                             <a href="${gmapsUrl}" target="_blank" class="windy-btn" style="background: rgba(66, 133, 244, 0.15); border: 1px solid #4285F4; color: #4285F4;">🗺️ GOOGLE MAPS</a>
                             <a href="${vaccinationsUrl}" target="_blank" class="windy-btn" style="background: rgba(106, 27, 154, 0.15); border: 1px solid #8E24AA; color: #BA68C8;">💉 SZCZEPIENIA</a>
                             ${railBtnHtml}

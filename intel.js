@@ -2273,10 +2273,24 @@ const COST_INDEX = {
 };
 
 // === WIKIVOYAGE FIXES (URL OVERRIDES) ===
+// AUDYT 2026-07-24: przepytane API Wikivoyage dla wszystkich 252 tytulow generowanych przez app.js
+// (stripDiacritics(name.common) + spacja->"_"). Wynik: 251/252 stron istnieje - fallback jest zdrowy,
+// bo Wikivoyage ma gesta siatke przekierowan i sam lapie slugi po odchudzeniu z diakrytykow
+// (Ivory Coast -> Cote d'Ivoire, Czechia -> Czech Republic, Turkiye -> Turkey, Aland Islands -> Aland,
+// Vatican City -> Rome/Vatican). Dlatego slownik zostaje maly - sa w nim TYLKO realne wyjatki.
 const WIKIVOYAGE_OVERRIDES = {
     "GE": "Georgia_(country)",           // Fix dla Gruzji (inaczej myli z USA)
 	"SJ": "Svalbard",
-	"BQ": "Bonaire"
+	"BQ": "Bonaire",
+    // "Congo" na Wikivoyage to STRONA UJEDNOZNACZNIAJACA (355 B, pageprops.disambiguation) -
+    // rozdroze miedzy Kongiem a DR Konga. Wlasciwy artykul kraju to Republic_of_the_Congo (22 KB).
+    "CG": "Republic_of_the_Congo",
+    // null = SWIADOMY BRAK ARTYKULU -> app.js CHOWA przycisk WIKIVOYAGE (jak przy POCIAGI/WODA/CLIMATE).
+    // Wikivoyage nie ma strony zbiorczej dla bezludnych wysp USA - sprawdzone rowniez
+    // "United States Pacific Island Wildlife Refuges" i "Outlying territories of the United States"
+    // (obie martwe). Serwis opisuje wylacznie pojedyncze wyspy (Wake Island, Midway Islands,
+    // Palmyra Atoll, Johnston Atoll, Baker Island, Howland Island), wiec nie ma jednego uczciwego celu.
+    "UM": null
 };
 
 // === FCDO SLUGS (ISO2 -> slug strony ostrzeżeń gov.uk/foreign-travel-advice) ===
