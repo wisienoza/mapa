@@ -4363,6 +4363,13 @@
                     const capitalNameSafe = capitalForNumbeo.replace(/ /g, "+");
                     const numbeoUrl = `https://www.numbeo.com/cost-of-living/compare_cities.jsp?country1=Poland&country2=${countryNameSafe}&city1=Warsaw&city2=${capitalNameSafe}`;
                     const numbeoCountryUrl = `https://www.numbeo.com/cost-of-living/country_result.jsp?country=${countryNameSafe}&displayCurrency=PLN`;
+                    // Przycisk NUMBEO (porownanie miast) znika tam, gdzie Numbeo nie zna stolicy - patrz
+                    // NUMBEO_NO_CITY w intel.js. Lista jest NIEPELNA (probka, nie pelny przebieg - Numbeo banuje),
+                    // wiec to poprawa czesciowa: kraje spoza listy moga nadal trafic w "cannot find city".
+                    // Wiersz COST INDEX zostaje bez zmian - uzywa numbeoCountryUrl, innego endpointu, ktory dziala.
+                    const numbeoBtnHtml = (typeof NUMBEO_NO_CITY !== 'undefined' && NUMBEO_NO_CITY.indexOf(id) >= 0)
+                        ? ''
+                        : `<a href="${numbeoUrl}" target="_blank" class="numbeo-btn">💲 NUMBEO</a>`;
                     // LOCAL TIME -> zegar swiatowy kraju na timeanddate.com. Slug bierzemy z tego samego
                     // TAD_COUNTRY_OVERRIDES (+ _tadCountrySlug) co przycisk CLIMATE, zeby /worldclock/ i
                     // /weather/ nigdy sie nie rozjechaly (np. US -> "usa").
@@ -4413,6 +4420,14 @@
 
                     let taSlug = (typeof TASTEATLAS_OVERRIDES !== 'undefined' && TASTEATLAS_OVERRIDES[id]) ? TASTEATLAS_OVERRIDES[id] : countryNameSlug;
                     const tasteAtlasUrl = `https://www.tasteatlas.com/${taSlug}`;
+                    // Ukrywanie przyciskow tam, gdzie serwis NIE MA danych (audyt 2026-07-23) - inaczej niz przy
+                    // ATLAS_LINKS/SIM_WIKI_LINKS nie kasujemy tu fallbacku, bo on dziala dla ~244/250 krajow;
+                    // wystarczy krotka lista wykluczen w intel.js. Guard typeof jak wszedzie: stara kopia
+                    // intel.js z cache przegladarki nie moze wywrocic panelu - w najgorszym razie przycisk
+                    // zostanie pokazany jak dotad.
+                    const tasteAtlasBtnHtml = (typeof TASTEATLAS_NO_PAGE !== 'undefined' && TASTEATLAS_NO_PAGE.indexOf(id) >= 0)
+                        ? ''
+                        : `<a href="${tasteAtlasUrl}" target="_blank" class="windy-btn" style="background: rgba(255, 165, 0, 0.15); border: 1px solid orange; color: orange;">🥘 TASTE ATLAS</a>`;
                     const holidaysUrl = (typeof QPP_LINKS !== 'undefined' && QPP_LINKS[id]) ? QPP_LINKS[id] : `https://www.qppstudio.net/public-holidays/${qppNameSlug}.htm`;
                     // SIM WIKI / ATLAS OBSCURA: BEZ generowanego fallbacku (audyt 2026-07-23). Wczesniej kraj
                     // bez wpisu dostawal link sklejony z nazwy - i dla 32 (SIM) oraz 20 (Atlas) krajow byla to
@@ -4607,9 +4622,9 @@
                         <div class="fact-row"><span class="fact-key">LOCAL TIME:</span><span class="fact-val">${_extVal('<span id="live-local-time" style="color:#facc15; animation: blink 1s infinite;">CONNECTING...</span>', timeUrl, "Zegar światowy tego kraju (timeanddate.com)")}</span></div>
                         
                         <div class="links-grid">
-                            <a href="${numbeoUrl}" target="_blank" class="numbeo-btn">💲 NUMBEO</a>
+                            ${numbeoBtnHtml}
                             <a href="${mszUrl}" target="_blank" class="msz-btn">🦅 MSZ.GOV.PL</a>
-                            <a href="${tasteAtlasUrl}" target="_blank" class="windy-btn" style="background: rgba(255, 165, 0, 0.15); border: 1px solid orange; color: orange;">🥘 TASTE ATLAS</a>
+                            ${tasteAtlasBtnHtml}
                             <a href="${holidaysUrl}" target="_blank" class="windy-btn" style="background: rgba(255, 255, 255, 0.1); border: 1px solid #ccc; color: #ccc;">📅 ŚWIĘTA (QPP)</a>
                             ${simWikiBtnHtml}
                             <a href="${radioUrl}" target="_blank" class="windy-btn" style="background: rgba(255, 0, 255, 0.15); border: 1px solid #ff00ff; color: #ff00ff; letter-spacing: 1px;">📻 RADIO BOX</a>

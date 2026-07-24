@@ -953,6 +953,19 @@ const QPP_LINKS = {
             "AQ": "Antarktyda"
         };
 		
+        // TASTEATLAS_NO_PAGE - kraje, dla ktorych TasteAtlas NIE MA strony w zadnym wariancie sluga, wiec
+        // przycisk 🥘 TASTE ATLAS jest dla nich ukrywany (app.js, tasteAtlasBtnHtml) zamiast prowadzic w 404.
+        // Fallback na countryNameSlug ZOSTAJE dla reszty - przebieg po wszystkich 250 krajach (2026-07-23,
+        // 0 blokad) dal 244 OK, wiec generowanie sluga jest tu zdrowe i nie ma sensu wpisywac 244 adresow.
+        // Lista jest KOMPLETNA (pochodzi z pelnego przebiegu, nie z probki): bezludne terytoria + Sahara Zach.
+        const TASTEATLAS_NO_PAGE = ["EH", "TF", "HM", "IO", "UM"];
+        // NUMBEO_NO_CITY - kraje, dla ktorych Numbeo nie zna miasta-stolicy, wiec przycisk 💲 NUMBEO
+        // (porownanie Warszawa<->stolica) jest ukrywany. UWAGA: ta lista NIE JEST KOMPLETNA - powstala z
+        // probki 64 "podejrzanych" stolic, bo Numbeo banuje po kilkudziesieciu zapytaniach i pelnego przebiegu
+        // po 245 stolicach nie da sie zrobic bez rozlozenia go w czasie. Moga wiec istniec kolejne kraje z tym
+        // problemem, ktorych jeszcze nie znamy - dopisywac tu po kazdym kolejnym badaniu.
+        // Wiersz COST INDEX (numbeoCountryUrl, strona KRAJU) celowo zostaje - to inny endpoint i dziala.
+        const NUMBEO_NO_CITY = ["TF", "CX", "EH", "GG", "IO", "GS", "PM", "TC", "VI", "WF"];
 				const TASTEATLAS_OVERRIDES = {
             // AUDYT 2026-07-23: przebieg po WSZYSTKICH 250 krajach - 244 dzialaly, wiec fallback na
             // countryNameSlug ZOSTAJE (w przeciwienstwie do Atlas Obscura/SIM Wiki). Zepsute bylo 6:
