@@ -937,6 +937,17 @@ const QPP_LINKS = {
 			// klucza (z akcentem i bez), zeby dopasowanie nie zalezalo od zapisu w bazie.
 			"El Aaiún": "Laayoune (El Aaiun)",
 			"El Aaiun": "Laayoune (El Aaiun)",
+			// --- TERYTORIA ZAMORSKIE (audyt 2026-07-23, adresy podane i zweryfikowane) ---
+			// Numbeo zna te miasta, ale pod innymi nazwami niz FACTBOOK - stad wczesniej "cannot find city".
+			// Do kazdego z nich idzie tez podmiana KRAJU w NUMBEO_COUNTRY_OVERRIDES (nizej), bo sama nazwa
+			// miasta nie wystarcza.
+			"St. Peter Port": "Saint Peter Port",   // GG: Numbeo nie skraca "Saint"
+			"Cockburn Town": "Grand Turk",          // TC: Numbeo indeksuje wyspe, nie miasto
+			"Saint-Pierre": "Saint-pierre",         // PM: u nich mala litera w drugim czlonie
+			"Port-aux-Français": "Saint-Pierre",    // TF: bezludne, Numbeo ma tylko stolice Reunionu (kraj->Reunion)
+			// WF: dziala TYLKO z makronem. To wlasnie dla tego wpisu app.js NIE strippuje juz diakrytykow
+			// z wartosci override - po stripie ("Mata'utu") Numbeo tego miasta nie znajduje.
+			"Mata-Utu": "Mata Utu (Matā'utu)",
 			"Sana'a": "Sanaa"
         };
 		
@@ -949,7 +960,15 @@ const QPP_LINKS = {
             // HK: Numbeo trzyma Hongkong pod nazwa kraju "Hong Kong (China)" - nawias jest czescia NAZWY KRAJU,
             // nie miasta (miasto to zwykle "Hong Kong"; podmiane stolicy robi NUMBEO_OVERRIDES dla
             // "City of Victoria"). Nawiasy w query dzialaja tak samo surowe jak %28/%29 - zostawiamy surowe.
-            "HK": "Hong+Kong+(China)"
+            "HK": "Hong+Kong+(China)",
+            // --- TERYTORIA ZAMORSKIE (audyt 2026-07-23) - nazwy krajow wg Numbeo, nie wg FACTBOOK ---
+            // Numbeo pisze spojniki z WIELKIEJ litery ("And") i skraca United States do "Us". Bez tych podmian
+            // zapytanie pada nawet przy poprawnej nazwie miasta. Idzie w parze z NUMBEO_OVERRIDES powyzej.
+            "TF": "Reunion",                        // bezludne; Numbeo ma tylko Reunion (miasto -> Saint-Pierre)
+            "PM": "Saint-Pierre+And+Miquelon",
+            "TC": "Turks+And+Caicos+Islands",
+            "VI": "Us+Virgin+Islands",              // stolica "Charlotte Amalie" pasuje, wiec bez override miasta
+            "WF": "Wallis+And+Futuna"
         };
 
         // --- GOOGLE MAPS FIX (przycisk 🗺️ GOOGLE MAPS w updateFactbookPanel, app.js) ---
@@ -977,7 +996,11 @@ const QPP_LINKS = {
         // EH USUNIETE z listy 2026-07-23: Numbeo JEDNAK zna to miasto, tylko pod nazwa "Laayoune (El Aaiun)" -
         // patrz NUMBEO_OVERRIDES. Przyklad na to, ze wpis tutaj nie zawsze znaczy "serwis tego nie ma";
         // czasem znaczy "wysylalismy zla nazwe". Przed dopisaniem kodu warto poszukac wlasciwej nazwy miasta.
-        const NUMBEO_NO_CITY = ["TF", "CX", "GG", "IO", "GS", "PM", "TC", "VI", "WF"];
+        // Lista skurczyla sie z 10 do 3 (2026-07-23): TF, GG, PM, TC, VI, WF trafily tu bledem -
+        // Numbeo JEDNAK ma te miasta, tylko pod innymi nazwami (patrz NUMBEO_OVERRIDES + _COUNTRY_OVERRIDES).
+        // Zostaly trzy, dla ktorych realnie brak danych - bazy wojskowe / stacje badawcze bez mieszkancow:
+        // CX (Flying Fish Cove), IO (Diego Garcia), GS (King Edward Point).
+        const NUMBEO_NO_CITY = ["CX", "IO", "GS"];
 				const TASTEATLAS_OVERRIDES = {
             // AUDYT 2026-07-23: przebieg po WSZYSTKICH 250 krajach - 244 dzialaly, wiec fallback na
             // countryNameSlug ZOSTAJE (w przeciwienstwie do Atlas Obscura/SIM Wiki). Zepsute bylo 6:
