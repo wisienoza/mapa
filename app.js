@@ -4386,7 +4386,10 @@
                     // NUMBEO_NO_CITY w intel.js. Lista jest NIEPELNA (probka, nie pelny przebieg - Numbeo banuje),
                     // wiec to poprawa czesciowa: kraje spoza listy moga nadal trafic w "cannot find city".
                     // Wiersz COST INDEX zostaje bez zmian - uzywa numbeoCountryUrl, innego endpointu, ktory dziala.
-                    const numbeoBtnHtml = (typeof NUMBEO_NO_CITY !== 'undefined' && NUMBEO_NO_CITY.indexOf(id) >= 0)
+                    // PL nie dostaje tego przycisku w ogole: porownanie jest ZASZYTE jako Warszawa -> stolica
+                    // kraju, wiec dla Polski wychodzi "Warsaw vs Warsaw" - strona bez tresci. Wiersz COST INDEX
+                    // zostaje (numbeoCountryUrl dla Polski jest sensowny: koszty zycia w kraju bazowym).
+                    const numbeoBtnHtml = (id === 'PL' || (typeof NUMBEO_NO_CITY !== 'undefined' && NUMBEO_NO_CITY.indexOf(id) >= 0))
                         ? ''
                         : `<a href="${numbeoUrl}" target="_blank" class="numbeo-btn">💲 NUMBEO</a>`;
                     // LOCAL TIME -> zegar swiatowy kraju na timeanddate.com. Slug bierzemy z tego samego
@@ -4470,7 +4473,7 @@
                     // brak przycisku (nie zgadujemy - seat61 nie ma stron dla wszystkich krajów).
                     const railUrl = (typeof RAIL_LINKS !== 'undefined' && RAIL_LINKS[id]) ? RAIL_LINKS[id] : null;
                     const railBtnHtml = railUrl
-                        ? `<a href="${railUrl}" target="_blank" class="windy-btn" style="grid-column:1 / -1; background: rgba(129, 140, 248, 0.15); border: 1px solid #818cf8; color: #818cf8;">🚆 POCIĄGI (SEAT61)</a>`
+                        ? `<a href="${railUrl}" target="_blank" class="windy-btn" style="background: rgba(129, 140, 248, 0.15); border: 1px solid #818cf8; color: #818cf8;">🚆 POCIĄGI (SEAT61)</a>`
                         : '';
                     // WATER: link do isthewatersafe.com WYŁĄCZNIE dla krajów z jawnej bazy WATER_SAFE_LINKS (intel.js).
                     // Nie zgadujemy slugu generycznie - brak wpisu = brak linku (serwis nie ma tej strony), sam tekst.
