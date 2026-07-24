@@ -4260,7 +4260,21 @@
                     
                     let climateUrl = `https://www.timeanddate.com/weather/${tadCountrySlug}/${tadCitySlug}/climate`;
                     if (rawCapital === "unknown" || id === "VA" || id === "SG") {
-                        climateUrl = `https://www.timeanddate.com/weather/${tadCountrySlug}/climate`;
+                        // AUDYT 2026-07-24: timeanddate NIE MA stron klimatycznych na poziomie kraju -
+                        // adres /weather/<kraj>/climate zwraca 404 ZAWSZE (sprawdzone wprost na Polsce,
+                        // ktora na pewno istnieje). Ta galaz nie jest wiec fallbackiem, tylko generatorem
+                        // martwych linkow. Ma sens WYLACZNIE wtedy, gdy TAD_COUNTRY_OVERRIDES zawiera juz
+                        // OBA czlony sciezki (wzorzec "usa/pago-pago", "greenland/nuuk"). Gdy override to
+                        // sam kraj albo go nie ma - CHOWAMY przycisk (null; _weatherEnvHTML go pomija),
+                        // bo brak przycisku jest lepszy niz przycisk prowadzacy w 404.
+                        // Tak wlasnie zalatwione jest GO (Juan de Nova) - bezludna wyspa, ktorej
+                        // timeanddate nie ma w ZADNYM wariancie sciezki (sprawdzone).
+                        // DRUGA DOZWOLONA FORMA: "@<id>" - wewnetrzny identyfikator lokalizacji
+                        // timeanddate, dziala BEZ czlonu miasta. Uzywa go HM (@1547315 = Heard Island,
+                        // potwierdzone HTTP 200 w audycie). Bez tego wyjatku chowalibysmy DZIALAJACY link.
+                        climateUrl = (tadCountrySlug.includes("/") || tadCountrySlug.startsWith("@"))
+                            ? `https://www.timeanddate.com/weather/${tadCountrySlug}/climate`
+                            : null;
                     }
                     
                     wPanel.innerHTML = window._weatherEnvHTML(temp, wind, desc, icon, windyUrl, climateUrl, hum, pres);
