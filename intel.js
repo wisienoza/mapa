@@ -682,8 +682,37 @@ const QPP_LINKS = {
 					// === AUDYT TIMEANDDATE 2026-07-24 - realne naprawy, zweryfikowane na zywo ===
 					"St. George's": "saint-georges",   // GD: kropka i apostrof dawaly "st.-georges" -> 404
 					"Guatemala City": "guatemala",     // GT: timeanddate ma sam "guatemala"
-					"Panama City": "panama"            // PA: timeanddate ma sam "panama"
-										
+					"Panama City": "panama",           // PA: timeanddate ma sam "panama"
+
+					// === AUDYT TIMEANDDATE 2026-07-25 - POZIOM MIAST (nie tylko stolic) ===
+					// Te wpisy dzialaja dla panelu MIASTA (klucz = nazwa z CITIES_DB, nie z CAPITAL_NAMES).
+					// Kazdy potwierdzony HTTP 200; bez nich przycisk CLIMATE byl chowany jako martwy.
+					//
+					// >>> NIE ZAMIENIAJ TEGO NA REGULE "obetnij koncowe ' City'". Audyt pokazal, ze
+					// timeanddate jest tu NIEPRZEWIDYWALNY i trzeba go pytac miasto po miescie:
+					// 11 miast DZIALA Z sufiksem (mexico-city, kuwait-city, oklahoma-city, kansas-city,
+					// salt-lake-city, belize-city, benin-city, cebu-city, marawi-city, lipa-city,
+					// vatican-city), a ponizsze dzialaja tylko BEZ niego. Same Filipiny maja OBIE
+					// odmiany naraz (Cebu City zostaje, Angeles City traci) - regula zepsulaby te 11.
+					"New York City": "new-york",       // US: najwieksze odzyskane miasto
+					"Ho Chi Minh City": "ho-chi-minh", // VN
+					"Al Ain City": "al-ain",           // AE
+					"Jambi City": "jambi",             // ID
+					"Jeju City": "jeju",               // KR
+					"Attock City": "attock",           // PK
+					"Angeles City": "angeles",         // PH
+					"Bacolod City": "bacolod",         // PH
+					"Cabanatuan City": "cabanatuan",   // PH
+					"Tarlac City": "tarlac",           // PH
+					"City of San Marino": "san-marino",// SM: wpis wrocil po sprzataniu 2026-07-24, ale
+					                                   // TYM RAZEM Z POPRAWNYM KLUCZEM - wtedy jako klucz
+					                                   // byl SLUG ("city-of-san-marino"), wiec nigdy nie
+					                                   // strzelal. Fallback tez nie dziala, bo daje
+					                                   // "city-of-san-marino" -> 404. Bez tego wpisu caly
+					                                   // kraj (odwiedzony!) nie ma ani jednego klimatu.
+					"Atafu Village": "atafu",          // TK: sufiks " Village" (jedyne miasto kraju)
+					"Saint Paul": "st-paul"            // US: tu odwrotnie - serwis chce skrotu "st"
+
 					};
 		
 

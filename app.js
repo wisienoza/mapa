@@ -2535,7 +2535,13 @@
         // TRANSFORMACJE TEKSTU - pelny adres sklada _tadClimateUrl ponizej (tam tez ida lookupy
         // TAD_*_OVERRIDES; dawniej robil je kazdy panel u siebie i wlasnie tak sie rozjechaly). ---
         window._tadCountrySlug = function(nameRaw){ return stripDiacritics(String(nameRaw).toLowerCase()).replace(/ /g, "-"); };
-        window._tadCitySlug = function(nameRaw){ return stripDiacritics(String(nameRaw).toLowerCase()).replace(/['’]/g, "").replace(/ /g, "-"); };
+        // KROPKA JEST USUWANA (poprawka 2026-07-25): bez tego "St. Louis" dawalo slug "st.-louis" -> 404.
+        // Blad byl znany od 2026-07-24, ale zalatano wtedy TYLKO objaw (override "St. George's"), wiec
+        // przyczyna zostala i cicho zabijala kolejne miasta. Audyt miast pokazal skale: WSZYSTKIE 6 miast
+        // z kropka w nazwie bylo martwych, a DZIALAJACYCH z kropka nie bylo ANI JEDNEGO - czyli usuniecie
+        // kropki nie moze niczego zepsuc. Odzyskane: St. Louis, St. Petersburg, St. Paul, St. Catharines,
+        // St. John's, Sault Ste. Marie. Override "St. George's" ZOSTAJE - tam trzeba tez St -> Saint.
+        window._tadCitySlug = function(nameRaw){ return stripDiacritics(String(nameRaw).toLowerCase()).replace(/['’.]/g, "").replace(/ /g, "-"); };
         // --- ADRES STRONY KLIMATU - JEDYNE miejsce, w ktorym powstaje link przycisku CLIMATE. ---
         // POWOD ISTNIENIA: panel kraju i panel miasta budowaly go OSOBNO i zdazyly sie rozjechac.
         // Wersja miejska pomijala TAD_CITY_OVERRIDES i nie miala ZADNEGO zabezpieczenia - pokazywala
@@ -2581,6 +2587,24 @@
                     : null;
             }
             return BASE + countrySlug + "/" + citySlug + "/climate";
+        };
+        // --- TASTEATLAS DLA MIASTA: link jest gotowy w CITIES_DB[cc][n][5], wiec nie sklejamy go tutaj -
+        // sprawdzamy tylko, czy strona istnieje. Audyt 2026-07-25 (5828 slugow): 3672 OK (63%),
+        // 2156 martwych. CZARNA lista (TA_CITY_DEAD), odwrotnie niz przy klimacie - przy 63% pokrycia
+        // domyslna odpowiedzia ma byc "pokaz", a chowamy tylko potwierdzone 404. Strony z ZEROWA liczba
+        // potraw (HTTP 200) ZOSTAJA widoczne: "0 potraw" to stan chwilowy, ktory sam sie zmieni, a 404
+        // jest trwale - patrz uzasadnienie w link-coverage-data.js. Brak slownika => stare zachowanie.
+        window._taCityUrl = function(taUrl){
+            if (!taUrl) return null;
+            if (typeof TA_CITY_DEAD === "undefined") return taUrl;
+            var i = taUrl.indexOf("tasteatlas.com/");
+            if (i < 0) return taUrl;
+            var slug = taUrl.slice(i + 15).replace(/^\/+|\/+$/g, "");
+            if (!window._taDeadSet) {
+                window._taDeadSet = {};
+                for (var k = 0; k < TA_CITY_DEAD.length; k++) window._taDeadSet[TA_CITY_DEAD[k]] = 1;
+            }
+            return window._taDeadSet[slug] ? null : taUrl;
         };
         // --- Wspolny markup panelu pogody (siatka TEMP/WIND/ATMOSPHERE + linki WINDY/CLIMATE) -
         // uzywany zarowno dla kraju (updateWeatherPanel) jak i miasta (updateCityWeather), zeby
@@ -2799,7 +2823,7 @@
               + '<div class="links-grid" style="margin-top:12px;">'
               + btn(dc.wv, "🧭 WIKIVOYAGE", "52,211,153")
               + btn(dc.wiki, "📖 WIKIPEDIA", "0,212,255")
-              + btn(dc.ta, "🍽️ TASTEATLAS", "244,164,96")
+              + btn(window._taCityUrl(dc.ta), "🍽️ TASTEATLAS", "244,164,96")
               + btn(gm, "📍 GOOGLE MAPS", "250,204,21")
               + btn(_r2rUrl, "🚄 ROME2RIO", "129,140,248")
               + btn(_bkgUrl, "🏨 BOOKING", "0,159,235")
