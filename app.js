@@ -4437,8 +4437,17 @@
                     const qppNameSlug = stripDiacritics(c.name.common).toLowerCase().replace(/ /g, "_");
 
                     let radioCode = id.toLowerCase();
-                    if (id === 'GB') radioCode = 'uk'; 
-                    const radioUrl = `https://onlineradiobox.com/${radioCode}/`;
+                    if (id === 'GB') radioCode = 'uk';
+                    // RADIO BOX: brak strony kraju = brak przycisku (RADIO_NO_PAGE w intel.js, audyt 2026-07-24).
+                    // Lista laczy DWA przypadki: twarde 404 oraz kody, dla ktorych serwis po cichu oddaje swoja
+                    // strone glowna zamiast strony kraju (RU/MO/SH/KP/BY) - drugi przypadek daje HTTP 200, wiec
+                    // przycisk technicznie "dzialal", tyle ze prowadzil w zupelnie inne miejsce niz obiecuje.
+                    const radioUrl = (typeof RADIO_NO_PAGE !== 'undefined' && RADIO_NO_PAGE.indexOf(id) >= 0)
+                        ? null
+                        : `https://onlineradiobox.com/${radioCode}/`;
+                    const radioBtnHtml = radioUrl
+                        ? `<a href="${radioUrl}" target="_blank" class="windy-btn" style="background: rgba(255, 0, 255, 0.15); border: 1px solid #ff00ff; color: #ff00ff; letter-spacing: 1px;">📻 RADIO BOX</a>`
+                        : '';
 
                     let taSlug = (typeof TASTEATLAS_OVERRIDES !== 'undefined' && TASTEATLAS_OVERRIDES[id]) ? TASTEATLAS_OVERRIDES[id] : countryNameSlug;
                     const tasteAtlasUrl = `https://www.tasteatlas.com/${taSlug}`;
@@ -4458,7 +4467,17 @@
                     // zostaly przeniesione na sztywno do slownikow w intel.js. Teraz: brak wpisu = brak
                     // przycisku (jak przy POCIAGI/RAIL_LINKS), zamiast przycisku prowadzacego w pustke.
                     const simWikiUrl = (typeof SIM_WIKI_LINKS !== 'undefined' && SIM_WIKI_LINKS[id]) ? SIM_WIKI_LINKS[id] : null;
-                    const mszUrl = getMszLink(id); 
+                    // MSZ (Odyseusz): przycisk znika dla kodow bez profilu kraju - MSZ_NO_PROFILE w intel.js.
+                    // Adres /<ISO2> odpowiada 200 ZAWSZE (to SPA), wiec sam link nie zdradza, ze profilu nie ma;
+                    // user zobaczylby pusta strone z samym okruszkiem. Guard typeof jak przy pozostalych
+                    // slownikach: stara kopia intel.js z cache przegladarki ma tylko przywrocic przycisk,
+                    // a nie wywrocic caly panel.
+                    const mszUrl = (typeof MSZ_NO_PROFILE !== 'undefined' && MSZ_NO_PROFILE.indexOf(id) >= 0)
+                        ? null
+                        : getMszLink(id);
+                    const mszBtnHtml = mszUrl
+                        ? `<a href="${mszUrl}" target="_blank" class="msz-btn">🦅 MSZ.GOV.PL</a>`
+                        : '';
                     const unsplashUrl = `https://unsplash.com/s/photos/${countryNameSlug}`;
                     const atlasUrl = (typeof ATLAS_LINKS !== 'undefined' && ATLAS_LINKS[id]) ? ATLAS_LINKS[id] : null;   // patrz komentarz przy simWikiUrl
                     const simWikiBtnHtml = simWikiUrl
@@ -4656,7 +4675,7 @@
                         
                         <div class="links-grid">
                             ${numbeoBtnHtml}
-                            <a href="${mszUrl}" target="_blank" class="msz-btn">🦅 MSZ.GOV.PL</a>
+                            ${mszBtnHtml}
                             ${tasteAtlasBtnHtml}
                             <a href="${holidaysUrl}" target="_blank" class="windy-btn" style="background: rgba(255, 255, 255, 0.1); border: 1px solid #ccc; color: #ccc;">📅 ŚWIĘTA (QPP)</a>
                             ${simWikiBtnHtml}

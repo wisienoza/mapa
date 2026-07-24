@@ -2367,6 +2367,31 @@ function getWeatherDesc(code) {
     return m[code] || "UNKNOWN";
 }
 
+// === ONLINERADIOBOX: KODY BEZ STRONY KRAJU (ukryj przycisk RADIO BOX) ===
+// AUDYT 2026-07-24: przycisk 📻 RADIO BOX nie ma zadnego slownika - app.js sklada adres wprost z kodu
+// (`onlineradiobox.com/<iso2 male litery>/`, jedyny wyjatek GB -> "uk"). Przepytane wszystkie 252 kody.
+// DWA rozne tryby porazki, dlatego sama lista, a nie poprawka slugu:
+//   1. TWARDY 404 (15 kodow) - serwis nie ma strony dla tego terytorium.
+//   2. CICHY FALLBACK NA STRONE GLOWNA (5 kodow: RU MO SH KP BY) - HTTP 200, ale oddana strona to
+//      globalna strona startowa serwisu ("Free Online Internet Radio Stations", identyczne 35 570 B
+//      dla kazdego z tych piatki), a NIE strona kraju (dla porownania PL oddaje "Radio Online Polska").
+//      Tego przypadku NIE wykryje audyt patrzacy na kod HTTP - trzeba porownac rozmiar/tytul.
+const RADIO_NO_PAGE = [
+    "AQ", "AX", "BV", "CC", "CX", "GO", "GS", "HM", "IO", "JU", "NF", "NU", "PN", "TF", "UM",
+    "RU", "MO", "SH", "KP", "BY"
+];
+
+// === MSZ / ODYSEUSZ: KODY BEZ PROFILU KRAJU (ukryj przycisk) ===
+// AUDYT 2026-07-24: przepytane API, z ktorego korzysta SPA odyseusza -
+// https://odyseusz.gov.pl/api/v1/informacje/profile-panstw/<ISO2> - dla wszystkich 252 kodow z
+// FACTBOOK. 239 zwraca 200 z trescia profilu, 13 zwraca 204 (No Content). Sam adres /<ISO2> ZAWSZE
+// oddaje te sama skorupe SPA (identyczne 50 800 B nawet dla bzdur w stylu /XX), wiec po kodzie HTTP
+// strony NIE DA SIE tego wykryc - trzeba pytac API albo patrzec na wyrenderowana strone.
+// Dla kodu z ta lista user widzi PUSTY profil: sam okruszek "Strona glowna > Profile krajow >
+// Profil kraju" i nic wiecej (sprawdzone na /AQ w przegladarce). PL jest tu z natury rzeczy - MSZ nie
+// wydaje ostrzezen dla wlasnego kraju.
+const MSZ_NO_PROFILE = ["AQ", "CC", "CX", "EH", "GO", "HM", "IO", "JU", "MS", "NF", "PL", "TK", "UM"];
+
 function getMszLink(cca2) {
     // Nowy schemat MSZ (Odyseusz): https://odyseusz.gov.pl/<ISO2>
     return cca2 ? `https://odyseusz.gov.pl/${String(cca2).toUpperCase()}` : "https://odyseusz.gov.pl/";
