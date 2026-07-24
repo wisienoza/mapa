@@ -2760,7 +2760,7 @@
               + btn(gm, "📍 GOOGLE MAPS", "250,204,21")
               + btn(_r2rUrl, "🚄 ROME2RIO", "129,140,248")
               + btn(_bkgUrl, "🏨 BOOKING", "0,159,235")
-              + btnWide(dc.un, "📷 UNSPLASH", "255,255,255")
+              + btn(dc.un, "📸 FOTO", "255,255,255")
               + '</div>';
             window._cityIntelToken = (window._cityIntelToken || 0) + 1;
             var _wb = fPanel.querySelector('a[href^="https://en.wikivoyage.org"]');
