@@ -1035,7 +1035,16 @@ const QPP_LINKS = {
         // Numbeo JEDNAK ma te miasta, tylko pod innymi nazwami (patrz NUMBEO_OVERRIDES + _COUNTRY_OVERRIDES).
         // Zostaly trzy, dla ktorych realnie brak danych - bazy wojskowe / stacje badawcze bez mieszkancow:
         // CX (Flying Fish Cove), IO (Diego Garcia), GS (King Edward Point).
-        const NUMBEO_NO_CITY = ["CX", "IO", "GS"];
+        // AUDYT 2026-07-24: LISTA JEST JUZ KOMPLETNA (pelny przebieg 245/245, nie probka) - uniewaznia
+        // zastrzezenie powyzej o "probce 64 stolic". Doszlo 5 krajow, wszystkie potwierdzone na zywo:
+        //   BL (Gustavia), PN (Adamstown), TK (Fakaofo) - Numbeo w ogole nie zna tych miast;
+        //   CC (West Island), NF (Kingston)             - miasto ZNA, ale nie ma dla niego ZADNYCH cen
+        //                                                 (strona ~14,5 KB, "No data for one of these cities").
+        // Te dwa ostatnie to inny przypadek niz reszta listy: link technicznie dzialal i otwieral pusta
+        // strone, co dla usera jest gorsze niz brak przycisku. Decyzja usera: ukrywamy tak samo.
+        // Przy CC i NF warto kiedys sprobowac innego miasta (NF: Burnt Pine, CC: Home Island) - wzor
+        // "stolica oficjalna vs miasto z danymi" dal juz 3 naprawy (BI, BJ, SZ), patrz NUMBEO_OVERRIDES.
+        const NUMBEO_NO_CITY = ["CX", "IO", "GS", "BL", "PN", "TK", "CC", "NF"];
 				const TASTEATLAS_OVERRIDES = {
             // AUDYT 2026-07-23: przebieg po WSZYSTKICH 250 krajach - 244 dzialaly, wiec fallback na
             // countryNameSlug ZOSTAJE (w przeciwienstwie do Atlas Obscura/SIM Wiki). Zepsute bylo 6:
