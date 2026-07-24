@@ -968,7 +968,15 @@ const QPP_LINKS = {
             "PM": "Saint-Pierre+And+Miquelon",
             "TC": "Turks+And+Caicos+Islands",
             "VI": "Us+Virgin+Islands",              // stolica "Charlotte Amalie" pasuje, wiec bez override miasta
-            "WF": "Wallis+And+Futuna"
+            "WF": "Wallis+And+Futuna",
+            // --- AUDYT 2026-07-24: KRAJE, NIE TERYTORIA - tu bolalo najbardziej ---
+            // CZ: FACTBOOK ma nazwe krotka "Czechia", a Numbeo zna wylacznie "Czech Republic". Bez tego
+            // przycisk NUMBEO dla CZECH od zawsze zwracal "cannot find city Prague, Czechia" - HTTP 200,
+            // wiec blad byl calkowicie niewidoczny. Sprawdzone OBA endpointy (compare_cities + country_result).
+            "CZ": "Czech+Republic",
+            // CG: my wysylamy "Congo", Numbeo chce pelnej formy. Uwaga, to NIE jest to samo co CD powyzej -
+            // dwa osobne panstwa i dwie osobne nazwy. Tez sprawdzone na obu endpointach.
+            "CG": "Republic+Of+The+Congo"
         };
 
         // --- GOOGLE MAPS FIX (przycisk 🗺️ GOOGLE MAPS w updateFactbookPanel, app.js) ---
