@@ -662,6 +662,61 @@ const QPP_LINKS = {
 		
 		// --- SIM WIKI HARDCODED LINKS (NO GUESSING) ---
         const SIM_WIKI_LINKS = {
+            // === DOPISANE W AUDYCIE 2026-07-23 (weryfikacja przez API MediaWiki tej wiki) ===
+            // Fallback na generowana nazwe zostal USUNIETY z app.js: z 66 krajow bez wpisu az 32 prowadzilo
+            // w nieistniejaca strone. Ponizej 34, ktore na tym fallbacku DZIALALY - wpisane na sztywno,
+            // zeby ich nie stracic. Kazda strona potwierdzona jako istniejaca.
+            "AW": "https://prepaid-data-sim-card.fandom.com/wiki/Aruba",
+            "AF": "https://prepaid-data-sim-card.fandom.com/wiki/Afghanistan",
+            "AI": "https://prepaid-data-sim-card.fandom.com/wiki/Anguilla",
+            "AS": "https://prepaid-data-sim-card.fandom.com/wiki/American_Samoa",
+            "BM": "https://prepaid-data-sim-card.fandom.com/wiki/Bermuda",
+            "CF": "https://prepaid-data-sim-card.fandom.com/wiki/Central_African_Republic",
+            "CC": "https://prepaid-data-sim-card.fandom.com/wiki/Cocos_(Keeling)_Islands",
+            "CK": "https://prepaid-data-sim-card.fandom.com/wiki/Cook_Islands",
+            "KY": "https://prepaid-data-sim-card.fandom.com/wiki/Cayman_Islands",
+            "FK": "https://prepaid-data-sim-card.fandom.com/wiki/Falkland_Islands",
+            "FO": "https://prepaid-data-sim-card.fandom.com/wiki/Faroe_Islands",
+            "GI": "https://prepaid-data-sim-card.fandom.com/wiki/Gibraltar",
+            "GL": "https://prepaid-data-sim-card.fandom.com/wiki/Greenland",
+            "GU": "https://prepaid-data-sim-card.fandom.com/wiki/Guam",
+            "HK": "https://prepaid-data-sim-card.fandom.com/wiki/Hong_Kong",
+            "IM": "https://prepaid-data-sim-card.fandom.com/wiki/Isle_of_Man",
+            "IO": "https://prepaid-data-sim-card.fandom.com/wiki/British_Indian_Ocean_Territory",
+            "MO": "https://prepaid-data-sim-card.fandom.com/wiki/Macau",
+            "MF": "https://prepaid-data-sim-card.fandom.com/wiki/Saint_Martin",
+            "MH": "https://prepaid-data-sim-card.fandom.com/wiki/Marshall_Islands",
+            "MK": "https://prepaid-data-sim-card.fandom.com/wiki/North_Macedonia",
+            "MS": "https://prepaid-data-sim-card.fandom.com/wiki/Montserrat",
+            "YT": "https://prepaid-data-sim-card.fandom.com/wiki/Mayotte",
+            "NC": "https://prepaid-data-sim-card.fandom.com/wiki/New_Caledonia",
+            "NF": "https://prepaid-data-sim-card.fandom.com/wiki/Norfolk_Island",
+            "NU": "https://prepaid-data-sim-card.fandom.com/wiki/Niue",
+            "PR": "https://prepaid-data-sim-card.fandom.com/wiki/Puerto_Rico",
+            "PS": "https://prepaid-data-sim-card.fandom.com/wiki/Palestine",
+            "PF": "https://prepaid-data-sim-card.fandom.com/wiki/French_Polynesia",
+            "RE": "https://prepaid-data-sim-card.fandom.com/wiki/Reunion",
+            "SS": "https://prepaid-data-sim-card.fandom.com/wiki/South_Sudan",
+            "SX": "https://prepaid-data-sim-card.fandom.com/wiki/Sint_Maarten",
+            "VG": "https://prepaid-data-sim-card.fandom.com/wiki/British_Virgin_Islands",
+            "WF": "https://prepaid-data-sim-card.fandom.com/wiki/Wallis_and_Futuna",
+            // --- STRONY ZBIORCZE: ta wiki opisuje te terytoria RAZEM, nie osobno ---
+            // Nasz generowany slug celowal we wlasna nazwe terytorium i trafial w pustke.
+            // CW: uwaga na ogonek - wiki ma "Curaçao", a strip diakrytykow dawal "Curacao" (404).
+            "CW": "https://prepaid-data-sim-card.fandom.com/wiki/Cura%C3%A7ao",
+            "GG": "https://prepaid-data-sim-card.fandom.com/wiki/Channel_Islands",
+            "JE": "https://prepaid-data-sim-card.fandom.com/wiki/Channel_Islands",
+            "MQ": "https://prepaid-data-sim-card.fandom.com/wiki/French_West_Indies",
+            "GP": "https://prepaid-data-sim-card.fandom.com/wiki/French_West_Indies",
+            "GF": "https://prepaid-data-sim-card.fandom.com/wiki/French_West_Indies",
+            "TC": "https://prepaid-data-sim-card.fandom.com/wiki/Turks_and_Caicos",
+            "MP": "https://prepaid-data-sim-card.fandom.com/wiki/Guam",
+            // --- LINK DO SASIADA (wzorzec jak SG->Malaysia w RAIL_LINKS) ---
+            // Te terytoria nie maja wlasnej strony, ale korzystaja z sieci sasiada, wiec jego opis jest
+            // realnie uzyteczny dla podroznego. Decyzja uzytkownika (2026-07-23), nie fakt z wiki.
+            "AX": "https://prepaid-data-sim-card.fandom.com/wiki/Finland",
+            "VA": "https://prepaid-data-sim-card.fandom.com/wiki/Italy",
+            "EH": "https://prepaid-data-sim-card.fandom.com/wiki/Morocco",
             "AL": "https://prepaid-data-sim-card.fandom.com/wiki/Albania",
             "DZ": "https://prepaid-data-sim-card.fandom.com/wiki/Algeria",
             "AD": "https://prepaid-data-sim-card.fandom.com/wiki/Andorra",
@@ -842,7 +897,9 @@ const QPP_LINKS = {
             "UY": "https://prepaid-data-sim-card.fandom.com/wiki/Uruguay",
             "UZ": "https://prepaid-data-sim-card.fandom.com/wiki/Uzbekistan",
             "VU": "https://prepaid-data-sim-card.fandom.com/wiki/Vanuatu",
-            "VE": "https://prepaid-data-sim-card.fandom.com/wiki/Venezuela",
+            // "VE" USUNIETE (audyt 2026-07-23): strona /wiki/Venezuela NIE ISTNIEJE na tej wiki, a
+            // wyszukiwarka nie zwraca zadnego zamiennika - Wenezuela jest tam nieopisana. Brak wpisu =
+            // brak przycisku SIM WIKI, zamiast przycisku prowadzacego w pustke.
             "VN": "https://prepaid-data-sim-card.fandom.com/wiki/Vietnam",
             "ZM": "https://prepaid-data-sim-card.fandom.com/wiki/Zambia",
             "ZW": "https://prepaid-data-sim-card.fandom.com/wiki/Zimbabwe"
@@ -1182,6 +1239,25 @@ const SAFETY_LABELS = {
 		// === ATLAS OBSCURA HARDCODED LINKS ===
 // === ATLAS OBSCURA HARDCODED LINKS [ISO MODE] ===
 const ATLAS_LINKS = {
+    // --- DOPISANE W AUDYCIE 2026-07-23 ---
+    // Te kraje dzialaly wczesniej na GENEROWANYM slugu (fallback w app.js). Fallback zostal USUNIETY, bo
+    // dla 20 innych krajow prowadzil w martwy link, a Atlas Obscura nie ma dla nich zadnej strony (sprawdzone
+    // na kanonicznym indeksie /destinations - brak alternatywnego sluga). Zeby nie stracic tych dzialajacych,
+    // wpisujemy je na sztywno. Kazdy zweryfikowany HTTP 200.
+    "AU": "https://www.atlasobscura.com/things-to-do/australia",
+    "CA": "https://www.atlasobscura.com/things-to-do/canada",
+    "CN": "https://www.atlasobscura.com/things-to-do/china",
+    "DE": "https://www.atlasobscura.com/things-to-do/germany",
+    "FR": "https://www.atlasobscura.com/things-to-do/france",
+    "GF": "https://www.atlasobscura.com/things-to-do/french-guiana",
+    "GI": "https://www.atlasobscura.com/things-to-do/gibraltar",
+    "GU": "https://www.atlasobscura.com/things-to-do/guam",
+    "IM": "https://www.atlasobscura.com/things-to-do/isle-of-man",
+    "IN": "https://www.atlasobscura.com/things-to-do/india",
+    "IT": "https://www.atlasobscura.com/things-to-do/italy",
+    "JP": "https://www.atlasobscura.com/things-to-do/japan",
+    "MP": "https://www.atlasobscura.com/things-to-do/northern-mariana-islands",
+    "SZ": "https://www.atlasobscura.com/things-to-do/eswatini",
 	"PR": "https://www.atlasobscura.com/things-to-do/puerto-rico",
     // --- AFRICA ---
     "DZ": "https://www.atlasobscura.com/things-to-do/algeria",

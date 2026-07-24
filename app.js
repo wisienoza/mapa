@@ -4414,10 +4414,22 @@
                     let taSlug = (typeof TASTEATLAS_OVERRIDES !== 'undefined' && TASTEATLAS_OVERRIDES[id]) ? TASTEATLAS_OVERRIDES[id] : countryNameSlug;
                     const tasteAtlasUrl = `https://www.tasteatlas.com/${taSlug}`;
                     const holidaysUrl = (typeof QPP_LINKS !== 'undefined' && QPP_LINKS[id]) ? QPP_LINKS[id] : `https://www.qppstudio.net/public-holidays/${qppNameSlug}.htm`;
-                    const simWikiUrl = (typeof SIM_WIKI_LINKS !== 'undefined' && SIM_WIKI_LINKS[id]) ? SIM_WIKI_LINKS[id] : `https://prepaid-data-sim-card.fandom.com/wiki/${countryNameWiki}`;
+                    // SIM WIKI / ATLAS OBSCURA: BEZ generowanego fallbacku (audyt 2026-07-23). Wczesniej kraj
+                    // bez wpisu dostawal link sklejony z nazwy - i dla 32 (SIM) oraz 20 (Atlas) krajow byla to
+                    // strona NIEISTNIEJACA, bo oba serwisy czesci panstw po prostu nie opisuja albo grupuja je
+                    // inaczej (Channel Islands, French West Indies...). Wszystkie warianty, ktore DZIALALY,
+                    // zostaly przeniesione na sztywno do slownikow w intel.js. Teraz: brak wpisu = brak
+                    // przycisku (jak przy POCIAGI/RAIL_LINKS), zamiast przycisku prowadzacego w pustke.
+                    const simWikiUrl = (typeof SIM_WIKI_LINKS !== 'undefined' && SIM_WIKI_LINKS[id]) ? SIM_WIKI_LINKS[id] : null;
                     const mszUrl = getMszLink(id); 
                     const unsplashUrl = `https://unsplash.com/s/photos/${countryNameSlug}`;
-                    const atlasUrl = (typeof ATLAS_LINKS !== 'undefined' && ATLAS_LINKS[id]) ? ATLAS_LINKS[id] : `https://www.atlasobscura.com/things-to-do/${countryNameSlug}`;
+                    const atlasUrl = (typeof ATLAS_LINKS !== 'undefined' && ATLAS_LINKS[id]) ? ATLAS_LINKS[id] : null;   // patrz komentarz przy simWikiUrl
+                    const simWikiBtnHtml = simWikiUrl
+                        ? `<a href="${simWikiUrl}" target="_blank" class="windy-btn" style="background: rgba(0, 204, 255, 0.15); border: 1px solid #00ccff; color: #00ccff;">📲 SIM WIKI</a>`
+                        : '';
+                    const atlasBtnHtml = atlasUrl
+                        ? `<a href="${atlasUrl}" target="_blank" class="windy-btn" style="background: rgba(139, 0, 0, 0.2); border: 1px solid #8b0000; color: #ff4444;">💀 ATLAS OBSCURA</a>`
+                        : '';
                     // POCIĄGI: przewodnik kolejowy seat61.com. PEŁNA baza RAIL_LINKS (intel.js) iso2->pełny URL -
                     // slugi seat61 są nieregularne (France.htm, Czech.htm, SouthAmerica.htm#Brazil, wspólny wpis dla
                     // Gruzji/Armenii/Azerbejdżanu...), więc trzymamy gotowy adres, nie generujemy slugu. Brak wpisu =
@@ -4599,10 +4611,10 @@
                             <a href="${mszUrl}" target="_blank" class="msz-btn">🦅 MSZ.GOV.PL</a>
                             <a href="${tasteAtlasUrl}" target="_blank" class="windy-btn" style="background: rgba(255, 165, 0, 0.15); border: 1px solid orange; color: orange;">🥘 TASTE ATLAS</a>
                             <a href="${holidaysUrl}" target="_blank" class="windy-btn" style="background: rgba(255, 255, 255, 0.1); border: 1px solid #ccc; color: #ccc;">📅 ŚWIĘTA (QPP)</a>
-                            <a href="${simWikiUrl}" target="_blank" class="windy-btn" style="background: rgba(0, 204, 255, 0.15); border: 1px solid #00ccff; color: #00ccff;">📲 SIM WIKI</a>
+                            ${simWikiBtnHtml}
                             <a href="${radioUrl}" target="_blank" class="windy-btn" style="background: rgba(255, 0, 255, 0.15); border: 1px solid #ff00ff; color: #ff00ff; letter-spacing: 1px;">📻 RADIO BOX</a>
                             <a href="${unsplashUrl}" target="_blank" class="windy-btn" style="background: rgba(255, 255, 255, 0.1); border: 1px solid #ffffff; color: #ffffff;">📸 FOTO</a>
-                            <a href="${atlasUrl}" target="_blank" class="windy-btn" style="background: rgba(139, 0, 0, 0.2); border: 1px solid #8b0000; color: #ff4444;">💀 ATLAS OBSCURA</a>
+                            ${atlasBtnHtml}
                             <a href="${tripUrl}" target="_blank" class="windy-btn" style="background: rgba(52, 224, 161, 0.15); border: 1px solid #34e0a1; color: #34e0a1;">🦉 TRIP ADVISOR</a>
                             <a href="${wikiUrl}" target="_blank" class="windy-btn" style="background: rgba(0, 212, 255, 0.15); border: 1px solid #00d4ff; color: #00d4ff;">🌐 WIKIVOYAGE</a>
                             <a href="${gmapsUrl}" target="_blank" class="windy-btn" style="background: rgba(66, 133, 244, 0.15); border: 1px solid #4285F4; color: #4285F4;">🗺️ GOOGLE MAPS</a>
