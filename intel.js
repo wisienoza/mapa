@@ -962,7 +962,8 @@ const QPP_LINKS = {
 			// Philipsburg lezy po HOLENDERSKIEJ stronie tej samej wyspy - dane sa z Sint Maarten, nie
 			// z Saint-Martin. Idzie w parze z podmiana kraju na "Sint+Maarten" w slowniku nizej.
 			"Marigot": "Philipsburg"
-		
+        };
+
 		// --- NUMBEO COUNTRY FIX ---
         const NUMBEO_COUNTRY_OVERRIDES = {
             "CD": "Democratic+Republic+of+the+Congo",
@@ -988,7 +989,21 @@ const QPP_LINKS = {
             "CZ": "Czech+Republic",
             // CG: my wysylamy "Congo", Numbeo chce pelnej formy. Uwaga, to NIE jest to samo co CD powyzej -
             // dwa osobne panstwa i dwie osobne nazwy. Tez sprawdzone na obu endpointach.
-            "CG": "Republic+Of+The+Congo"
+            "CG": "Republic+Of+The+Congo",
+            // --- AUDYT 2026-07-24 (pelny przebieg 245/245), wszystkie na OBU endpointach ---
+            // TR: FACTBOOK ma "Türkiye" -> strip daje "Turkiye", czego Numbeo NIE ZNA. Zna wylacznie
+            // "Turkey". Razem z CZ to najpowazniejsze znaleziska audytu - realnie odwiedzane kraje,
+            // ktorych przycisk byl martwy od zawsze (HTTP 200 + komunikat, wiec nic tego nie sygnalizowalo).
+            "TR": "Turkey",
+            "XK": "Kosovo+(Disputed+Territory)",   // nawias jest czescia nazwy kraju, jak przy HK
+            "SH": "Saint+Helena",                  // bez ", Ascension and Tristan da Cunha"
+            "BQ": "Bonaire",                       // my slalismy "Caribbean Netherlands"
+            // SJ: KOMPROMIS ZAAKCEPTOWANY PRZEZ USERA. Numbeo nie ma Svalbardu jako osobnego kraju.
+            // Porownanie miast bedzie poprawne (Longyearbyen istnieje pod Norwegia), ale wiersz
+            // COST INDEX pokaze ceny Norwegii kontynentalnej. Ten sam kompromis co TF -> Reunion.
+            "SJ": "Norway",
+            // MF: patrz komentarz przy "Marigot" w NUMBEO_OVERRIDES - dane z holenderskiej polowy wyspy.
+            "MF": "Sint+Maarten"
         };
 
         // --- GOOGLE MAPS FIX (przycisk 🗺️ GOOGLE MAPS w updateFactbookPanel, app.js) ---
