@@ -4291,34 +4291,17 @@
                     const icon = getWeatherIcon(code);
                     const windyUrl = `https://www.windy.com/?${lat},${lon},11`;
                     
-                    let tadCountrySlug = (typeof TAD_COUNTRY_OVERRIDES !== 'undefined' && TAD_COUNTRY_OVERRIDES[id])
-                        ? TAD_COUNTRY_OVERRIDES[id]
-                        : window._tadCountrySlug(name);
-
+                    // Adres sklada _tadClimateUrl (jedno miejsce dla obu paneli) - cala logika slugow,
+                    // override'ow i zabezpieczen (VA/SG/brak stolicy, forma "@<id>") siedzi tam.
+                    // NAZWA KRAJU IDZIE Z FACTBOOK, NIE Z ARGUMENTU `name` - to celowe. `name` bywa
+                    // nazwa z geodanych amCharts (klik w kraj na globusie), a nawet nazwa MIASTA
+                    // (sciezka "najdalsze miasto", ~6617). Porownanie obu wariantow na wszystkich 252
+                    // krajach: 251 wychodzi IDENTYCZNIE, a jedyna roznica to LA, gdzie amCharts daje
+                    // "Lao People's Democratic Republic" -> slug z apostrofem = pewne 404; FACTBOOK
+                    // daje "laos" i ten adres jest potwierdzony audytem. Czyli zmiana nic nie psuje,
+                    // a naprawia Laosa i uodparnia panel na to, co dostanie w `name`.
                     let rawCapital = (typeof CAPITAL_NAMES !== 'undefined' && CAPITAL_NAMES[id]) ? CAPITAL_NAMES[id] : "unknown";
-
-                    let tadCitySlug = (typeof TAD_CITY_OVERRIDES !== 'undefined' && TAD_CITY_OVERRIDES[rawCapital])
-                        ? TAD_CITY_OVERRIDES[rawCapital]
-                        : window._tadCitySlug(rawCapital);
-                    
-                    let climateUrl = `https://www.timeanddate.com/weather/${tadCountrySlug}/${tadCitySlug}/climate`;
-                    if (rawCapital === "unknown" || id === "VA" || id === "SG") {
-                        // AUDYT 2026-07-24: timeanddate NIE MA stron klimatycznych na poziomie kraju -
-                        // adres /weather/<kraj>/climate zwraca 404 ZAWSZE (sprawdzone wprost na Polsce,
-                        // ktora na pewno istnieje). Ta galaz nie jest wiec fallbackiem, tylko generatorem
-                        // martwych linkow. Ma sens WYLACZNIE wtedy, gdy TAD_COUNTRY_OVERRIDES zawiera juz
-                        // OBA czlony sciezki (wzorzec "usa/pago-pago", "greenland/nuuk"). Gdy override to
-                        // sam kraj albo go nie ma - CHOWAMY przycisk (null; _weatherEnvHTML go pomija),
-                        // bo brak przycisku jest lepszy niz przycisk prowadzacy w 404.
-                        // Tak wlasnie zalatwione jest GO (Juan de Nova) - bezludna wyspa, ktorej
-                        // timeanddate nie ma w ZADNYM wariancie sciezki (sprawdzone).
-                        // DRUGA DOZWOLONA FORMA: "@<id>" - wewnetrzny identyfikator lokalizacji
-                        // timeanddate, dziala BEZ czlonu miasta. Uzywa go HM (@1547315 = Heard Island,
-                        // potwierdzone HTTP 200 w audycie). Bez tego wyjatku chowalibysmy DZIALAJACY link.
-                        climateUrl = (tadCountrySlug.includes("/") || tadCountrySlug.startsWith("@"))
-                            ? `https://www.timeanddate.com/weather/${tadCountrySlug}/climate`
-                            : null;
-                    }
+                    let climateUrl = window._tadClimateUrl(id, rawCapital, "capital");
                     
                     wPanel.innerHTML = window._weatherEnvHTML(temp, wind, desc, icon, windyUrl, climateUrl, hum, pres);
                 })
