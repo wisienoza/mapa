@@ -643,7 +643,23 @@ const QPP_LINKS = {
 					"AQ": "antarctica/south-pole",
 					"TF": "france/martin-de-vivies-amsterdam-island",
 					"HM": "@1547315",
-					"BV": "norway/bouvet-island"
+					"BV": "norway/bouvet-island",
+					// === AUDYT TIMEANDDATE 2026-07-24 (pelny przebieg 252/252, 12 martwych) ===
+					// Wszystkie ponizsze zweryfikowane na zywo: HTTP 200 + <title> "Climate & Weather Averages".
+					// NAZWY KRAJU - timeanddate trzyma TRADYCYJNE angielskie, a FACTBOOK wspolczesne wlasne:
+					"CZ": "czech-republic",              // "czechia" -> 404. Ten sam blad co w Numbeo!
+					"TR": "turkey",                      // "turkiye" -> 404. Ten sam blad co w Numbeo!
+					"VC": "saint-vincent-and-grenadines", // bez "the" w srodku
+					// FORMA Z OBOMA CZLONAMI - te kraje trafiaja w galaz "bez czlonu miasta" (app.js ~4262),
+					// a /weather/<kraj>/climate zwraca 404 ZAWSZE. Override musi wiec zawierac juz miasto,
+					// inaczej app.js schowa przycisk (i slusznie - lepiej brak niz martwy link):
+					"GL": "greenland/nuuk",
+					"SG": "singapore/singapore",
+					"VA": "vatican-city-state/vatican-city",
+					"JU": "usa/jarvis-island",
+					"UM": "usa/wake-island"
+					// GO (Juan de Nova) CELOWO BEZ WPISU: timeanddate nie ma tej wyspy w zadnym sprawdzonym
+					// wariancie sciezki, wiec app.js chowa przycisk. Nie dopisuj tu zgadywanego sluga.
 				};
 				
 				const TAD_CITY_OVERRIDES = {
@@ -651,10 +667,22 @@ const QPP_LINKS = {
 					"Sanaa": "sana",
 					"Washington, D.C.": "washington-dc",
 					"Washington DC": "washington-dc",
-					"city-of-san-marino": "san-marino",
-					"sri-jayawardenepura-kotte": "sri-jayawardenapura-kotte",
-					"south-tarawa": "tarawa",
-					"nuku'alofa": "nukualofa"
+					// SPRZATANIE 2026-07-24: usuniete CZTERY wpisy, w ktorych jako KLUCZ wstawiono SLUG
+					// zamiast nazwy miasta ("city-of-san-marino", "sri-jayawardenepura-kotte",
+					// "south-tarawa", "nuku'alofa"). Nigdy sie nie uruchamialy. Audyt potwierdzil, ze
+					// fallback daje dla nich to samo (san-marino, tarawa, nukualofa) albo LEPIEJ
+					// (LK: fallback "colombo" dziala, a wpis celowal w literowke "sri-jayawardenapura-kotte").
+					// Dwa wpisy WYZEJ tez sa martwe, ale ZOSTAJA: to warianty zapisu obok kluczy zywych
+					// ("Sanaa", "Washington DC"), czyli zabezpieczenie na zmiane w CAPITAL_NAMES - ta sama
+					// zasada, wg ktorej w NUMBEO_OVERRIDES zostaly "Washington, D.C." i "El Aaiun".
+					//
+					// UWAGA: KLUCZ to wartosc z CAPITAL_NAMES[id], a NIE capital[0] z FACTBOOK (app.js ~4255).
+					// To INNE kluczowanie niz w NUMBEO_OVERRIDES - latwo o pomylke przy przenoszeniu wpisow.
+					//
+					// === AUDYT TIMEANDDATE 2026-07-24 - realne naprawy, zweryfikowane na zywo ===
+					"St. George's": "saint-georges",   // GD: kropka i apostrof dawaly "st.-georges" -> 404
+					"Guatemala City": "guatemala",     // GT: timeanddate ma sam "guatemala"
+					"Panama City": "panama"            // PA: timeanddate ma sam "panama"
 										
 					};
 		
@@ -917,20 +945,21 @@ const QPP_LINKS = {
             // (kraj podmienia NUMBEO_COUNTRY_OVERRIDES na "Hong Kong (China)").
             "City of Victoria": "Hong Kong",
             "Kyiv": "Kiev+(Kyiv)", 
-            // MARTWY KLUCZ, ale NIESZKODLIWY (audyt 2026-07-23): FACTBOOK ma dla MM stolice "Naypyidaw",
-            // wiec ten wpis nigdy nie trafia. Zostawiamy, bo Numbeo zna OBA miasta (Naypyidaw dziala
-            // bez podmiany) - nie ma czego naprawiac. To samo dotyczy "Sri Jayawardenepura Kotte" nizej:
-            // FACTBOOK ma dla LK po prostu "Colombo", ktore Numbeo przyjmuje.
-            "Rangoon": "Yangon",
+            // SPRZATANIE 2026-07-24: usuniete dwa MARTWE klucze - "Rangoon" -> "Yangon" oraz
+            // "Sri Jayawardenepura Kotte" -> "Colombo". FACTBOOK ma dla MM "Naypyidaw", a dla LK
+            // "Colombo", wiec zaden z nich nigdy sie nie uruchamial. Numbeo przyjmuje obie nazwy
+            // z bazy WPROST, wiec nie bylo czego naprawiac - wpisy tylko sugerowaly problem,
+            // ktorego nie ma, i kusily do "poprawiania" w zla strone.
             "Astana": "Astana+(Nur-Sultan)",
-            "Sri Jayawardenepura Kotte": "Colombo", 
 			"New Delhi": "Delhi",
 			"Yaoundé": "Yaounde",
 			"Brasília": "Brasilia",
             "Vatican City": "Rome",
 			"City of San Marino": "San Marino",
 			"Ngerulmud": "koror",
-			"South tarawa": "Bikenibeu",
+			// SPRZATANIE 2026-07-24: usuniete "South tarawa" -> "Bikenibeu". Male "t" sprawialo, ze
+			// klucz nie pasowal do stolicy z FACTBOOK ("South Tarawa") i wpis NIGDY sie nie uruchamial.
+			// KI jest naprawione poprawnym kluczem "South Tarawa" -> "Tarawa" (nizej), zweryfikowanym.
 			// EH: mial DWA bledy naraz (audyt 2026-07-23). Klucz "El Aaiun" NIE pasowal do stolicy w FACTBOOK,
 			// ktora brzmi "El Aaiún" (z akcentem) - override nigdy sie nie uruchamial. A wartosc tez byla zla:
 			// samo "Laayoune" Numbeo odrzuca, dziala WYLACZNIE "Laayoune (El Aaiun)". Trzymamy oba warianty
