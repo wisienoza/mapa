@@ -4527,7 +4527,15 @@
                     let gmapsTarget = (typeof GMAPS_OVERRIDES !== 'undefined' && GMAPS_OVERRIDES[id]) ? GMAPS_OVERRIDES[id] : countryNameSafe;
                     const gmapsUrl = `https://www.google.com/maps/place/${gmapsTarget}`;
 
-                    const vaccinationsUrl = "https://zagrozeniazdrowotne.gssewarszawa.pl/docs/Tabela_szczepien.pdf";
+                    // SZCZEPIENIA: staly PDF (tabela szczepien dla podrozujacych), ten sam dla kazdego kraju.
+                    // Ukryty dla PL - to poradnik przed WYJAZDEM z Polski, wiec w profilu kraju domowego jest
+                    // bez sensu (ta sama zasada co przy NUMBEO i MSZ, gdzie PL tez nie dostaje przycisku).
+                    const vaccinationsUrl = (id === 'PL')
+                        ? null
+                        : "https://zagrozeniazdrowotne.gssewarszawa.pl/docs/Tabela_szczepien.pdf";
+                    const vaccinationsBtnHtml = vaccinationsUrl
+                        ? `<a href="${vaccinationsUrl}" target="_blank" class="windy-btn" style="background: rgba(106, 27, 154, 0.15); border: 1px solid #8E24AA; color: #BA68C8;">💉 SZCZEPIENIA</a>`
+                        : '';
 
                     const intel = getIntel(id);
                     const pColor = intel.p.includes("NIE") ? "#00ff00" : "#dc2626";
@@ -4679,13 +4687,13 @@
                             ${tasteAtlasBtnHtml}
                             <a href="${holidaysUrl}" target="_blank" class="windy-btn" style="background: rgba(255, 255, 255, 0.1); border: 1px solid #ccc; color: #ccc;">📅 ŚWIĘTA (QPP)</a>
                             ${simWikiBtnHtml}
-                            <a href="${radioUrl}" target="_blank" class="windy-btn" style="background: rgba(255, 0, 255, 0.15); border: 1px solid #ff00ff; color: #ff00ff; letter-spacing: 1px;">📻 RADIO BOX</a>
+                            ${radioBtnHtml}
                             <a href="${unsplashUrl}" target="_blank" class="windy-btn" style="background: rgba(255, 255, 255, 0.1); border: 1px solid #ffffff; color: #ffffff;">📸 FOTO</a>
                             ${atlasBtnHtml}
                             <a href="${tripUrl}" target="_blank" class="windy-btn" style="background: rgba(52, 224, 161, 0.15); border: 1px solid #34e0a1; color: #34e0a1;">🦉 TRIP ADVISOR</a>
                             ${wikiBtnHtml}
                             <a href="${gmapsUrl}" target="_blank" class="windy-btn" style="background: rgba(66, 133, 244, 0.15); border: 1px solid #4285F4; color: #4285F4;">🗺️ GOOGLE MAPS</a>
-                            <a href="${vaccinationsUrl}" target="_blank" class="windy-btn" style="background: rgba(106, 27, 154, 0.15); border: 1px solid #8E24AA; color: #BA68C8;">💉 SZCZEPIENIA</a>
+                            ${vaccinationsBtnHtml}
                             ${railBtnHtml}
                         </div>
                     `;
