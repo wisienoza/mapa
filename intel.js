@@ -2710,7 +2710,7 @@ const DIAL_LINKS = {
 // UWAGA: dla CF (Rep. Srodkowoafrykanska) baza UN ma bledny href="www.governo.cv" (domena Zielonego Przyladka),
 // ale WIDOCZNY tekst linku to http://primature.govcf.org - wzielismy to drugie (poprawne). ~193 krajow.
 const GOV_LINKS = {
-    "AD":"http://www.govern.ad/", "AE":"https://u.ae/", "AG":"http://www.ab.gov.ag",
+    "AD":"http://www.govern.ad/", "AE":"https://u.ae/", "AF":"https://mfa.gov.af/", "AG":"http://www.ab.gov.ag",
     "AL":"https://e-albania.al/", "AM":"http://www.gov.am", "AO":"http://www.governo.gov.ao/",
     "AR":"https://www.argentina.gob.ar", "AT":"https://www.digitales.oesterreich.gv.at", "AU":"http://australia.gov.au",
     "AZ":"https://mfa.gov.az/en", "BA":"https://fbihvlada.gov.ba/", "BB":"https://www.gov.bb",
@@ -2770,7 +2770,7 @@ const GOV_LINKS = {
     "TR":"http://www.turkiye.gov.tr", "TT":"http://www.ttconnect.gov.tt", "TV":"https://www.tuvalu.tv/",
     "TZ":"https://www.tanzania.go.tz/", "UA":"https://www.kmu.gov.ua/", "UG":"https://gou.go.ug/",
     "US":"https://www.usa.gov", "UY":"https://portal.gub.uy", "UZ":"http://www.gov.uz/",
-    "VC":"http://www.gov.vc", "VE":"https://www.presidencia.gob.ve/", "VN":"http://www.vietnam.gov.vn",
+    "VC":"http://www.gov.vc", "VE":"https://www.asambleanacional.gob.ve/", "VN":"http://www.vietnam.gov.vn",
     "VU":"https://gov.vu/", "WS":"http://www.samoagovt.ws", "YE":"http://www.yemen.gov.ye",
     "ZA":"http://www.gov.za", "ZM":"https://www.sh.gov.zm/", "ZW":"http://www.zim.gov.zw/",
 };
