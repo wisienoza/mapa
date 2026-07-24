@@ -917,6 +917,10 @@ const QPP_LINKS = {
             // (kraj podmienia NUMBEO_COUNTRY_OVERRIDES na "Hong Kong (China)").
             "City of Victoria": "Hong Kong",
             "Kyiv": "Kiev+(Kyiv)", 
+            // MARTWY KLUCZ, ale NIESZKODLIWY (audyt 2026-07-23): FACTBOOK ma dla MM stolice "Naypyidaw",
+            // wiec ten wpis nigdy nie trafia. Zostawiamy, bo Numbeo zna OBA miasta (Naypyidaw dziala
+            // bez podmiany) - nie ma czego naprawiac. To samo dotyczy "Sri Jayawardenepura Kotte" nizej:
+            // FACTBOOK ma dla LK po prostu "Colombo", ktore Numbeo przyjmuje.
             "Rangoon": "Yangon",
             "Astana": "Astana+(Nur-Sultan)",
             "Sri Jayawardenepura Kotte": "Colombo", 
@@ -927,7 +931,12 @@ const QPP_LINKS = {
 			"City of San Marino": "San Marino",
 			"Ngerulmud": "koror",
 			"South tarawa": "Bikenibeu",
-			"El Aaiun": "Laayoune",
+			// EH: mial DWA bledy naraz (audyt 2026-07-23). Klucz "El Aaiun" NIE pasowal do stolicy w FACTBOOK,
+			// ktora brzmi "El Aaiún" (z akcentem) - override nigdy sie nie uruchamial. A wartosc tez byla zla:
+			// samo "Laayoune" Numbeo odrzuca, dziala WYLACZNIE "Laayoune (El Aaiun)". Trzymamy oba warianty
+			// klucza (z akcentem i bez), zeby dopasowanie nie zalezalo od zapisu w bazie.
+			"El Aaiún": "Laayoune (El Aaiun)",
+			"El Aaiun": "Laayoune (El Aaiun)",
 			"Sana'a": "Sanaa"
         };
 		
@@ -965,7 +974,10 @@ const QPP_LINKS = {
         // po 245 stolicach nie da sie zrobic bez rozlozenia go w czasie. Moga wiec istniec kolejne kraje z tym
         // problemem, ktorych jeszcze nie znamy - dopisywac tu po kazdym kolejnym badaniu.
         // Wiersz COST INDEX (numbeoCountryUrl, strona KRAJU) celowo zostaje - to inny endpoint i dziala.
-        const NUMBEO_NO_CITY = ["TF", "CX", "EH", "GG", "IO", "GS", "PM", "TC", "VI", "WF"];
+        // EH USUNIETE z listy 2026-07-23: Numbeo JEDNAK zna to miasto, tylko pod nazwa "Laayoune (El Aaiun)" -
+        // patrz NUMBEO_OVERRIDES. Przyklad na to, ze wpis tutaj nie zawsze znaczy "serwis tego nie ma";
+        // czasem znaczy "wysylalismy zla nazwe". Przed dopisaniem kodu warto poszukac wlasciwej nazwy miasta.
+        const NUMBEO_NO_CITY = ["TF", "CX", "GG", "IO", "GS", "PM", "TC", "VI", "WF"];
 				const TASTEATLAS_OVERRIDES = {
             // AUDYT 2026-07-23: przebieg po WSZYSTKICH 250 krajach - 244 dzialaly, wiec fallback na
             // countryNameSlug ZOSTAJE (w przeciwienstwie do Atlas Obscura/SIM Wiki). Zepsute bylo 6:
