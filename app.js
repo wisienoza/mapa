@@ -2606,6 +2606,19 @@
             }
             return window._taDeadSet[slug] ? null : taUrl;
         };
+        // --- NAZWA KRAJU DLA SERWISOW ZEWNETRZNYCH (Booking, Rome2Rio) - jedno zrodlo. ---
+        // Doklejamy ja do nazwy miasta ("Cordoba, Argentina"), bo sama nazwa trafia w zle miejsce przy
+        // nazwach powtarzalnych. CITIES_DB ma 103 takie nazwy (218 miast), a serwisy znaja ich wiecej
+        // niz my, wiec kolizja moze wystapic tez z miastem spoza bazy. Potwierdzone na zywo w OBU
+        // serwisach: bez kraju "Cordoba" szlo do Hiszpanii zamiast Argentyny, "Valencia" ZAWSZE do
+        // Hiszpanii. Dodanie kraju nie psuje przypadkow jednoznacznych (Warszawa, Praga bez zmian).
+        // EXT_COUNTRY_OVERRIDES (intel.js) pokrywa nazwy, ktorych serwis nie zna - dzis tylko CZ.
+        window._extCountryName = function(iso2){
+            if (!iso2) return null;
+            if (typeof EXT_COUNTRY_OVERRIDES !== "undefined" && EXT_COUNTRY_OVERRIDES[iso2]) return EXT_COUNTRY_OVERRIDES[iso2];
+            var fb = (typeof FACTBOOK !== "undefined") ? FACTBOOK[iso2] : null;
+            return (fb && fb.name && fb.name.common) ? fb.name.common : null;
+        };
         // --- Wspolny markup panelu pogody (siatka TEMP/WIND/ATMOSPHERE + linki WINDY/CLIMATE) -
         // uzywany zarowno dla kraju (updateWeatherPanel) jak i miasta (updateCityWeather), zeby
         // zmiana stylu/ukladu nie wymagala pilnowania dwoch kopii tego samego HTML-a. climateUrl
@@ -2813,16 +2826,22 @@
                 // NAZWA, NIE KOD ISO: "Warsaw, PL" i "Valencia, VE" dzialaja, ale ladują na zwyklej stronie
                 // wynikow zamiast na stronie miasta (Warszawa: 49 wzmianek w tresci vs 174). Kod jest
                 // wygodniejszy dla nas, gorszy dla uzytkownika - stad pelna nazwa.
-                var _bkgC = (dc.cc && typeof FACTBOOK !== 'undefined' && FACTBOOK[dc.cc] && FACTBOOK[dc.cc].name)
-                    ? FACTBOOK[dc.cc].name.common : null;
-                if (_bkgC && typeof BOOKING_COUNTRY_OVERRIDES !== 'undefined' && BOOKING_COUNTRY_OVERRIDES[dc.cc])
-                    _bkgC = BOOKING_COUNTRY_OVERRIDES[dc.cc];
+                // Nazwe kraju daje _extCountryName - JEDNO zrodlo dla obu przyciskow (patrz jego komentarz).
+                var _cn = window._extCountryName ? window._extCountryName(dc.cc) : null;
                 _bkgUrl = "https://www.booking.com/searchresults.html?ss="
-                        + encodeURIComponent(dc.cname + (_bkgC ? ", " + _bkgC : ""));
+                        + encodeURIComponent(dc.cname + (_cn ? ", " + _cn : ""));
                 var _dwKm = (typeof getDist === 'function' && dc.lat != null && dc.lng != null) ? Math.round(getDist(52.2297, 21.0122, dc.lat, dc.lng)) : null;
                 if (_dwKm == null || _dwKm >= 1) {
-                    var _r2rCity = (typeof stripDiacritics === 'function') ? stripDiacritics(dc.cname) : dc.cname;
-                    _r2rUrl = "https://www.rome2rio.com/map/Warsaw/" + encodeURIComponent(_r2rCity);
+                    // ROME2RIO TEZ DOSTAJE KRAJ (2026-07-25, potwierdzone na zywo): "Warsaw/Valencia" jechalo
+                    // do Hiszpanii, a "Warsaw/Valencia, Venezuela" poprawnie do Wenezueli (Simon Bolivar /
+                    // Arturo Michelena) - serwis sam normalizuje adres do "Valencia-Venezuela".
+                    // ROZWAZONE I ODRZUCONE: WSPOLRZEDNE. Dzialaja ("map/Warsaw/39.4699,-0.3763" trafia
+                    // idealnie), ale Rome2Rio reverse-geokoduje je do ADRESU i naglowek brzmi wtedy
+                    // "from Warsaw to 2 Placa de l'Ajuntament" zamiast "to Valencia". Kraj daje te sama
+                    // trafnosc przy czytelnej nazwie, wiec wspolrzedne nie sa potrzebne.
+                    var _r2rDest = dc.cname + (_cn ? ", " + _cn : "");
+                    if (typeof stripDiacritics === 'function') _r2rDest = stripDiacritics(_r2rDest);
+                    _r2rUrl = "https://www.rome2rio.com/map/Warsaw/" + encodeURIComponent(_r2rDest);
                 }
             }
             fPanel.innerHTML =

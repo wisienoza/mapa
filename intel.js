@@ -1022,15 +1022,19 @@ const QPP_LINKS = {
 			"Marigot": "Philipsburg"
         };
 
-		// --- BOOKING COUNTRY FIX (2026-07-25) ---
-		// Przycisk BOOKING w panelu miasta pyta "<miasto>, <kraj>", zeby nie mylic miast o tej samej
-		// nazwie. Kraj bierze sie z FACTBOOK; tutaj tylko nazwy, ktorych Booking NIE zna.
-		// CZ: FACTBOOK ma "Czechia" i Booking tej formy nie indeksuje - "Prague, Czechia" zwraca
-		// poprawne praskie hotele, ale na zwyklej stronie wynikow (109 wzmianek o Pradze) zamiast na
-		// stronie miasta (251). "Prague, Czech Republic" daje pelna strone. To ten sam wzorzec co przy
-		// Numbeo i timeanddate - serwisy zewnetrzne trzymaja tradycyjne nazwy angielskie.
-		// TR nie wymaga wpisu: "Türkiye" i "Turkey" daja u Bookinga identyczny wynik (sprawdzone).
-		const BOOKING_COUNTRY_OVERRIDES = {
+		// --- NAZWY KRAJOW DLA SERWISOW ZEWNETRZNYCH (2026-07-25) ---
+		// Uzywane przez window._extCountryName (app.js) do sklejania "<miasto>, <kraj>" w przyciskach
+		// BOOKING i ROME2RIO - oba potrzebuja kraju, zeby nie mylic miast o tej samej nazwie.
+		// Tu trafiaja TYLKO nazwy, ktorych serwisy nie znaja; reszta idzie wprost z FACTBOOK.
+		// CZ: FACTBOOK ma "Czechia", ktorej Booking nie indeksuje - "Prague, Czechia" zwraca poprawne
+		// praskie hotele, ale na zwyklej stronie wynikow (109 wzmianek o Pradze) zamiast na stronie
+		// miasta (251). "Prague, Czech Republic" daje pelna strone. Ten sam wzorzec co przy Numbeo
+		// i timeanddate - serwisy zewnetrzne trzymaja tradycyjne nazwy angielskie.
+		// TR NIE wymaga wpisu: "Türkiye" i "Turkey" daja identyczny wynik (sprawdzone).
+		// NIE ZAWEZAJ NAZWY DO JEDNEGO SERWISU: dict nazywal sie chwilowo BOOKING_COUNTRY_OVERRIDES,
+		// a po dolozeniu Rome2Rio nazwa klamalaby o zasiegu - to dokladnie ten rodzaj rozjazdu,
+		// przez ktory panele kraju i miasta rozjechaly sie przy przycisku CLIMATE.
+		const EXT_COUNTRY_OVERRIDES = {
 			"CZ": "Czech Republic"
 		};
 
