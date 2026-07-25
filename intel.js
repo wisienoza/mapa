@@ -1669,6 +1669,56 @@ const ATLAS_LINKS = {
             { id: "ML", name: "TIMBUKTU", icon: "📚", lat: 16.7735, lon: -3.0074 }
         ];
 
+        // --- WIKIVOYAGE DLA CUDOW (audyt 2026-07-25) ---
+        // Klucz: id z WONDERS. Wartosc: DOKLADNY tytul artykulu en.wikivoyage.org (czlon po /wiki/).
+        // Osobny slownik, a nie pole w WONDER_INTEL, bo tamte wpisy to pojedyncze bardzo dlugie linie
+        // z opisami - dopisywanie do nich pola jest nieczytelne w diffie i latwo o pomylke.
+        //
+        // DLACZEGO NIE GENERUJEMY Z NAZWY: Wikivoyage opisuje DESTYNACJE, nie zabytki. Czesc cudow ma
+        // wlasny artykul (Petra, Machu Picchu, Stonehenge), ale wiekszosc jest opisana WEWNATRZ miasta
+        // albo wrecz dzielnicy - i wlasnie tam prowadza tutejsze wpisy, bo tam sa realne informacje
+        // praktyczne (dojazd, bilety, godziny). Slug z nazwy trafialby w pustke dla kilkunastu z 21.
+        //
+        // WERYFIKACJA (API MediaWiki, batch - tanio i bez ryzyka bana):
+        //   1. istnienie tytulu + rozwiniecie przekierowan (redirects=1). Wikivoyage ma dobre redirecty:
+        //      "Colosseum" -> Rome/Colosseo, "Eiffel Tower" -> Paris/7th arrondissement,
+        //      "Statue of Liberty" -> Manhattan/Financial District. Zapisujemy CEL, nie przekierowanie,
+        //      zeby link nie zalezal od tego, czy redirect przetrwa.
+        //   2. KONTROLA WSPOLRZEDNYMI: prop=coordinates dla kazdego artykulu, porownane z lat/lon cudu.
+        //      19 z 21 zgodnych (0-9 km; Wielki Mur 62 km - jest dlugi, Rio 25 km - artykul celuje
+        //      w centrum miasta). UWAGA: prop=coordinates ma domyslny limit 10 na zapytanie, wiec
+        //      pytaj partiami po 10, inaczej kontrola po cichu dziala na ulamku danych.
+        //   3. Dwa artykuly NIE MIALY wspolrzednych - i oba okazaly sie STRONAMI UJEDNOZNACZNIAJACYMI,
+        //      czyli dokladnie ta pulapka, ktora znamy z linkow miast:
+        //        "Alhambra" -> rozdroze: Alhambra w KALIFORNII vs twierdza nad Granada  => bierzemy Granada
+        //        "Kremlin"  -> rozdroze; samo wskazuje "Moscow/Central"                 => bierzemy Moscow/Central
+        //      Po podmianie: Granada 1 km, Moscow/Central 0 km, zadna nie jest rozdrozem.
+        //      MORAL: brak wspolrzednych w artykule to sygnal ostrzegawczy, nie drobiazg.
+        // Wszystkie 21 cudow maja wpis, wiec przycisk pokazuje sie zawsze (brak wpisu = brak przycisku).
+        const WONDER_WV = {
+            "CN": "Great_Wall_of_China",
+            "IT": "Rome/Colosseo",
+            "JO": "Petra",
+            "MX": "Chichen_Itza",
+            "PE": "Machu_Picchu",
+            "IN": "Agra",                            // Taj Mahal nie ma wlasnego hasla
+            "BR": "Rio_de_Janeiro",                  // Chrystus Zbawiciel nie ma wlasnego hasla
+            "EG": "Cairo/Giza",
+            "GR": "Athens",                          // "Acropolis" przekierowuje tutaj
+            "ES": "Granada",                         // NIE "Alhambra" - to rozdroze (patrz wyzej)
+            "KH": "Angkor_Archaeological_Park",
+            "CL": "Easter_Island",
+            "FR": "Paris/7th_arrondissement",
+            "TR": "Istanbul",                        // Hagia Sophia nie ma wlasnego hasla
+            "JP": "Kyoto",                           // Kiyomizu-dera nie ma wlasnego hasla
+            "RU": "Moscow/Central",                  // NIE "Kremlin" - to rozdroze (patrz wyzej)
+            "DE": "Füssen",                          // "Neuschwanstein" przekierowuje tutaj
+            "US": "Manhattan/Financial_District",
+            "GB": "Stonehenge",
+            "AU": "Sydney/City_Centre",
+            "ML": "Timbuktu"
+        };
+
         const REGION_MAP = {
     "AD":"EU","AE":"ASIA","AF":"ASIA","AG":"NA","AL":"EU","AM":"ASIA","AO":"AF","AR":"SA","AT":"EU","AU":"OC",
     "AZ":"ASIA","BA":"EU","BB":"NA","BD":"ASIA","BE":"EU","BF":"AF","BG":"EU","BH":"ASIA","BI":"AF","BJ":"AF",

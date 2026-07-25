@@ -2931,13 +2931,22 @@
             var wonderVisitedRowHtml = '<div class="fact-row" id="wonder-visited-row" style="cursor:' + (_isWonderVisited ? 'default' : 'pointer') + ';" title="' + (_isWonderVisited ? '' : 'Kliknij, zeby oznaczyc jako odwiedzone') + '"><span class="fact-key">ODWIEDZONE:</span><span class="fact-val" id="wonder-visited-val" style="color:' + (_isWonderVisited ? '#22c55e' : '#8f9ba8') + ';">' + (_isWonderVisited ? '✅ TAK' : '☐ NIE (kliknij)') + '</span></div>';
             if (!d) { fC.innerHTML = wonderVisitedRowHtml + '<div style="color: #8b97a4; font-family: \'Consolas\', monospace; font-size: 0.9rem;">NO INTEL DATA</div>'; }
             else {
+                // WIKIVOYAGE: tytul bierzemy z WONDER_WV (intel.js) - zweryfikowany audytem, NIE sklejany
+                // z nazwy cudu. Wikivoyage opisuje destynacje, nie zabytki, wiec wiekszosc cudow siedzi
+                // w artykule miasta albo dzielnicy (Koloseum -> Rome/Colosseo). Brak wpisu = brak przycisku.
+                // encodeURI, a NIE encodeURIComponent: tytuly zawieraja "/" ("Rome/Colosseo",
+                // "Paris/7th_arrondissement"), ktore encodeURIComponent zamienilby na %2F i rozwalil adres.
+                var _wvBtn = (typeof WONDER_WV !== 'undefined' && WONDER_WV[w.id])
+                    ? '<a href="' + encodeURI("https://en.wikivoyage.org/wiki/" + WONDER_WV[w.id]) + '" target="_blank" class="windy-btn" style="background: rgba(52,211,153,0.15); border: 1px solid #34d399; color: #34d399;">🧭 WIKIVOYAGE</a>'
+                    : '';
                 fC.innerHTML = `
                     <img src="${d.img}" class="wonder-img" alt="${w.name}" onerror="this.style.display='none'">
                     ${wonderVisitedRowHtml}
                     <div class="wonder-desc">${d.desc}</div>
                     <div class="links-grid">
-                        <a href="${d.unsplash}" target="_blank" class="windy-btn" style="background: rgba(255,255,255,0.1); border: 1px solid #ffffff; color: #ffffff;">📸 UNSPLASH</a>
+                        ${_wvBtn}
                         <a href="${d.wiki}" target="_blank" class="windy-btn" style="background: rgba(0,212,255,0.15); border: 1px solid #00d4ff; color: #00d4ff;">📖 WIKIPEDIA</a>
+                        <a href="${d.unsplash}" target="_blank" class="windy-btn" style="background: rgba(255,255,255,0.1); border: 1px solid #ffffff; color: #ffffff;">📸 UNSPLASH</a>
                     </div>
                 `;
             }
