@@ -33,3 +33,9 @@ wiki-visa-raw.txt
 pidx.csv
 build-climate-data.php
 build-climate-data.mjs
+
+# --- narzedzia audytowe (link-rot), dodane 2026-07-25 ---
+#     Wewnetrzny tooling: nie jest czescia strony i nie ma po co byc publiczny.
+#     Raporty zawieraja surowe listy URL-i i kody bledow. WPISANE TU ZANIM
+#     KATALOG POWSTAL - sync.sh commituje co 5 minut.
+audit/
