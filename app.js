@@ -2816,6 +2816,12 @@
             // Pomijamy, gdy miasto to praktycznie sama Warszawa (dist < 1 km) - trasa Warsaw->Warsaw jest bez sensu.
             // Booking: wyszukiwarka noclegow w tym miescie - zawsze. stripDiacritics zywe z intel.js (guard na wszelki wypadek).
             var _r2rUrl = null, _bkgUrl = null;
+            // URBANRAIL (mapa metra/kolei miejskiej). Klucz "CC|Nazwa" - dokladnie ta nazwa,
+            // ktora siedzi w CITIES_DB, wiec zero normalizacji w locie. Brak wpisu = brak
+            // przycisku (wiekszosc miast nie ma kolei miejskiej) - btn() sam zwraca '' dla null.
+            var _urUrl = (window.URBANRAIL_LINKS && dc.cc && dc.cname)
+                       ? (window.URBANRAIL_LINKS[dc.cc + "|" + dc.cname] || null)
+                       : null;
             if (dc.cname) {
                 // KRAJ W ZAPYTANIU (2026-07-25): sama nazwa miasta trafiala w zle miejsce przy nazwach
                 // powtarzalnych - "Cordoba" szlo do Hiszpanii zamiast Argentyny, "San Jose" do Kostaryki
@@ -2860,6 +2866,7 @@
               + btn(gm, "📍 GOOGLE MAPS", "250,204,21")
               + btn(_r2rUrl, "🚄 ROME2RIO", "129,140,248")
               + btn(_bkgUrl, "🏨 BOOKING", "0,159,235")
+              + btn(_urUrl, "🚇 METRO", "239,68,68")
               + btn(dc.un, "📸 FOTO", "255,255,255")
               + '</div>';
             window._cityIntelToken = (window._cityIntelToken || 0) + 1;
@@ -4636,6 +4643,13 @@
                         ? `<a href="${vaccinationsUrl}" target="_blank" class="windy-btn" style="background: rgba(106, 27, 154, 0.15); border: 1px solid #8E24AA; color: #BA68C8;">💉 SZCZEPIENIA</a>`
                         : '';
 
+                    // UNESCO: profil kraju na unesco.org (obiekty swiatowego dziedzictwa, konwencje).
+                    // Adres GENEROWANY z ISO2 malymi literami - wzorzec regularny, wiec ZERO slownika.
+                    // Sprawdzone 2026-07-26: /en/countries/<iso2> dziala, a bzdurny kod zwraca UCZCIWE 404
+                    // (w odroznieniu od whc.unesco.org, ktore odrzuca automaty kodem 403).
+                    const unescoUrl = `https://www.unesco.org/en/countries/${id.toLowerCase()}`;
+                    const unescoBtnHtml = `<a href="${unescoUrl}" target="_blank" class="windy-btn" style="background: rgba(14, 165, 233, 0.15); border: 1px solid #0ea5e9; color: #38bdf8;">🏛️ UNESCO</a>`;
+
                     const intel = getIntel(id);
                     const pColor = intel.p.includes("NIE") ? "#00ff00" : "#dc2626";
 
@@ -4794,6 +4808,7 @@
                             <a href="${gmapsUrl}" target="_blank" class="windy-btn" style="background: rgba(66, 133, 244, 0.15); border: 1px solid #4285F4; color: #4285F4;">🗺️ GOOGLE MAPS</a>
                             ${vaccinationsBtnHtml}
                             ${railBtnHtml}
+                            ${unescoBtnHtml}
                         </div>
                     `;
 
