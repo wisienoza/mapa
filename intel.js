@@ -1756,6 +1756,7 @@ const ATLAS_LINKS = {
         //   je w zwyklej przegladarce. NIE wpisuj ich w ciemno.
         const WONDER_SITE = {
             "JO": "https://www.visitpetra.jo/",                               // PDTRA - potwierdzone w stopce
+            "IT": "https://colosseo.it/en/",                                  // Parco archeologico del Colosseo (panstwo IT). Serwer bywa niedostepny (ECONNREFUSED) - wpisane na zyczenie usera, patrz nota w db-schema
             "GR": "https://www.ysma.gr/en/",                                  // Sluzba Restauracji Akropolu (Min. Kultury GR)
             "TR": "https://ayasofyacamii.gov.tr",                             // Dyrekcja Komunikacji Prezydencji TR
             "EG": "https://egymonuments.gov.eg/en/archaeological-sites/giza-plateau",  // Min. Turystyki i Starozytnosci
