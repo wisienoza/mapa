@@ -2939,11 +2939,18 @@
                 var _wvBtn = (typeof WONDER_WV !== 'undefined' && WONDER_WV[w.id])
                     ? '<a href="' + encodeURI("https://en.wikivoyage.org/wiki/" + WONDER_WV[w.id]) + '" target="_blank" class="windy-btn" style="background: rgba(52,211,153,0.15); border: 1px solid #34d399; color: #34d399;">🧭 WIKIVOYAGE</a>'
                     : '';
+                // OFICJALNA STRONA: pelny URL z WONDER_SITE (intel.js), kazdy sprawdzony recznie - Wikidane
+                // podaly tez adresy komercyjne i martwe, wiec nie ufamy im na slowo. Brak wpisu = brak
+                // przycisku (9 z 21 cudow nie ma jednej oficjalnej strony albo znalezione byly falszywe).
+                var _siteBtn = (typeof WONDER_SITE !== 'undefined' && WONDER_SITE[w.id])
+                    ? '<a href="' + WONDER_SITE[w.id] + '" target="_blank" class="windy-btn" style="background: rgba(250,204,21,0.15); border: 1px solid #facc15; color: #facc15;">🎫 OFFICIAL</a>'
+                    : '';
                 fC.innerHTML = `
                     <img src="${d.img}" class="wonder-img" alt="${w.name}" onerror="this.style.display='none'">
                     ${wonderVisitedRowHtml}
                     <div class="wonder-desc">${d.desc}</div>
                     <div class="links-grid">
+                        ${_siteBtn}
                         ${_wvBtn}
                         <a href="${d.wiki}" target="_blank" class="windy-btn" style="background: rgba(0,212,255,0.15); border: 1px solid #00d4ff; color: #00d4ff;">📖 WIKIPEDIA</a>
                         <a href="${d.unsplash}" target="_blank" class="windy-btn" style="background: rgba(255,255,255,0.1); border: 1px solid #ffffff; color: #ffffff;">📸 UNSPLASH</a>

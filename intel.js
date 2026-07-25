@@ -1719,6 +1719,44 @@ const ATLAS_LINKS = {
             "ML": "Timbuktu"
         };
 
+        // --- OFICJALNE STRONY CUDOW (audyt 2026-07-25) ---
+        // Klucz: id z WONDERS. Wartosc: PELNY URL. Brak wpisu = BRAK PRZYCISKU (dzis 12 z 21).
+        //
+        // >>> NAJWAZNIEJSZA LEKCJA: WIKIDANE (P856 "official website") NIE SA WIARYGODNE SAME Z SIEBIE.
+        // Wyciagniecie P856 dalo 15 adresow, ale sprawdzenie kazdego z nich odrzucilo TRZY:
+        //   MX "chichenitza.com"      - KOMERCYJNY operator wycieczek (sprzedaje tury od 134 USD),
+        //                               loga INAH w stopce sa tylko afiliacja partnerska. NIE oficjalna.
+        //   CN "thegreatwall.com.cn"  - certyfikat TLS nie pasuje do domeny (wskazuje ilovegreatwall.cn).
+        //   BR "corcovado.com.br"     - certyfikat TLS wskazuje na hosting locaweb.com.br. Martwa.
+        // Czyli 1 na 5 wpisow z Wikidanych bylby zlym linkiem. ZAWSZE sprawdzaj adres przed wpisaniem.
+        // Sprawdzanie rob NARZEDZIEM SERWEROWYM (WebFetch), a nie w panelu przegladarki - patrz
+        // ostrzezenie o rome2rio przy sekcji BOOKING/ROME2RIO w db-schema.md.
+        //
+        // Poprawione: DE mial w Wikidanych "neuschwanstein.com", ktory przekierowuje na ".de" -
+        // zapisujemy CEL (oficjalna Bayerische Schlösserverwaltung), nie przekierowanie.
+        // Odzyskane: IN - Wikidane nie zwrocily nic dla hasla "Tadż Mahal" (blad normalizacji tytulu),
+        // ale wprost z Q9141 wyszlo tajmahal.gov.in.
+        //
+        // BEZ WPISU (9) i dlaczego - nie dopisuj tu niczego "z glowy":
+        //   CN, MX, BR - jedyne adresy jakie znalezlismy byly komercyjne albo martwe (patrz wyzej).
+        //   EG, GR, KH, TR, ML, CL - Wikidane nie maja dla nich P856. Te zabytki albo nie maja jednej
+        //   oficjalnej strony (Wielki Mur, Timbuktu - miasto), albo zarzadza nimi ministerstwo bez
+        //   dedykowanej witryny obiektu.
+        const WONDER_SITE = {
+            "IT": "https://colosseo.it/",                                     // Parco archeologico del Colosseo
+            "JO": "https://www.visitpetra.jo/",                               // PDTRA - potwierdzone w stopce
+            "PE": "https://www.machupicchu.gob.pe/",                          // .gob.pe - rzad Peru
+            "IN": "https://www.tajmahal.gov.in/",                             // .gov.in - rzad Indii
+            "ES": "https://www.alhambra-patronato.es",                        // "Sitio oficial | Patronato de la Alhambra"
+            "FR": "https://www.toureiffel.paris",                             // SETE - operator wiezy
+            "JP": "https://www.kiyomizudera.or.jp/",                          // wlasna domena swiatyni
+            "RU": "https://www.kreml.ru",                                     // Muzea Kremla, afiliacja Min. Kultury
+            "DE": "https://www.neuschwanstein.de/",                           // Bayerische Schlösserverwaltung
+            "US": "https://www.nps.gov/stli/",                                // National Park Service
+            "GB": "https://www.english-heritage.org.uk/visit/places/stonehenge/",
+            "AU": "https://www.sydneyoperahouse.com"
+        };
+
         const REGION_MAP = {
     "AD":"EU","AE":"ASIA","AF":"ASIA","AG":"NA","AL":"EU","AM":"ASIA","AO":"AF","AR":"SA","AT":"EU","AU":"OC",
     "AZ":"ASIA","BA":"EU","BB":"NA","BD":"ASIA","BE":"EU","BF":"AF","BG":"EU","BH":"ASIA","BI":"AF","BJ":"AF",
