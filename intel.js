@@ -1761,6 +1761,8 @@ const ATLAS_LINKS = {
             "EG": "https://egymonuments.gov.eg/en/archaeological-sites/giza-plateau",  // Min. Turystyki i Starozytnosci
             "BR": "https://parquenacionaldatijuca.rio/como-visitar-o-corcovado/",      // Park Narodowy Tijuca (zarzadza dojazdem)
             "CL": "https://www.rapanuinationalpark.com/en/",                  // Park Narodowy Rapa Nui, wspolnota Ma'u Henua
+            "KH": "https://apsaraauthority.gov.kh/",                          // APSARA National Authority (rzad Kambodzy)
+            "MX": "https://www.inah.gob.mx/zonas/146-zona-arqueologica-de-chichen-itza",  // INAH (rzad Meksyku)
             "PE": "https://www.machupicchu.gob.pe/",                          // .gob.pe - rzad Peru
             "IN": "https://www.tajmahal.gov.in/",                             // .gov.in - rzad Indii
             "ES": "https://www.alhambra-patronato.es",                        // "Sitio oficial | Patronato de la Alhambra"
