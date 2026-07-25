@@ -1022,6 +1022,18 @@ const QPP_LINKS = {
 			"Marigot": "Philipsburg"
         };
 
+		// --- BOOKING COUNTRY FIX (2026-07-25) ---
+		// Przycisk BOOKING w panelu miasta pyta "<miasto>, <kraj>", zeby nie mylic miast o tej samej
+		// nazwie. Kraj bierze sie z FACTBOOK; tutaj tylko nazwy, ktorych Booking NIE zna.
+		// CZ: FACTBOOK ma "Czechia" i Booking tej formy nie indeksuje - "Prague, Czechia" zwraca
+		// poprawne praskie hotele, ale na zwyklej stronie wynikow (109 wzmianek o Pradze) zamiast na
+		// stronie miasta (251). "Prague, Czech Republic" daje pelna strone. To ten sam wzorzec co przy
+		// Numbeo i timeanddate - serwisy zewnetrzne trzymaja tradycyjne nazwy angielskie.
+		// TR nie wymaga wpisu: "Türkiye" i "Turkey" daja u Bookinga identyczny wynik (sprawdzone).
+		const BOOKING_COUNTRY_OVERRIDES = {
+			"CZ": "Czech Republic"
+		};
+
 		// --- NUMBEO COUNTRY FIX ---
         const NUMBEO_COUNTRY_OVERRIDES = {
             "CD": "Democratic+Republic+of+the+Congo",

@@ -2804,7 +2804,21 @@
             // Booking: wyszukiwarka noclegow w tym miescie - zawsze. stripDiacritics zywe z intel.js (guard na wszelki wypadek).
             var _r2rUrl = null, _bkgUrl = null;
             if (dc.cname) {
-                _bkgUrl = "https://www.booking.com/searchresults.html?ss=" + encodeURIComponent(dc.cname);
+                // KRAJ W ZAPYTANIU (2026-07-25): sama nazwa miasta trafiala w zle miejsce przy nazwach
+                // powtarzalnych - "Cordoba" szlo do Hiszpanii zamiast Argentyny, "San Jose" do Kostaryki
+                // zamiast USA, "Valencia" ZAWSZE do Hiszpanii, choc baza ma tez wenezuelska i amerykanska.
+                // W CITIES_DB jest 103 powtarzajacych sie nazw (218 miast), a Booking zna ich duzo wiecej
+                // niz my, wiec kolizja moze wystapic tez z miastem spoza bazy. Sprawdzone: dodanie kraju
+                // NIE psuje przypadkow jednoznacznych (Warszawa/Praga trafiaja tak samo jak bez niego).
+                // NAZWA, NIE KOD ISO: "Warsaw, PL" i "Valencia, VE" dzialaja, ale ladują na zwyklej stronie
+                // wynikow zamiast na stronie miasta (Warszawa: 49 wzmianek w tresci vs 174). Kod jest
+                // wygodniejszy dla nas, gorszy dla uzytkownika - stad pelna nazwa.
+                var _bkgC = (dc.cc && typeof FACTBOOK !== 'undefined' && FACTBOOK[dc.cc] && FACTBOOK[dc.cc].name)
+                    ? FACTBOOK[dc.cc].name.common : null;
+                if (_bkgC && typeof BOOKING_COUNTRY_OVERRIDES !== 'undefined' && BOOKING_COUNTRY_OVERRIDES[dc.cc])
+                    _bkgC = BOOKING_COUNTRY_OVERRIDES[dc.cc];
+                _bkgUrl = "https://www.booking.com/searchresults.html?ss="
+                        + encodeURIComponent(dc.cname + (_bkgC ? ", " + _bkgC : ""));
                 var _dwKm = (typeof getDist === 'function' && dc.lat != null && dc.lng != null) ? Math.round(getDist(52.2297, 21.0122, dc.lat, dc.lng)) : null;
                 if (_dwKm == null || _dwKm >= 1) {
                     var _r2rCity = (typeof stripDiacritics === 'function') ? stripDiacritics(dc.cname) : dc.cname;
