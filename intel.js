@@ -1737,17 +1737,30 @@ const ATLAS_LINKS = {
         // Odzyskane: IN - Wikidane nie zwrocily nic dla hasla "Tadż Mahal" (blad normalizacji tytulu),
         // ale wprost z Q9141 wyszlo tajmahal.gov.in.
         //
-        // BEZ WPISU (10) i dlaczego - nie dopisuj tu niczego "z glowy":
+        // DOSZUKANE 2026-07-25 (druga tura, przez wyszukiwarke + weryfikacja WebFetch): GR, TR, EG, BR, CL.
+        // Wikidane nie mialy dla nich P856, ale organy zarzadzajace maja wlasne witryny - trzeba bylo
+        // szukac po INSTYTUCJI (sluzba konserwatorska, ministerstwo, zarzad parku), a nie po nazwie
+        // zabytku. To dobra heurystyka na przyszlosc: zabytek czesto nie ma strony, ale jego zarzadca ma.
+        //
+        // BEZ WPISU (5) i dlaczego - nie dopisuj tu niczego "z glowy":
         //   IT - "colosseo.it" (adres z Wikidanych) NIE OTWIERA SIE: odmowa polaczenia z dwoch roznych
-        //   sieci, tak samo dla "parcocolosseo.it" (ten sam IP). Sprawdzone niezaleznie przez usera
-        //   w zwyklej przegladarce. Wpis usuniety - brak przycisku jest lepszy niz martwy link.
-        //   Jesli kiedys wroci, przywroc go DOPIERO po potwierdzeniu, ze strona odpowiada.
-        //   CN, MX, BR - jedyne adresy jakie znalezlismy byly komercyjne albo martwe (patrz wyzej).
-        //   EG, GR, KH, TR, ML, CL - Wikidane nie maja dla nich P856. Te zabytki albo nie maja jednej
-        //   oficjalnej strony (Wielki Mur, Timbuktu - miasto), albo zarzadza nimi ministerstwo bez
-        //   dedykowanej witryny obiektu.
+        //   sieci, tak samo dla "parcocolosseo.it" i "www.colosseo.it" (ten sam IP 2.42.229.247).
+        //   Sprawdzone niezaleznie przez usera w zwyklej przegladarce. Brak przycisku jest lepszy niz
+        //   martwy link. Przywroc DOPIERO po potwierdzeniu, ze strona odpowiada.
+        //   CN - Wielki Mur nie ma JEDNEJ oficjalnej strony: kazdy odcinek (Badaling, Mutianyu) ma
+        //   osobnego operatora, a "thegreatwall.com.cn" z Wikidanych ma zepsuty certyfikat.
+        //   ML - Timbuktu to miasto, nie obiekt z wlasna witryna.
+        //   KH, MX - kandydaci ZNALEZIENI, ale niepotwierdzeni z tej sieci (apsaraauthority.gov.kh
+        //   zwraca 403 botom, inah.gob.mx/zonas/146-zona-arqueologica-de-chichen-itza nie rozwiazuje
+        //   sie DNS-owo). Serwery odpowiadaja, wiec adresy zapewne zyja - dopisz je, gdy ktos potwierdzi
+        //   je w zwyklej przegladarce. NIE wpisuj ich w ciemno.
         const WONDER_SITE = {
             "JO": "https://www.visitpetra.jo/",                               // PDTRA - potwierdzone w stopce
+            "GR": "https://www.ysma.gr/en/",                                  // Sluzba Restauracji Akropolu (Min. Kultury GR)
+            "TR": "https://ayasofyacamii.gov.tr",                             // Dyrekcja Komunikacji Prezydencji TR
+            "EG": "https://egymonuments.gov.eg/en/archaeological-sites/giza-plateau",  // Min. Turystyki i Starozytnosci
+            "BR": "https://parquenacionaldatijuca.rio/como-visitar-o-corcovado/",      // Park Narodowy Tijuca (zarzadza dojazdem)
+            "CL": "https://www.rapanuinationalpark.com/en/",                  // Park Narodowy Rapa Nui, wspolnota Ma'u Henua
             "PE": "https://www.machupicchu.gob.pe/",                          // .gob.pe - rzad Peru
             "IN": "https://www.tajmahal.gov.in/",                             // .gov.in - rzad Indii
             "ES": "https://www.alhambra-patronato.es",                        // "Sitio oficial | Patronato de la Alhambra"
