@@ -1995,8 +1995,18 @@
 
             var links = (typeof AIRPORT_LINKS !== 'undefined') ? AIRPORT_LINKS : [];
             var btnsHtml = links.map(function(l){
+                // SLOWNIK POKRYCIA (pole "dict", np. AIRPORT_SMOKERS / AIRPORT_WATER z
+                // airport-coverage-data.js). Brak lotniska w slowniku = serwis go NIE opisuje,
+                // wiec przycisk w ogole nie powstaje - zamiast prowadzic w pustke.
+                // Wartosc ze slownika wchodzi do szablonu jako {path}.
+                var dv = null;
+                if (l.dict) {
+                    var d = window[l.dict];
+                    dv = (d && Object.prototype.hasOwnProperty.call(d, iata)) ? d[iata] : null;
+                    if (!dv) return "";
+                }
                 var href = l.url
-                    ? l.url.replace(/{iata}/g, encodeURIComponent(iata)).replace(/{iata_lower}/g, encodeURIComponent(iata.toLowerCase()))
+                    ? l.url.replace(/{path}/g, dv || "").replace(/{iata}/g, encodeURIComponent(iata)).replace(/{iata_lower}/g, encodeURIComponent(iata.toLowerCase()))
                     : (l.src === "wiki" ? dc.wiki : dc.url);
                 if (!href) return "";
                 // BEZ grid-column:1/-1 - przyciski maja siedziec w dwoch kolumnach .links-grid,
