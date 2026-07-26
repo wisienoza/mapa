@@ -46,7 +46,7 @@ window.AIRPORT_LINKS = [
     {
         key: "water",
         label: "🚰 WATER",
-        url: "https://www.wateratairports.com/topic-tag/{iata_lower}/",
+        url: "https://www.wateratairports.com/topic/{path}/",
         dict: "AIRPORT_WATER",
         bg: "rgba(0, 204, 255, 0.15)",
         border: "#00ccff",
