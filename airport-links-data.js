@@ -66,5 +66,27 @@ window.AIRPORT_TYPES = {
     M: "✈️ port regionalny",
     S: "🛩️ małe lotnisko",
     H: "🚁 heliport",
-    W: "🛥️ baza wodnosamolotów"
+    W: "🛥️ baza wodnosamolotów",
+    Z: "⏸️ ruch zawieszony"
+};
+
+// ====================================================================
+// WYJĄTKI OD FILTRA "MA ROZKŁADOWY RUCH" (nadpisanie pola [6] z airport-db.json)
+// Lotnisko z wpisem tutaj pojawia się na mapie, nawet gdy OurAirports ma dla niego
+// scheduled_service = no. Wartość = klasa z AIRPORT_TYPES, wyświetlana w wierszu "RUCH".
+//
+// Reguła bazowa brzmi "nie ma rozkładu, nie ma pinezki" i 2026-07-26 wycięła 12 lotnisk.
+// Dziewięć z nich wyleciało słusznie (porty zastąpione nowszymi, małe lotniska GA).
+// Trzy poniżej to co innego: duże, czynne porty, którym ruch cywilny wstrzymała WOJNA,
+// a nie zamknięcie. Zniknięcie ich z mapy Ukrainy byłoby mylące - dlatego wracają,
+// ale z uczciwą etykietą "ruch zawieszony", a nie udając normalnie działające porty.
+//
+// GDY RUCH WRÓCI: skasuj wpis. OurAirports przestawi wtedy scheduled_service na yes
+// i lotnisko wejdzie na mapę normalną drogą, z prawdziwą klasą (KBP to large_airport).
+// Ten słownik ma zostać MAŁY - to lista wyjątków, nie druga baza lotnisk.
+// ====================================================================
+window.AIRPORT_TYPE_OVERRIDE = {
+    KBP: "Z",   // Kijów-Boryspol      - zamknięty dla ruchu cywilnego od 2022-02
+    IEV: "Z",   // Kijów-Żulany        - j.w.
+    HRK: "Z"    // Charków             - j.w.
 };

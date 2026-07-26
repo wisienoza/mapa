@@ -1935,7 +1935,7 @@
             // odswieza dokument i skrypty, ale NIE to fetch() - bez tego przegladarka trzyma stara
             // baze i zmiana w danych jest niewidoczna mimo poprawnego kodu. BUMPUJ PRZY KAZDEJ
             // ZMIANIE airport-db.json.
-            window._airportDBPromise = fetch("airport-db.json?v=20260726b").then(function(r){ return r.json(); }).then(function(db){
+            window._airportDBPromise = fetch("airport-db.json?v=20260726c").then(function(r){ return r.json(); }).then(function(db){
                 window.AIRPORT_DB = db.iata || {};
                 var byCC = {};
                 // KTORE LOTNISKA SA WIDOCZNE (zmiana 2026-07-26): do 2026-07-25 warunkiem bylo pole [5],
@@ -1946,11 +1946,16 @@
                 // rozkladowego ruchu - wyciete na zyczenie usera, bo to byly porty zamkniete albo
                 // zastapione nowymi (ULN -> UBN, MJV -> RMU), male lotniska GA i lotniska ukrainskie
                 // wylaczone z ruchu cywilnego. Zaden kraj nie stracil na tym ostatniej pinezki.
+                // AIRPORT_TYPE_OVERRIDE (airport-links-data.js) to lista wyjatkow od tej reguly:
+                // lotniska bez scheduled_service, ktore mimo to maja byc widoczne (dzis 3 ukrainskie
+                // porty z ruchem wstrzymanym przez wojne, klasa "Z" = ruch zawieszony).
+                var ovr = (typeof AIRPORT_TYPE_OVERRIDE !== 'undefined') ? AIRPORT_TYPE_OVERRIDE : {};
                 for (var code in window.AIRPORT_DB) {
                     var v = window.AIRPORT_DB[code];
-                    if (!v[6]) continue;
+                    var typ = v[6] || ovr[code] || "";
+                    if (!typ) continue;
                     var cc = v[4];
-                    (byCC[cc] = byCC[cc] || []).push({ lat: v[0], lon: v[1], name: v[3], iata: code, url: v[5], wiki: v[7] || "", typ: v[6] || "" });
+                    (byCC[cc] = byCC[cc] || []).push({ lat: v[0], lon: v[1], name: v[3], iata: code, url: v[5], wiki: v[7] || "", typ: typ });
                 }
                 window.AIRPORT_BY_CC = byCC;
                 return db;
@@ -1988,8 +1993,10 @@
             var row = (window.AIRPORT_DB && window.AIRPORT_DB[iata]) || null;
             var apCity = row ? row[2] : "";
             var apCC = row ? row[4] : "";
-            // [6] = klasa lotniska (L/M/S/H/W); slownik opisow w airport-links-data.js.
-            var apTyp = (row && row[6] && typeof AIRPORT_TYPES !== 'undefined') ? (AIRPORT_TYPES[row[6]] || "") : "";
+            // Klasa lotniska: najpierw dc.typ (juz rozwiazany w ensureAirportDB, wiec uwzglednia
+            // AIRPORT_TYPE_OVERRIDE), w razie czego pole [6] z bazy. Slownik opisow: AIRPORT_TYPES.
+            var apTypCode = dc.typ || (row ? row[6] : "") || "";
+            var apTyp = (apTypCode && typeof AIRPORT_TYPES !== 'undefined') ? (AIRPORT_TYPES[apTypCode] || "") : "";
             var ctryName = (apCC && typeof FACTBOOK !== 'undefined' && FACTBOOK[apCC]) ? FACTBOOK[apCC].name.common : apCC;
             var flagSrc = (apCC && window._flagSrc) ? window._flagSrc(apCC) : null;
 
