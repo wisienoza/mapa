@@ -37,7 +37,8 @@ window.AIRPORT_LINKS = [
     {
         key: "smokers",
         label: "🚬 SMOKERS",
-        url: "https://airportsmokers.com/#gsc.tab=0&gsc.q={iata_lower}&gsc.sort=",
+        url: "https://airportsmokers.com/{path}",
+        dict: "AIRPORT_SMOKERS",
         bg: "rgba(230, 74, 25, 0.15)",
         border: "#e64a19",
         color: "#ff8a65"
@@ -46,6 +47,7 @@ window.AIRPORT_LINKS = [
         key: "water",
         label: "🚰 WATER",
         url: "https://www.wateratairports.com/topic-tag/{iata_lower}/",
+        dict: "AIRPORT_WATER",
         bg: "rgba(0, 204, 255, 0.15)",
         border: "#00ccff",
         color: "#00ccff"
