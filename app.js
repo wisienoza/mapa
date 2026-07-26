@@ -1931,7 +1931,11 @@
         window.AIRPORT_DB = null; window.AIRPORT_BY_CC = null; window._airportDBPromise = null;
         window.ensureAirportDB = function() {
             if (window._airportDBPromise) return window._airportDBPromise;
-            window._airportDBPromise = fetch("airport-db.json").then(function(r){ return r.json(); }).then(function(db){
+            // ?v= jak przy <script> w index.html, bo Web Station nie wysyla Cache-Control. Ctrl+F5
+            // odswieza dokument i skrypty, ale NIE to fetch() - bez tego przegladarka trzyma stara
+            // baze i zmiana w danych jest niewidoczna mimo poprawnego kodu. BUMPUJ PRZY KAZDEJ
+            // ZMIANIE airport-db.json.
+            window._airportDBPromise = fetch("airport-db.json?v=20260726a").then(function(r){ return r.json(); }).then(function(db){
                 window.AIRPORT_DB = db.iata || {};
                 var byCC = {};
                 // KTORE LOTNISKA SA WIDOCZNE (zmiana 2026-07-26): do 2026-07-25 warunkiem bylo pole [5],

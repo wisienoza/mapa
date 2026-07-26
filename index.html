@@ -22,7 +22,7 @@
 	<script src="achievements-catalog.js?v=20260719l"></script>
 	<script src="achievements-tiers-data.js?v=20260719l"></script>
 	<script src="visited-cities-data.js"></script>
-	<script src="airport-links-data.js"></script>
+	<script src="airport-links-data.js?v=20260726a"></script>
 	<script src="urbanrail-data.js?v=20260726a"></script>
 	<!-- TAD_CLIMATE_OK: whitelist pokrycia klimatu timeanddate dla miast (audyt 2026-07-25).
 	     BEZ defer mimo malego rozmiaru (31 KB) - defer oplaca sie tylko przy plikach rzedu MB,
@@ -629,10 +629,15 @@
          BUMPUJ TEN NUMER PRZY KAZDEJ ZMIANIE app.js / help.js / achievements-tiers-data.js
          / airlines-data.js (ten ostatni dopisany 2026-07-19: wazy tyle co nic, a stara kopia z cache
          cicho gasi baner linii, ktorej kod dopiero co tam wpisales - dokladnie ten rodzaj bledu,
-         ktory sie potem debuguje pol dnia).
+         ktory sie potem debuguje pol dnia) / airport-links-data.js (dopisany 2026-07-26 - patrz
+         wyzej, tag ~linia 25 - z tego samego powodu: stara kopia gasi przycisk WIKIPEDIA i wiersz
+         RUCH w panelu lotniska, a plik wazy 2 kB).
+         BAZY POBIERANE PRZEZ fetch() maja wlasny ?v= W KODZIE, nie tutaj - airport-db.json siedzi
+         w app.js (window.ensureAirportDB). Ctrl+F5 NIE odswieza fetch(), wiec przy kazdej zmianie
+         tego pliku trzeba bumpnac TAMTEN numer osobno.
          Celowo TYLKO te pliki: ciezkie bazy (flags 2 MB, climate 2.3 MB) maja sie cache'owac,
          bo zmieniaja sie raz na ruski rok, a publiczna kopia na GitHub Pages sciagalaby je od nowa. -->
-    <script src="help.js?v=20260725g"></script>
-    <script src="app.js?v=20260725h"></script>
+    <script src="help.js?v=20260726a"></script>
+    <script src="app.js?v=20260726a"></script>
 </body>
 </html>
