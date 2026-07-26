@@ -1935,7 +1935,7 @@
             // odswieza dokument i skrypty, ale NIE to fetch() - bez tego przegladarka trzyma stara
             // baze i zmiana w danych jest niewidoczna mimo poprawnego kodu. BUMPUJ PRZY KAZDEJ
             // ZMIANIE airport-db.json.
-            window._airportDBPromise = fetch("airport-db.json?v=20260726a").then(function(r){ return r.json(); }).then(function(db){
+            window._airportDBPromise = fetch("airport-db.json?v=20260726b").then(function(r){ return r.json(); }).then(function(db){
                 window.AIRPORT_DB = db.iata || {};
                 var byCC = {};
                 // KTORE LOTNISKA SA WIDOCZNE (zmiana 2026-07-26): do 2026-07-25 warunkiem bylo pole [5],
