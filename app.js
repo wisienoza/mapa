@@ -1934,11 +1934,17 @@
             window._airportDBPromise = fetch("airport-db.json").then(function(r){ return r.json(); }).then(function(db){
                 window.AIRPORT_DB = db.iata || {};
                 var byCC = {};
+                // KTORE LOTNISKA SA WIDOCZNE (zmiana 2026-07-26): do 2026-07-25 warunkiem bylo pole [5],
+                // czyli istnienie guide'a Sleeping in Airports - przez to na mapie bylo tylko 887 z 9056
+                // lotnisk i 49 krajow nie mialo ANI JEDNEJ pinezki. Teraz decyduje pole [6] (klasa
+                // lotniska z regularnym rozkladowym ruchem pasazerskim). Alternatywa "|| v[5]" zostaje
+                // dla 12 lotnisk, ktore maja guide SiA, ale w OurAirports nie maja scheduled_service -
+                // zeby zmiana niczego nie zabrala. Razem: 4174 pinezki, 236 krajow.
                 for (var code in window.AIRPORT_DB) {
                     var v = window.AIRPORT_DB[code];
-                    if (!v[5]) continue;
+                    if (!v[6] && !v[5]) continue;
                     var cc = v[4];
-                    (byCC[cc] = byCC[cc] || []).push({ lat: v[0], lon: v[1], name: v[3], iata: code, url: v[5] });
+                    (byCC[cc] = byCC[cc] || []).push({ lat: v[0], lon: v[1], name: v[3], iata: code, url: v[5], wiki: v[7] || "", typ: v[6] || "" });
                 }
                 window.AIRPORT_BY_CC = byCC;
                 return db;
@@ -1950,7 +1956,7 @@
                 if (!window.airportMode) return;
                 var list = (window.AIRPORT_BY_CC && window.AIRPORT_BY_CC[id]) || [];
                 if (window.airportSeries) window.airportSeries.data.setAll(list.map(function(a){
-                    return { geometry: { type: "Point", coordinates: [a.lon, a.lat] }, iata: a.iata, apname: a.name, url: a.url };
+                    return { geometry: { type: "Point", coordinates: [a.lon, a.lat] }, iata: a.iata, apname: a.name, url: a.url, wiki: a.wiki, typ: a.typ };
                 }));
             });
         };
@@ -1958,7 +1964,9 @@
         // Klik NIE otwiera juz od razu Sleeping in Airports - leci w prawy panel #factbook-content,
         // dokladnie tak jak showCityIntel / updateWonderIntel (te same .fact-row i .links-grid).
         // Przyciski buduje katalog AIRPORT_LINKS (airport-links-data.js): szablony URL na kodzie IATA,
-        // a wpis z url === null bierze gotowy adres z bazy (dc.url = guide SiA z airport-db.json).
+        // a wpis z url === null bierze gotowy adres z bazy - z ktorego pola, mowi pole "src":
+        // src:"sia" -> dc.url (pole [5], guide Sleeping in Airports), src:"wiki" -> dc.wiki (pole [7]).
+        // Pusty adres = przycisk w ogole sie nie renderuje (return '' nizej).
         window.showAirportPanel = function(dc) {
             if (!dc) return;
             var fT = document.getElementById("factbook-target");
@@ -1974,6 +1982,8 @@
             var row = (window.AIRPORT_DB && window.AIRPORT_DB[iata]) || null;
             var apCity = row ? row[2] : "";
             var apCC = row ? row[4] : "";
+            // [6] = klasa lotniska (L/M/S/H/W); slownik opisow w airport-links-data.js.
+            var apTyp = (row && row[6] && typeof AIRPORT_TYPES !== 'undefined') ? (AIRPORT_TYPES[row[6]] || "") : "";
             var ctryName = (apCC && typeof FACTBOOK !== 'undefined' && FACTBOOK[apCC]) ? FACTBOOK[apCC].name.common : apCC;
             var flagSrc = (apCC && window._flagSrc) ? window._flagSrc(apCC) : null;
 
@@ -1983,7 +1993,7 @@
             var btnsHtml = links.map(function(l){
                 var href = l.url
                     ? l.url.replace(/{iata}/g, encodeURIComponent(iata)).replace(/{iata_lower}/g, encodeURIComponent(iata.toLowerCase()))
-                    : dc.url;
+                    : (l.src === "wiki" ? dc.wiki : dc.url);
                 if (!href) return "";
                 return '<a href="' + href + '" target="_blank" class="windy-btn" style="grid-column:1 / -1; background:' + l.bg + '; border:1px solid ' + l.border + '; color:' + l.color + ';">' + l.label + '</a>';
             }).join('');
@@ -1993,6 +2003,7 @@
               + '<div class="fact-row" style="border:none;"><span class="fact-key">AIRPORT:</span><span class="fact-val" style="color:#facc15; font-weight:bold;">' + apname + '</span></div>'
               + '<div class="fact-row"><span class="fact-key">IATA:</span><span class="fact-val" style="color:#00b3ff; font-weight:bold; letter-spacing:1px;">🛬 ' + iata + '</span></div>'
               + (apCity ? '<div class="fact-row"><span class="fact-key">MIASTO:</span><span class="fact-val">🏙️ ' + apCity + '</span></div>' : '')
+              + (apTyp ? '<div class="fact-row"><span class="fact-key">RUCH:</span><span class="fact-val">' + apTyp + '</span></div>' : '')
               + (ctryName ? '<div class="fact-row"><span class="fact-key">KRAJ:</span><span class="fact-val">'
                     + (flagSrc ? '<img src="' + flagSrc + '" style="width:20px; height:14px; object-fit:cover; vertical-align:-2px; margin-right:6px; border:1px solid rgba(255,255,255,0.25);" alt="">' : '')
                     + ctryName + '</span></div>' : '')
