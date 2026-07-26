@@ -1,6 +1,11 @@
 // ====================================================================
 // KATALOG LINKÓW ZEWNĘTRZNYCH DLA POJEDYNCZEGO LOTNISKA
 // Używane przez window.showAirportPanel(dc) w app.js (klik w pinezkę lotniska na mapie).
+// ETYKIETY TRZYMAJ KRÓTKIE (do ~12 znaków z emoji). Przyciski siedzą w .links-grid, czyli
+// w dwóch kolumnach po ~159 px - tak samo jak w panelu kraju i miasta. Dłuższa nazwa zawija
+// się do drugiej linii i ten JEDEN przycisk rozpycha cały wiersz siatki (51 px zamiast 34),
+// przez co panel wygląda inaczej niż pozostałe. Dlatego 2026-07-26 skrócone:
+// "SLEEPING IN AIRPORTS" -> "SLEEPING", "AIRPORT SMOKERS" -> "SMOKERS", "WATER AT AIRPORTS" -> "WATER".
 // Placeholdery w polu "url":
 //   {iata}       -> kod IATA wielkimi literami (np. WAW)
 //   {iata_lower} -> kod IATA małymi literami (np. waw)
@@ -22,7 +27,7 @@ window.AIRPORT_LINKS = [
     },
     {
         key: "sleep",
-        label: "🛏️ SLEEPING IN AIRPORTS",
+        label: "🛏️ SLEEPING",
         url: null,
         src: "sia",
         bg: "rgba(106, 27, 154, 0.15)",
@@ -31,7 +36,7 @@ window.AIRPORT_LINKS = [
     },
     {
         key: "smokers",
-        label: "🚬 AIRPORT SMOKERS",
+        label: "🚬 SMOKERS",
         url: "https://airportsmokers.com/#gsc.tab=0&gsc.q={iata_lower}&gsc.sort=",
         bg: "rgba(230, 74, 25, 0.15)",
         border: "#e64a19",
@@ -39,7 +44,7 @@ window.AIRPORT_LINKS = [
     },
     {
         key: "water",
-        label: "🚰 WATER AT AIRPORTS",
+        label: "🚰 WATER",
         url: "https://www.wateratairports.com/topic-tag/{iata_lower}/",
         bg: "rgba(0, 204, 255, 0.15)",
         border: "#00ccff",
@@ -52,10 +57,12 @@ window.AIRPORT_LINKS = [
 // Zrodlo: OurAirports (kolumna "type" dla wpisow ze scheduled_service = yes).
 // Puste pole [6] = lotnisko bez regularnego ruchu rozkladowego -> wiersz sie nie pokazuje.
 // ====================================================================
+// Opisy KROTKIE - wiersz .fact-row ma waska kolumne wartosci i dluzszy tekst byl ucinany
+// wielokropkiem ("duzy port (ruch miedzynarodow...").
 window.AIRPORT_TYPES = {
-    L: "🌍 duży port (ruch międzynarodowy)",
-    M: "✈️ port regionalny (ruch rozkładowy)",
-    S: "🛩️ małe lotnisko (ruch rozkładowy)",
-    H: "🚁 heliport (ruch rozkładowy)",
-    W: "🛥️ baza wodnosamolotów (ruch rozkładowy)"
+    L: "🌍 duży port",
+    M: "✈️ port regionalny",
+    S: "🛩️ małe lotnisko",
+    H: "🚁 heliport",
+    W: "🛥️ baza wodnosamolotów"
 };

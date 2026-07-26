@@ -1999,7 +1999,9 @@
                     ? l.url.replace(/{iata}/g, encodeURIComponent(iata)).replace(/{iata_lower}/g, encodeURIComponent(iata.toLowerCase()))
                     : (l.src === "wiki" ? dc.wiki : dc.url);
                 if (!href) return "";
-                return '<a href="' + href + '" target="_blank" class="windy-btn" style="grid-column:1 / -1; background:' + l.bg + '; border:1px solid ' + l.border + '; color:' + l.color + ';">' + l.label + '</a>';
+                // BEZ grid-column:1/-1 - przyciski maja siedziec w dwoch kolumnach .links-grid,
+                // tak samo jak w panelu kraju i miasta (te same .windy-btn w tej samej siatce).
+                return '<a href="' + href + '" target="_blank" class="windy-btn" style="background:' + l.bg + '; border:1px solid ' + l.border + '; color:' + l.color + ';">' + l.label + '</a>';
             }).join('');
 
             fC.innerHTML =
