@@ -13,14 +13,14 @@
 // Dlatego lista jest ZEBRANA ze strony i dopasowana do CITIES_DB skryptem
 // audit\Build-UrbanRailDict.ps1 (regeneracja: patrz audit\README.md).
 //
-// Wygenerowane 2026-07-26 (2. przebieg, 514 wpisow - poprzedni mial 473).
+// Wygenerowane 2026-07-26 (2. przebieg, 516 wpisow - poprzedni mial 473).
 // Wszystkie adresy zweryfikowane na zywo (HEAD = 200). Serwis zwraca UCZCIWE
 // 404, wiec slownik da sie normalnie audytowac przez audit\Invoke-LinkAudit.ps1.
 //
 // DLACZEGO 2. PRZEBIEG: pierwszy dopasowywal miasta WYLACZNIE po etykiecie linku,
 // a urbanrail podpisuje linki po angielsku ("Cracow", "Cologne", "Ghent") albo
 // skraca nazwe ("Gorzow"). Teraz dopasowanie idzie z trzech zrodel: alias z reki,
-// etykieta, SLUG Z URL-A (/eu/pl/kra/krakow.htm -> krakow). Stad +41 miast.
+// etykieta, SLUG Z URL-A (/eu/pl/kra/krakow.htm -> krakow). Stad +43 miasta.
 //
 // NIEROZSTRZYGNIETE (celowo bez wpisu): brytyjskie Newcastle - CITIES_DB ma pod
 // ta nazwa tylko ZA i AU (australijskie ma juz wlasny wpis z /au/newcastle/).
@@ -216,6 +216,7 @@ window.URBANRAIL_LINKS = {
     "ES|San Sebastian": "https://www.urbanrail.net/eu/es/doss/donostia.htm",
     "ES|Santa Cruz de Tenerife": "https://www.urbanrail.net/eu/es/tenerife/tenerife.htm",
     "ES|Sevilla": "https://www.urbanrail.net/eu/es/sevilla/sevilla.htm",
+    "ES|Tarragona": "https://www.urbanrail.net/eu/es/tarragona/camp-de-tarragona.htm",
     "ES|Zaragoza": "https://www.urbanrail.net/eu/es/zara/zaragoza.htm",
     "ET|Addis Ababa": "https://www.urbanrail.net/af/addis-ababa/addis-ababa.htm",
     "FI|Helsinki": "https://www.urbanrail.net/eu/fi/helsinki//helsinki.htm",
@@ -356,6 +357,7 @@ window.URBANRAIL_LINKS = {
     "MA|Casablanca": "https://www.urbanrail.net/af/casa/casablanca.htm",
     "MA|Rabat": "https://www.urbanrail.net/af/rabat/rabat.htm",
     "MO|Macau": "https://www.urbanrail.net/as/cn/macau/macau.htm",
+    "MU|Port Louis": "https://www.urbanrail.net/af/mauritius/maurice.htm",
     "MX|Guadalajara": "https://www.urbanrail.net/am/guad/guadalajara.htm",
     "MX|Monterrey": "https://www.urbanrail.net/am/mony/monterrey.htm",
     "MY|Kuala Lumpur": "https://www.urbanrail.net/as/my/kual/kuala-lumpur.htm",
