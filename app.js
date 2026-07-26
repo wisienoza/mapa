@@ -1940,13 +1940,15 @@
                 var byCC = {};
                 // KTORE LOTNISKA SA WIDOCZNE (zmiana 2026-07-26): do 2026-07-25 warunkiem bylo pole [5],
                 // czyli istnienie guide'a Sleeping in Airports - przez to na mapie bylo tylko 887 z 9056
-                // lotnisk i 49 krajow nie mialo ANI JEDNEJ pinezki. Teraz decyduje pole [6] (klasa
-                // lotniska z regularnym rozkladowym ruchem pasazerskim). Alternatywa "|| v[5]" zostaje
-                // dla 12 lotnisk, ktore maja guide SiA, ale w OurAirports nie maja scheduled_service -
-                // zeby zmiana niczego nie zabrala. Razem: 4174 pinezki, 236 krajow.
+                // lotnisk i 49 krajow nie mialo ANI JEDNEJ pinezki. Teraz decyduje WYLACZNIE pole [6]
+                // (klasa lotniska z regularnym rozkladowym ruchem pasazerskim): 4162 pinezki, 236 krajow.
+                // Przez chwile bylo tu "|| v[5]", zeby nie zabrac 12 lotnisk majacych guide SiA bez
+                // rozkladowego ruchu - wyciete na zyczenie usera, bo to byly porty zamkniete albo
+                // zastapione nowymi (ULN -> UBN, MJV -> RMU), male lotniska GA i lotniska ukrainskie
+                // wylaczone z ruchu cywilnego. Zaden kraj nie stracil na tym ostatniej pinezki.
                 for (var code in window.AIRPORT_DB) {
                     var v = window.AIRPORT_DB[code];
-                    if (!v[6] && !v[5]) continue;
+                    if (!v[6]) continue;
                     var cc = v[4];
                     (byCC[cc] = byCC[cc] || []).push({ lat: v[0], lon: v[1], name: v[3], iata: code, url: v[5], wiki: v[7] || "", typ: v[6] || "" });
                 }
