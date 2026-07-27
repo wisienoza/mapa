@@ -3237,15 +3237,45 @@
                 var _siteBtn = (typeof WONDER_SITE !== 'undefined' && WONDER_SITE[w.id])
                     ? '<a href="' + WONDER_SITE[w.id] + '" target="_blank" class="windy-btn" style="background: rgba(250,204,21,0.15); border: 1px solid #facc15; color: #facc15;">🎫 OFFICIAL</a>'
                     : '';
+                // WSPOLRZEDNE CUDU (w.lat / w.lon - UWAGA: "lon", nie "lng" jak w miastach) wystarczaja
+                // na dwa przyciski bez grama nowych danych. Nie bylo ich tu, choc panel kraju i miasta
+                // mialy je od dawna - zwykle przeoczenie.
+                var _wGm = 'https://www.google.com/maps/place/' + w.lat + ',' + w.lon;
+                // STREET VIEW: dokladnie ten sam adres Maps URLs API co w panelu miasta (patrz komentarz
+                // przy _svUrl w showCityIntel). Przy cudach trafia najcelniej z calej mapy - Google ma
+                // panorame nie tylko przed obiektem, ale czesto w jego wnetrzu.
+                var _wSv = 'https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=' + w.lat + ',' + w.lon;
+                // GETYOURGUIDE: bilety i wejscia bez kolejki. Zapytanie to ANGIELSKA nazwa cudu
+                // (w.name, ta sama, ktora widac w naglowku panelu) - serwis jest anglojezyczny w bazie,
+                // choc domena .pl daje polski interfejs i ceny w PLN. Fiolet jak w panelu MIASTA.
+                var _wGyg = 'https://www.getyourguide.pl/s/?q=' + encodeURIComponent(w.name);
+                function _wBtn(url, label, col) {
+                    if (!url) return '';
+                    return '<a href="' + url + '" target="_blank" class="windy-btn" style="background:rgba(' + col + ',0.15); border:1px solid rgb(' + col + '); color:rgb(' + col + ');">' + label + '</a>';
+                }
+                // KOLEJNOSC ALFABETYCZNA - ta sama zasada i ten sam mechanizm co w panelu KRAJU
+                // i MIASTA (patrz db-schema.md). Do 2026-07-27 ten panel mial kolejnosc historyczna,
+                // bo przy 4 przyciskach nie robilo to roznicy; przy 7 juz robi.
+                // GOOGLE MAPS w barwie Google (#4285F4) jak w panelu KRAJU, a NIE w zolci z panelu
+                // MIASTA: tuz obok stoi OFFICIAL (#facc15) i dwie zolcie zlalyby sie w jedno.
+                var _wLinks = [
+                    ["GETYOURGUIDE", _wBtn(_wGyg, "🎫 GETYOURGUIDE", "168,85,247")],
+                    ["GOOGLE MAPS",  _wBtn(_wGm,  "📍 GOOGLE MAPS",  "66,133,244")],
+                    ["OFFICIAL",     _siteBtn],
+                    ["STREET VIEW",  _wBtn(_wSv,  "🛣️ STREET VIEW",  "236,72,153")],
+                    ["UNSPLASH",     _wBtn(d.unsplash, "📸 UNSPLASH", "255,255,255")],
+                    ["WIKIPEDIA",    _wBtn(d.wiki, "📖 WIKIPEDIA",   "0,212,255")],
+                    ["WIKIVOYAGE",   _wvBtn]
+                ].filter(function(b){ return !!b[1]; })
+                 .sort(function(a, b){ return a[0].localeCompare(b[0], 'pl'); })
+                 .map(function(b){ return b[1]; })
+                 .join("\n                        ");
                 fC.innerHTML = `
                     <img src="${d.img}" class="wonder-img" alt="${w.name}" onerror="this.style.display='none'">
                     ${wonderVisitedRowHtml}
                     <div class="wonder-desc">${d.desc}</div>
                     <div class="links-grid">
-                        ${_siteBtn}
-                        ${_wvBtn}
-                        <a href="${d.wiki}" target="_blank" class="windy-btn" style="background: rgba(0,212,255,0.15); border: 1px solid #00d4ff; color: #00d4ff;">📖 WIKIPEDIA</a>
-                        <a href="${d.unsplash}" target="_blank" class="windy-btn" style="background: rgba(255,255,255,0.1); border: 1px solid #ffffff; color: #ffffff;">📸 UNSPLASH</a>
+                        ${_wLinks}
                     </div>
                 `;
             }
@@ -3285,13 +3315,24 @@
                 }
                 citiesHtml += '</div>';
             }
-            var linksHtml = "";
-            if (info && info.unsplash && info.wiki) {
-                linksHtml = '<div class="links-grid" style="margin-top:10px;">'
-                    + '<a href="'+info.unsplash+'" target="_blank" class="windy-btn" style="background: rgba(255,255,255,0.1); border: 1px solid #ffffff; color: #ffffff;">📸 UNSPLASH</a>'
-                    + '<a href="'+info.wiki+'" target="_blank" class="windy-btn" style="background: rgba(0,212,255,0.15); border: 1px solid #00d4ff; color: #00d4ff;">📖 WIKIPEDIA</a>'
-                    + '</div>';
-            }
+            // WIKIVOYAGE KONTYNENTU (continent-links-data.js). Tytul artykulu, nie URL - prefiks
+            // jest staly, tak samo jak przy ATLAS_CITY_LINKS. Komplet 6/6, ale przycisk i tak
+            // chowa sie sam przy braku wpisu, zeby dopisanie kontynentu nie wymagalo ruszania app.js.
+            var _contWv = (window.CONTINENT_LINKS && window.CONTINENT_LINKS[cid] && window.CONTINENT_LINKS[cid].wv)
+                        ? "https://en.wikivoyage.org/wiki/" + window.CONTINENT_LINKS[cid].wv
+                        : null;
+            // KOLEJNOSC ALFABETYCZNA - ta sama zasada co w panelu kraju, miasta i cudu (db-schema.md).
+            var _contLinks = [
+                ["UNSPLASH",   (info && info.unsplash) ? '<a href="'+info.unsplash+'" target="_blank" class="windy-btn" style="background: rgba(255,255,255,0.1); border: 1px solid #ffffff; color: #ffffff;">📸 UNSPLASH</a>' : ''],
+                ["WIKIPEDIA",  (info && info.wiki) ? '<a href="'+info.wiki+'" target="_blank" class="windy-btn" style="background: rgba(0,212,255,0.15); border: 1px solid #00d4ff; color: #00d4ff;">📖 WIKIPEDIA</a>' : ''],
+                ["WIKIVOYAGE", _contWv ? '<a href="'+_contWv+'" target="_blank" class="windy-btn" style="background: rgba(52,211,153,0.15); border: 1px solid #34d399; color: #34d399;">🧭 WIKIVOYAGE</a>' : '']
+            ].filter(function(b){ return !!b[1]; })
+             .sort(function(a, b){ return a[0].localeCompare(b[0], 'pl'); })
+             .map(function(b){ return b[1]; })
+             .join("");
+            // Do 2026-07-27 warunek brzmial "info.unsplash && info.wiki" - brak JEDNEGO z linkow
+            // kasowal CALA siatke. Teraz kazdy przycisk odpowiada sam za siebie.
+            var linksHtml = _contLinks ? '<div class="links-grid" style="margin-top:10px;">' + _contLinks + '</div>' : "";
             fC.innerHTML = `
                 ${img}
                 <div class="fact-row"><span class="fact-key">COUNTRIES:</span><span class="fact-val" style="color:#facc15">${cont.total}</span></div>
