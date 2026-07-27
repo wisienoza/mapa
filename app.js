@@ -4744,6 +4744,7 @@
                         ? `<a href="${mszUrl}" target="_blank" class="msz-btn">🦅 MSZ.GOV.PL</a>`
                         : '';
                     const unsplashUrl = `https://unsplash.com/s/photos/${countryNameSlug}`;
+                    const unsplashBtnHtml = `<a href="${unsplashUrl}" target="_blank" class="windy-btn" style="background: rgba(255, 255, 255, 0.1); border: 1px solid #ffffff; color: #ffffff;">📸 FOTO</a>`;
                     const atlasUrl = (typeof ATLAS_LINKS !== 'undefined' && ATLAS_LINKS[id]) ? ATLAS_LINKS[id] : null;   // patrz komentarz przy simWikiUrl
                     const simWikiBtnHtml = simWikiUrl
                         ? `<a href="${simWikiUrl}" target="_blank" class="windy-btn" style="background: rgba(0, 204, 255, 0.15); border: 1px solid #00ccff; color: #00ccff;">📲 SIM WIKI</a>`
@@ -4803,6 +4804,18 @@
                     // wraca na sama nazwe kraju.
                     let gmapsTarget = (typeof GMAPS_OVERRIDES !== 'undefined' && GMAPS_OVERRIDES[id]) ? GMAPS_OVERRIDES[id] : _plainNameSafe;
                     const gmapsUrl = `https://www.google.com/maps/place/${gmapsTarget}`;
+                    const gmapsBtnHtml = `<a href="${gmapsUrl}" target="_blank" class="windy-btn" style="background: rgba(66, 133, 244, 0.15); border: 1px solid #4285F4; color: #4285F4;">🗺️ GOOGLE MAPS</a>`;
+
+                    // WIKIPEDIA (2026-07-27): slownik WIKI_LINKS w intel.js, id -> PELNY URL. Zawsze pl.wikipedia,
+                    // a tam gdzie polskiego hasla nie ma - en.wikipedia (jezyk widac w tytule przycisku).
+                    // NIE sklejamy slugu z nazwy: polskie tytuly bywaja inne niz nazwa kraju z FACTBOOK
+                    // ("Wybrzeże Kości Słoniowej", "Demokratyczna Republika Konga"), a czesc nazw to
+                    // ROZDROZA - dokladnie ta pulapka, ktora przy WONDER_WV dala "Alhambra" i "Kremlin".
+                    // Brak wpisu = brak przycisku.
+                    const wikipediaUrl = (typeof WIKI_LINKS !== 'undefined' && WIKI_LINKS[id]) ? WIKI_LINKS[id] : null;
+                    const wikipediaBtnHtml = wikipediaUrl
+                        ? `<a href="${wikipediaUrl}" target="_blank" class="windy-btn" style="background: rgba(200, 200, 200, 0.12); border: 1px solid #c8c8c8; color: #e8e8e8;">📖 WIKIPEDIA${wikipediaUrl.indexOf('//en.') > 0 ? ' (EN)' : ''}</a>`
+                        : '';
 
                     // SZCZEPIENIA: przeniesione 2026-07-26 z tego paska do STALEGO przycisku pod GDZIE TERAZ?
                     // (#vaccinations-link w index.html). To jeden i ten sam PDF dla kazdego kierunku, wiec w
