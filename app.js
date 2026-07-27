@@ -4835,6 +4835,35 @@
                         ? `<a href="${unescoUrl}" target="_blank" class="windy-btn" style="background: rgba(14, 165, 233, 0.15); border: 1px solid #0ea5e9; color: #38bdf8;">🏛️ UNESCO</a>`
                         : '';
 
+                    // KOLEJNOSC PRZYCISKOW W links-grid: ALFABETYCZNIE po etykiecie (2026-07-27).
+                    // Wczesniej kolejnosc byla historyczna - taka, w jakiej przyciski dopisywano przez
+                    // miesiace - wiec na czternastoelementowym pasku nie dalo sie niczego znalezc wzrokiem.
+                    // Sortujemy po ETYKIECIE Z TABLICY, a nie po tresci HTML: emoji na poczatku przycisku
+                    // rozjechalyby sortowanie (kazde ma inny punkt kodowy i nie ma nic wspolnego z nazwa).
+                    // localeCompare('pl') jest tu istotne - stawia "Ś" po "S", a przed "T"
+                    // (SIM WIKI < ŚWIĘTA < TASTE ATLAS); zwykle porownanie wypchneloby Ś na koniec.
+                    // Puste stringi (przycisk schowany przez bramke) wypadaja przed sortowaniem.
+                    // DOPISUJAC NOWY PRZYCISK: dodaj pare [etykieta, html] - miejsce w pasku wyjdzie samo.
+                    const _linksGridHtml = [
+                        ["ATLAS OBSCURA", atlasBtnHtml],
+                        ["FOTO",          unsplashBtnHtml],
+                        ["GOOGLE MAPS",   gmapsBtnHtml],
+                        ["MSZ.GOV.PL",    mszBtnHtml],
+                        ["NUMBEO",        numbeoBtnHtml],
+                        ["POCIĄGI",       railBtnHtml],
+                        ["RADIO BOX",     radioBtnHtml],
+                        ["SIM WIKI",      simWikiBtnHtml],
+                        ["ŚWIĘTA",        holidaysBtnHtml],
+                        ["TASTE ATLAS",   tasteAtlasBtnHtml],
+                        ["TRIP ADVISOR",  tripBtnHtml],
+                        ["UNESCO",        unescoBtnHtml],
+                        ["WIKIPEDIA",     wikipediaBtnHtml],
+                        ["WIKIVOYAGE",    wikiBtnHtml]
+                    ].filter(function(b){ return !!b[1]; })
+                     .sort(function(a, b){ return a[0].localeCompare(b[0], 'pl'); })
+                     .map(function(b){ return b[1]; })
+                     .join("\n                            ");
+
                     const intel = getIntel(id);
                     const pColor = intel.p.includes("NIE") ? "#00ff00" : "#dc2626";
 
@@ -4979,21 +5008,7 @@
                         
                         <div class="fact-row"><span class="fact-key">LOCAL TIME:</span><span class="fact-val">${_extVal('<span id="live-local-time" style="color:#facc15; animation: blink 1s infinite;">CONNECTING...</span>', timeUrl, "Zegar światowy tego kraju (timeanddate.com)")}</span></div>
                         
-                        <div class="links-grid">
-                            ${numbeoBtnHtml}
-                            ${mszBtnHtml}
-                            ${tasteAtlasBtnHtml}
-                            ${holidaysBtnHtml}
-                            ${simWikiBtnHtml}
-                            ${radioBtnHtml}
-                            <a href="${unsplashUrl}" target="_blank" class="windy-btn" style="background: rgba(255, 255, 255, 0.1); border: 1px solid #ffffff; color: #ffffff;">📸 FOTO</a>
-                            ${atlasBtnHtml}
-                            ${tripBtnHtml}
-                            ${wikiBtnHtml}
-                            <a href="${gmapsUrl}" target="_blank" class="windy-btn" style="background: rgba(66, 133, 244, 0.15); border: 1px solid #4285F4; color: #4285F4;">🗺️ GOOGLE MAPS</a>
-                            ${railBtnHtml}
-                            ${unescoBtnHtml}
-                        </div>
+                        <div class="links-grid">${_linksGridHtml}</div>
                     `;
 
                     const _cVisRow = document.getElementById("country-visited-row");
