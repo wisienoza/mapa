@@ -251,6 +251,13 @@
         .cc-rank { color: #8f9ba8; width: 22px; flex-shrink: 0; }
         .cc-name { flex: 1; color: #ddd; }
         .cc-pop { color: #00ccff; font-weight: bold; }
+        /* Wiersz miasta prowadzacy do profilu (klasa dodawana tylko przy trafieniu w CITIES_DB).
+           Strzalka "›" jest przygaszona i rozjasnia sie na hover - tak samo jak przy wierszu CAPITAL. */
+        .cont-city-go { cursor: pointer; }
+        .cont-city-go:hover { background: rgba(250,204,21,0.08); }
+        .cont-city-go:hover .cc-name { color: #facc15; }
+        .cc-go { color: #6b7684; margin-left: 8px; flex-shrink: 0; }
+        .cont-city-go:hover .cc-go { color: #facc15; }
         .fact-row { display: flex; justify-content: space-between; border-bottom: 1px solid #333; padding-bottom: 4px; margin-bottom: 3px; font-size: 0.85rem; align-items: center; }
         .fact-key { color: #b3bdc9; font-size: 0.8rem; font-weight: 600; text-transform: uppercase; font-family: 'Rajdhani', sans-serif; }
         .fact-val { color: #fff; font-weight: 700; text-align: right; max-width: 85%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

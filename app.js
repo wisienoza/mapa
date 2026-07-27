@@ -3283,7 +3283,10 @@
                     // niebieskie, ale nasycony Google-blue i blady periwinkle daja sie odroznic.
                     ["ROME2RIO",     _wBtn(_wR2r, "🚄 ROME2RIO",     "129,140,248")],
                     ["STREET VIEW",  _wBtn(_wSv,  "🛣️ STREET VIEW",  "236,72,153")],
-                    ["UNSPLASH",     _wBtn(d.unsplash, "📸 UNSPLASH", "255,255,255")],
+                    // Etykieta "FOTO", a nie "UNSPLASH" (2026-07-27, decyzja usera) - tak samo jak
+                    // w panelu KRAJU i MIASTA. Adres bez zmian, to sam Unsplash. Zmiana etykiety
+                    // PRZESUWA przycisk w posortowanej siatce: z srodka na sam poczatek.
+                    ["FOTO",         _wBtn(d.unsplash, "📸 FOTO", "255,255,255")],
                     ["WIKIPEDIA",    _wBtn(d.wiki, "📖 WIKIPEDIA",   "0,212,255")],
                     ["WIKIVOYAGE",   _wvBtn]
                 ].filter(function(b){ return !!b[1]; })
@@ -3331,21 +3334,42 @@
             if (cities && cities.length) {
                 citiesHtml = '<div class="fact-row" style="border:none; margin-top:10px; margin-bottom:2px;"><span class="fact-key" style="color:#facc15;">TOP 10 CITIES:</span></div><div class="cont-cities">';
                 for (var ci=0; ci<cities.length; ci++) {
-                    citiesHtml += '<div class="cont-city"><span class="cc-rank">'+(ci+1)+'.</span><span class="cc-name">'+cities[ci][0]+'</span><span class="cc-pop">'+cities[ci][1]+'</span></div>';
+                    // KLIKALNOSC (2026-07-27): wiersz prowadzi do profilu miasta i przenosi na nie globus.
+                    // Warunek to TRAFIENIE W CITIES_DB - _resolveCityRow po nazwie i wspolrzednych, tak samo
+                    // jak przy klikaniu miasta w wyszukiwarce. Nietrafione miasto zostaje ZWYKLYM TEKSTEM,
+                    // bez kursora i bez strzalki, zamiast otwierac pol-pusty profil bez kraju (a wiec bez
+                    // wiersza ODWIEDZONE, bez NUMBEO, METRO i ATLAS OBSCURA).
+                    // STAN 2026-07-27: trafia 60/60, wiec dzis nieklikalnych nie ma - warunek jest siatka
+                    // bezpieczenstwa na wypadek rozjazdu nazw miedzy CONTINENT_CITIES a CITIES_DB.
+                    // Strzalka "›" znaczy "wejscie do panelu wewnatrz aplikacji" - ta sama konwencja co
+                    // przy wierszu CAPITAL w profilu kraju (na zewnatrz prowadzi "↗").
+                    var _ccM = window._resolveCityRow ? window._resolveCityRow(cities[ci][0], cities[ci][2], cities[ci][3]) : null;
+                    citiesHtml += (_ccM
+                                   ? '<div class="cont-city cont-city-go" data-ci="' + ci + '" title="Kliknij, żeby otworzyć profil miasta">'
+                                   : '<div class="cont-city">')
+                               +  '<span class="cc-rank">'+(ci+1)+'.</span>'
+                               +  '<span class="cc-name">'+cities[ci][0]+'</span>'
+                               +  '<span class="cc-pop">'+cities[ci][1]+'</span>'
+                               +  (_ccM ? '<span class="cc-go">›</span>' : '')
+                               +  '</div>';
                 }
                 citiesHtml += '</div>';
             }
             // WIKIVOYAGE KONTYNENTU (continent-links-data.js). Tytul artykulu, nie URL - prefiks
             // jest staly, tak samo jak przy ATLAS_CITY_LINKS. Komplet 6/6, ale przycisk i tak
             // chowa sie sam przy braku wpisu, zeby dopisanie kontynentu nie wymagalo ruszania app.js.
-            var _contWv = (window.CONTINENT_LINKS && window.CONTINENT_LINKS[cid] && window.CONTINENT_LINKS[cid].wv)
-                        ? "https://en.wikivoyage.org/wiki/" + window.CONTINENT_LINKS[cid].wv
-                        : null;
+            var _cl = (window.CONTINENT_LINKS && window.CONTINENT_LINKS[cid]) || {};
+            var _contWv = _cl.wv ? "https://en.wikivoyage.org/wiki/" + _cl.wv : null;
+            // WORLDOMETER: ludnosc panstw kontynentu. Brak pola wm = brak przycisku - dotyczy DZIS
+            // wylacznie NA, bo Worldometer nie zna "Ameryki Polnocnej" w naszym rozumieniu
+            // (szczegoly i sprawdzone warianty adresu: continent-links-data.js).
+            var _contWm = _cl.wm ? "https://www.worldometers.info/population/countries-in-" + _cl.wm + "-by-population/" : null;
             // KOLEJNOSC ALFABETYCZNA - ta sama zasada co w panelu kraju, miasta i cudu (db-schema.md).
             var _contLinks = [
                 ["UNSPLASH",   (info && info.unsplash) ? '<a href="'+info.unsplash+'" target="_blank" class="windy-btn" style="background: rgba(255,255,255,0.1); border: 1px solid #ffffff; color: #ffffff;">📸 UNSPLASH</a>' : ''],
                 ["WIKIPEDIA",  (info && info.wiki) ? '<a href="'+info.wiki+'" target="_blank" class="windy-btn" style="background: rgba(0,212,255,0.15); border: 1px solid #00d4ff; color: #00d4ff;">📖 WIKIPEDIA</a>' : ''],
-                ["WIKIVOYAGE", _contWv ? '<a href="'+_contWv+'" target="_blank" class="windy-btn" style="background: rgba(52,211,153,0.15); border: 1px solid #34d399; color: #34d399;">🧭 WIKIVOYAGE</a>' : '']
+                ["WIKIVOYAGE", _contWv ? '<a href="'+_contWv+'" target="_blank" class="windy-btn" style="background: rgba(52,211,153,0.15); border: 1px solid #34d399; color: #34d399;">🧭 WIKIVOYAGE</a>' : ''],
+                ["WORLDOMETER", _contWm ? '<a href="'+_contWm+'" target="_blank" class="windy-btn" style="background: rgba(251,146,60,0.15); border: 1px solid #fb923c; color: #fb923c;">📈 WORLDOMETER</a>' : '']
             ].filter(function(b){ return !!b[1]; })
              .sort(function(a, b){ return a[0].localeCompare(b[0], 'pl'); })
              .map(function(b){ return b[1]; })
@@ -3361,6 +3385,21 @@
                 ${citiesHtml}
                 ${linksHtml}
             `;
+            // Handlery PO wstawieniu HTML (a nie inline onclick w stringu) - nazwy miast potrafia
+            // zawierac apostrof (Sao Paulo jest bezpieczne, ale "N'Djamena" juz nie) i inline
+            // rozwalilby wtedy atrybut. data-ci trzyma indeks w tablicy cities, wiec handler
+            // siega po komplet danych, nie po odczytany z DOM tekst.
+            [].forEach.call(fC.querySelectorAll(".cont-city-go"), function(el){
+                el.onclick = function(){
+                    var c = cities[+el.getAttribute("data-ci")];
+                    if (!c) return;
+                    var m = window._resolveCityRow ? window._resolveCityRow(c[0], c[2], c[3]) : null;
+                    // Ta sama sciezka co klik w miasto w wyszukiwarce: podswietlenie kraju, punkt,
+                    // obrot globusa, zoom i profil miasta. Bez niej wiersz otwieralby profil miasta,
+                    // ktorego nie widac na globusie - z panelu kontynentu nie ma narysowanego kraju.
+                    if (m && window.focusCityFromRow) window.focusCityFromRow(m.cc, m.r, m.cap);
+                };
+            });
         };
         window.focusContinent = function(cid) {
             // Przyciski prezentujace cos na globusie (kontynent, misja, MAX RANGE, trasy lotow, cele rang,
@@ -6357,6 +6396,34 @@
                     if (window._clearMaxRangePlane) window._clearMaxRangePlane();
                 }
 
+                // --- SKOK NA MIASTO Z DOWOLNEGO MIEJSCA APLIKACJI (2026-07-27) ---
+                // Wydzielone z handlera "wynik wyszukiwarki: miasto", bo DOKLADNIE tego samego
+                // potrzebuje klikniety wiersz listy TOP 10 CITIES w panelu KONTYNENTU. Sekwencja jest
+                // przeniesiona 1:1 razem z komentarzami - kolejnosc krokow ma tu znaczenie.
+                // Musi mieszkac w TYM blokku, bo uzywa poly / pointSeries / chart, ktore sa lokalne
+                // dla sekcji mapy i nie maja mostkow do window.
+                // ci = SUROWY wiersz z CITIES_DB ([nazwa, lat, lon, ...]), NIE obiekt z _cityObjFromRow.
+                window.focusCityFromRow = function(cc, ci, cap) {
+                    window._clearFocusLayers();
+                    if (window._exitActiveOverlayMode) window._exitActiveOverlayMode();   // skok na miasto gasi VISA/CLIMATE/ZONES (patrz focusContinent)
+                    window._selectedCountryId = cc;
+                    window.airportMode = false;
+                    if (window.showAirportModeBtn) window.showAirportModeBtn(true);
+                    var polyItem = poly.getDataItemById(cc);
+                    if (window.highlightCountry) window.highlightCountry(polyItem ? polyItem.get("mapPolygon") : null);
+                    if (window.renderCountryPlaces) window.renderCountryPlaces(cc);
+                    // Reticle-podswietlenie na dokladnym punkcie miasta - rysowane PO renderCountryPlaces,
+                    // bo ta funkcja czysci pointSeries gdy stolica kraju jest jednoczesnie tym miastem.
+                    pointSeries.data.setAll([{ geometry: { type: "Point", coordinates: [ci[2], ci[1]] }, type: "target-search" }]);
+                    // Obrot robi WYLACZNIE rotateGlobe (jak wszedzie indziej). Zoom ustawiamy animujac
+                    // bezposrednio "zoomLevel" - NIE przez zoomToGeoPoint, bo ta metoda przy projekcji
+                    // geoOrthographic sama probuje obracac globus w strone punktu (niezaleznie od flagi
+                    // center), co gryzlo sie z rotateGlobe i globus ladowal w losowym miejscu.
+                    rotateGlobe(ci[1], ci[2], 1000, true);
+                    chart.animate({ key: "zoomLevel", to: 6, duration: 1000, easing: am5.ease.out(am5.ease.cubic) });
+                    if (window.showCityIntel) window.showCityIntel(window._cityObjFromRow(cc, ci, cap));
+                };
+
                 // --- MOSTKI DO window (dla displayMissionRoute na gorze pliku) ---
                 window.rotateGlobe = rotateGlobe;
                 window.pointSeries = pointSeries;
@@ -7404,32 +7471,9 @@
                     d.onmouseout = () => d.style.background = 'transparent';
 
                     d.onclick = () => {
-                        window._clearFocusLayers();
-                        if (window._exitActiveOverlayMode) window._exitActiveOverlayMode();   // wynik wyszukiwarki (miasto) gasi VISA/CLIMATE/ZONES (patrz focusContinent)
-
-                        window._selectedCountryId = cc;
-                        window.airportMode = false;
-                        if (window.showAirportModeBtn) window.showAirportModeBtn(true);
-
-                        const polyItem = poly.getDataItemById(cc);
-                        if (window.highlightCountry) window.highlightCountry(polyItem ? polyItem.get("mapPolygon") : null);
-                        if (window.renderCountryPlaces) window.renderCountryPlaces(cc);
-
-                        // Reticle-podswietlenie na dokladnym punkcie miasta (jak przy trafieniu stolicy
-                        // w wyszukiwarce krajow) - rysowane PO renderCountryPlaces, bo ta funkcja czysci
-                        // pointSeries gdy stolica kraju jest jednoczesnie dopasowanym miastem.
-                        pointSeries.data.setAll([{ geometry: { type: "Point", coordinates: [ci[2], ci[1]] }, type: "target-search" }]);
-
-                        // Obrot robi WYLACZNIE rotateGlobe (jak wszedzie indziej). Zoom ustawiamy animujac
-                        // bezposrednio "zoomLevel" - NIE przez zoomToGeoPoint, bo ta metoda przy projekcji
-                        // geoOrthographic sama probuje obracac globus w strone punktu (niezaleznie od flagi
-                        // center), co gryzlo sie z rotateGlobe i globus ladowal w losowym miejscu.
-                        rotateGlobe(ci[1], ci[2], 1000, true);
-                        chart.animate({ key: "zoomLevel", to: 6, duration: 1000, easing: am5.ease.out(am5.ease.cubic) });
-
-                        if (window.showCityIntel) {
-                            window.showCityIntel(window._cityObjFromRow(cc, ci, entry.cap));
-                        }
+                        // Cala sekwencja skoku siedzi w window.focusCityFromRow (sekcja mapy, obok
+                        // mostkow do window) - dzieli ja z lista TOP 10 CITIES w panelu kontynentu.
+                        window.focusCityFromRow(cc, ci, entry.cap);
 
                         resultsDiv.innerHTML = '';
                         searchInput.value = ci[0].toUpperCase();
