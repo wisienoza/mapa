@@ -2370,6 +2370,13 @@
                 color: col,
                 // Slug NIE jest wyprowadzalny z nazwy (Bali, New-York, Penang) - siedzi w danych.
                 url: "https://www.numbeo.com/cost-of-living/in/" + row[6],
+                // TEN SAM SLUG, INNA SEKCJA SERWISU. Numbeo trzyma miasto pod jednym slugiem we
+                // wszystkich dzialach (/crime/in/, /pollution/in/, /quality-of-life/in/...), wiec
+                // przestepczosc nie kosztuje ani jednego nowego wpisu w danych.
+                // UWAGA NA POKRYCIE: obecnosc w rankingu KOSZTOW nie gwarantuje danych o PRZESTEPCZOSCI -
+                // to dwie niezalezne ankiety. Strona zawsze otworzy sie z HTTP 200, tylko wskazniki
+                // moga byc puste. Ten sam mechanizm co przy NUMBEO_NO_CITY - patrz db-schema.md.
+                crime: "https://www.numbeo.com/crime/in/" + row[6],
                 // PORONWANIE Z WARSZAWA - ten sam adres co przycisk 💲 NUMBEO w panelu KRAJU, tylko dla
                 // DOWOLNEGO miasta, nie tylko stolicy. city2 bierzemy z row[7] (nazwa w nazewnictwie
                 // NUMBEO), bo klucz trzyma nazwe z CITIES_DB i te dwie potrafia sie roznic:
@@ -3013,7 +3020,7 @@
             // Rome2Rio: planer trasy z Warszawy do tego miasta (jak wiersz DISTANCE TO WARSAW w profilu kraju).
             // Pomijamy, gdy miasto to praktycznie sama Warszawa (dist < 1 km) - trasa Warsaw->Warsaw jest bez sensu.
             // Booking: wyszukiwarka noclegow w tym miescie - zawsze. stripDiacritics zywe z intel.js (guard na wszelki wypadek).
-            var _r2rUrl = null, _bkgUrl = null;
+            var _r2rUrl = null, _bkgUrl = null, _tripUrl = null, _gygUrl = null;
             // URBANRAIL (mapa metra/kolei miejskiej). Klucz "CC|Nazwa" - dokladnie ta nazwa,
             // ktora siedzi w CITIES_DB, wiec zero normalizacji w locie. Brak wpisu = brak
             // przycisku (wiekszosc miast nie ma kolei miejskiej) - btn() sam zwraca '' dla null.
@@ -3076,6 +3083,23 @@
                     if (typeof stripDiacritics === 'function') _r2rDest = stripDiacritics(_r2rDest);
                     _r2rUrl = "https://www.rome2rio.com/map/Warsaw/" + encodeURIComponent(_r2rDest);
                 }
+                // TRIP ADVISOR i GETYOURGUIDE: obie to WYSZUKIWARKI, wiec adres sklada sie z samej
+                // nazwy i nie potrzebuje slownika. Z KRAJEM W ZAPYTANIU - z dokladnie tego samego
+                // powodu co BOOKING i ROME2RIO wyzej (103 powtarzajace sie nazwy w CITIES_DB).
+                // stripDiacritics, bo obie wyszukiwarki gubia polskie i tureckie znaki diakrytyczne.
+                // >>> ZADNA Z NICH NIE ZWROCI 404 przy braku wynikow - oddaja HTTP 200 z pusta lista.
+                // Martwoty tych przyciskow NIE WYKRYJE wiec audyt HTTP (ta sama pulapka co przy
+                // TRIP ADVISOR w panelu kraju) i dlatego nie ma tu zadnej listy pokrycia.
+                var _searchQ = dc.cname + (_cn ? " " + _cn : "");
+                if (typeof stripDiacritics === 'function') _searchQ = stripDiacritics(_searchQ);
+                _searchQ = _searchQ.replace(/ /g, "+");
+                // Kolor jak w panelu KRAJU (#34e0a1, barwa marki) - ten sam serwis ma wygladac
+                // wszedzie tak samo, dokladnie jak przy ATLAS OBSCURA. Swiadomy koszt: w posortowanej
+                // siatce ten przycisk laduje nad WIKIVOYAGE (#34d399), czyli obok bardzo podobnej
+                // zieleni. Zgodnosc z panelem kraju wygrala z rozroznialnoscia w siatce.
+                _tripUrl = "https://www.tripadvisor.com/Search?q=" + _searchQ;
+                // GETYOURGUIDE: domena .pl, a nie .com - polski interfejs i ceny w PLN.
+                _gygUrl = "https://www.getyourguide.pl/s/?q=" + _searchQ;
             }
             // KOLEJNOSC PRZYCISKOW: ALFABETYCZNIE po etykiecie - dokladnie ta sama zasada i ten sam
             // mechanizm co w links-grid profilu KRAJU (updateFactbookPanel), zeby oba panele czytalo
@@ -3088,10 +3112,19 @@
             var _cityLinksHtml = [
                 ["ATLAS OBSCURA", _aoBtnHtml],
                 ["BOOKING",       btn(_bkgUrl, "🏨 BOOKING", "0,159,235")],
+                // GETYOURGUIDE nie dostaje korala marki (#ff5533): w posortowanej siatce siedzi
+                // dokladnie NAD przyciskiem METRO (#ef4444) i te dwie czerwienie bylyby nie do
+                // odroznienia. Fiolet nie koliduje z niczym w sasiedztwie (BOOKING nad nim jest
+                // niebieski, FOTO obok biale). Ten sam kolor w panelu CUDU - jeden serwis, jeden wyglad.
+                ["GETYOURGUIDE",  btn(_gygUrl, "🎫 GETYOURGUIDE", "168,85,247")],
                 // NUMBEO: porownanie TEGO miasta z Warszawa - dokladnie ten sam sens co przycisk
                 // w panelu KRAJU (tam: stolica vs Warszawa). Kolor jak tam: zielen #00ff00.
                 // Jest tylko przy miastach z wiersza KOSZTY i nigdy przy samej Warszawie (patrz .cmp).
                 ["NUMBEO",        btn(_cCost && _cCost.cmp, "💲 NUMBEO", "0,255,0")],
+                // NUMBEO CRIME: ten sam slug co wiersz KOSZTY, wiec przycisk pojawia sie DOKLADNIE
+                // przy tych miastach co on (540 pozycji). Bursztyn zamiast czerwieni - czerwien
+                // sugerowalaby, ze kazde miasto jest niebezpieczne, a to tylko odnosnik do danych.
+                ["NUMBEO CRIME",  btn(_cCost && _cCost.crime, "🚔 NUMBEO CRIME", "251,191,36")],
                 ["FOTO",          btn(dc.un, "📸 FOTO", "255,255,255")],
                 ["GOOGLE MAPS",   btn(gm, "📍 GOOGLE MAPS", "250,204,21")],
                 ["METRO",         btn(_urUrl, "🚇 METRO", "239,68,68")],
@@ -3100,6 +3133,7 @@
                 // stoi tuz obok TASTEATLAS (244,164,96), a GOOGLE MAPS ma juz zolc (250,204,21).
                 ["STREET VIEW",   btn(_svUrl, "🛣️ STREET VIEW", "236,72,153")],
                 ["TASTEATLAS",    btn(window._taCityUrl(dc.ta), "🍽️ TASTEATLAS", "244,164,96")],
+                ["TRIP ADVISOR",  btn(_tripUrl, "🦉 TRIP ADVISOR", "52,224,161")],
                 ["WIKIPEDIA",     btn(dc.wiki, "📖 WIKIPEDIA", "0,212,255")],
                 ["WIKIVOYAGE",    btn(dc.wv, "🧭 WIKIVOYAGE", "52,211,153")]
             ].filter(function(b){ return !!b[1]; })
