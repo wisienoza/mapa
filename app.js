@@ -2862,7 +2862,7 @@
             // slupki opadu (mm/miesiac)
             var bw=step*0.56;
             for(var i=0;i<12;i++){ var bh=precip[i]/pMax*(yBot-yTop)*0.62; s+='<rect x="'+(cx(i)-bw/2).toFixed(1)+'" y="'+(yBot-bh).toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+bh.toFixed(1)+'" rx="1" fill="#00ccff" opacity="0.32"/>'; }
-            if(lo<0 && hi>0){ var yz=ty(0); s+='<line x1="'+x0+'" y1="'+yz.toFixed(1)+'" x2="'+x1+'" y2="'+yz.toFixed(1)+'" stroke="#fff" stroke-opacity="0.18" stroke-dasharray="2 3"/><text x="'+(x1+1)+'" y="'+(yz+3).toFixed(1)+'" fill="#aab4c0" font-size="7">0°</text>'; }
+            if(lo<0 && hi>0){ var yz=ty(0); s+='<line x1="'+x0+'" y1="'+yz.toFixed(1)+'" x2="'+x1+'" y2="'+yz.toFixed(1)+'" stroke="#fff" stroke-opacity="0.18" stroke-dasharray="2 3"/><text x="'+(x1+1)+'" y="'+(yz+3).toFixed(1)+'" fill="#aab4c0" font-size="8.5">0°</text>'; }
             s+='<line x1="'+x0+'" y1="'+yBot+'" x2="'+x1+'" y2="'+yBot+'" stroke="#fff" stroke-opacity="0.12"/>';
             var pts=""; for(i=0;i<12;i++){ pts+=cx(i).toFixed(1)+","+ty(temp[i]).toFixed(1)+" "; }
             s+='<polyline points="'+pts.trim()+'" fill="none" stroke="#facc15" stroke-width="1.7" stroke-linejoin="round"/>';
@@ -2872,9 +2872,13 @@
                 var t=temp[i], tier=travelTier(t), X=cx(i).toFixed(1), Y=ty(t);
                 if(tier===2){ s+='<circle cx="'+X+'" cy="'+Y.toFixed(1)+'" r="5" fill="#00ff44" opacity="0.20"/>'; }
                 s+='<circle cx="'+X+'" cy="'+Y.toFixed(1)+'" r="2.6" fill="'+tcol(t)+'" stroke="#111" stroke-width="0.5"/>';
-                s+='<text x="'+X+'" y="'+(Y-6).toFixed(1)+'" fill="#e6edf3" font-size="8.5" font-weight="bold" text-anchor="middle">'+Math.round(t)+'</text>';
-                s+='<text x="'+X+'" y="'+yPmm+'" fill="#5fd0ff" font-size="7.5" text-anchor="middle">'+Math.round(precip[i])+'</text>';
-                s+='<text x="'+X+'" y="'+yLbl+'" fill="'+TIER_COL[tier]+'" font-size="11" text-anchor="middle" font-weight="'+(tier===2?"bold":"600")+'">'+LET[i]+'</text>';
+                // Rozmiary podpisow podniesione 2026-07-27 (temp 8.5->10, opad 7.5->9, litera 11->12,
+                // "0°" 7->8.5) - przy poprzednich wartosciach cyfry w wykresie klimatu byly na granicy
+                // czytelnosci. Najszerszy przypadek to 3-znakowy opad ("192"): przy 9px w JetBrains Mono
+                // to ~16px przy odstepie kolumn step=25.1px, wiec kolizji miedzy miesiacami nie ma.
+                s+='<text x="'+X+'" y="'+(Y-6.5).toFixed(1)+'" fill="#e6edf3" font-size="10" font-weight="bold" text-anchor="middle">'+Math.round(t)+'</text>';
+                s+='<text x="'+X+'" y="'+yPmm+'" fill="#5fd0ff" font-size="9" text-anchor="middle">'+Math.round(precip[i])+'</text>';
+                s+='<text x="'+X+'" y="'+yLbl+'" fill="'+TIER_COL[tier]+'" font-size="12" text-anchor="middle" font-weight="'+(tier===2?"bold":"600")+'">'+LET[i]+'</text>';
             }
             return s+'</svg>';
         };
@@ -2884,11 +2888,11 @@
             var token=(window._climateToken=(window._climateToken||0)+1);
             var key=(Math.round(dc.lat*4)/4)+","+(Math.round(dc.lng*4)/4);
             function head(d){ var totP=Math.round(d.precip.reduce(function(a,b){return a+b;},0)); return ''
-              +'<div style="display:flex; justify-content:space-between; align-items:baseline; margin-top:2px;"><span class="fact-key" style="color:#facc15;">KLIMAT</span><span style="font-family:\'JetBrains Mono\',monospace; font-size:0.68rem; color:#c6cfd9;">⌀'+d.annT.toFixed(1)+'°C · '+totP+' mm/rok</span></div>'
-              +'<div style="font-family:\'JetBrains Mono\',monospace; font-size:0.6rem; color:#9aa6b3; margin-top:1px; letter-spacing:0.2px;"><span style="color:#facc15;">━</span> temp °C&nbsp;&nbsp;<span style="color:#00ccff;">▮</span> opad mm/mies&nbsp;&nbsp;<span style="color:#ff4d4d;">●</span>źle&nbsp;<span style="color:#eab308;">●</span>ujdzie&nbsp;<span style="color:#00ff55;">●</span>super</div>'; }
+              +'<div style="display:flex; justify-content:space-between; align-items:baseline; margin-top:2px;"><span class="fact-key" style="color:#facc15;">KLIMAT</span><span style="font-family:\'JetBrains Mono\',monospace; font-size:0.76rem; color:#c6cfd9;">⌀'+d.annT.toFixed(1)+'°C · '+totP+' mm/rok</span></div>'
+              +'<div style="font-family:\'JetBrains Mono\',monospace; font-size:0.68rem; color:#9aa6b3; margin-top:2px; letter-spacing:0.1px;"><span style="color:#facc15;">━</span> temp °C&nbsp;&nbsp;<span style="color:#00ccff;">▮</span> opad mm/mies&nbsp;&nbsp;<span style="color:#ff4d4d;">●</span>źle&nbsp;<span style="color:#eab308;">●</span>ujdzie&nbsp;<span style="color:#00ff55;">●</span>super</div>'; }
             function render(d){ if(window._climateToken!==token) return; if(!d){ el.innerHTML=''; return; } el.innerHTML=head(d)+window._climateSVG(d); }
             if(Object.prototype.hasOwnProperty.call(window._climateCache,key)){ render(window._climateCache[key]); return; }
-            el.innerHTML='<div style="color:#8b97a4; font-family:\'JetBrains Mono\',monospace; font-size:0.68rem; padding:3px 0;">KLIMAT: skan normalnych…</div>';
+            el.innerHTML='<div style="color:#8b97a4; font-family:\'JetBrains Mono\',monospace; font-size:0.76rem; padding:3px 0;">KLIMAT: skan normalnych…</div>';
             window._fetchTimeout("https://power.larc.nasa.gov/api/temporal/climatology/point?parameters=T2M,PRECTOTCORR&community=AG&longitude="+dc.lng+"&latitude="+dc.lat+"&format=JSON")
               .then(function(r){ return r.json(); }).then(function(j){
                 var pr=j&&j.properties&&j.properties.parameter;
