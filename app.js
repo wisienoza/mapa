@@ -2027,6 +2027,13 @@
             fT.innerText = "INTEL: " + apname.toUpperCase();
 
             var links = (typeof AIRPORT_LINKS !== 'undefined') ? AIRPORT_LINKS : [];
+            // KOLEJNOSC ALFABETYCZNA (2026-07-27) - czwarty i ostatni panel, ktory ja dostaje;
+            // zasada i mechanizm te same co w kraju, miescie, cudzie i kontynencie (db-schema.md).
+            // KLUCZ SORTOWANIA POWSTAJE TU, A NIE W DANYCH: AIRPORT_LINKS ma pole `label` z emoji
+            // na poczatku, a kazde emoji ma wlasny punkt kodowy i rozjechaloby kolejnosc kompletnie.
+            // Dlatego scinamy wszystko przed pierwsza litera/cyfra. Pole `key` sie do tego NIE nadaje -
+            // to identyfikator wpisu ("sleep", "sia"), ktory bywa inny niz widoczna etykieta.
+            function _apSortKey(label){ return String(label || "").replace(/^[^\p{L}\p{N}]+/u, "").trim(); }
             var btnsHtml = links.map(function(l){
                 // SLOWNIK POKRYCIA (pole "dict", np. AIRPORT_SMOKERS / AIRPORT_WATER z
                 // airport-coverage-data.js). Brak lotniska w slowniku = serwis go NIE opisuje,
@@ -2036,16 +2043,19 @@
                 if (l.dict) {
                     var d = window[l.dict];
                     dv = (d && Object.prototype.hasOwnProperty.call(d, iata)) ? d[iata] : null;
-                    if (!dv) return "";
+                    if (!dv) return ["", ""];
                 }
                 var href = l.url
                     ? l.url.replace(/{path}/g, dv || "").replace(/{iata}/g, encodeURIComponent(iata)).replace(/{iata_lower}/g, encodeURIComponent(iata.toLowerCase()))
                     : (l.src === "wiki" ? dc.wiki : dc.url);
-                if (!href) return "";
+                if (!href) return ["", ""];
                 // BEZ grid-column:1/-1 - przyciski maja siedziec w dwoch kolumnach .links-grid,
                 // tak samo jak w panelu kraju i miasta (te same .windy-btn w tej samej siatce).
-                return '<a href="' + href + '" target="_blank" class="windy-btn" style="background:' + l.bg + '; border:1px solid ' + l.border + '; color:' + l.color + ';">' + l.label + '</a>';
-            }).join('');
+                return [_apSortKey(l.label), '<a href="' + href + '" target="_blank" class="windy-btn" style="background:' + l.bg + '; border:1px solid ' + l.border + '; color:' + l.color + ';">' + l.label + '</a>'];
+            }).filter(function(b){ return !!b[1]; })
+             .sort(function(a, b){ return a[0].localeCompare(b[0], 'pl'); })
+             .map(function(b){ return b[1]; })
+             .join('');
 
             fC.innerHTML =
                 window._panelBanner("foty/airport.jpg")
@@ -6424,6 +6434,28 @@
                     if (window.showCityIntel) window.showCityIntel(window._cityObjFromRow(cc, ci, cap));
                 };
 
+                // --- SKOK NA LOTNISKO (2026-07-27, wynik wyszukiwarki) ---
+                // Odpowiednik focusCityFromRow, ale WLACZA TRYB LOTNISK: renderCountryPlaces patrzy
+                // na window.airportMode, wiec flaga MUSI byc ustawiona PRZED jego wywolaniem - inaczej
+                // narysowalyby sie miasta, a pinezki lotniska, ktore wlasnie otwieramy, by nie bylo.
+                // showAirportModeBtn(true) odswieza tez napis na przycisku ("POKAZ MIASTA").
+                // `a` = wpis z AIRPORT_BY_CC: { lat, lon, name, iata, url, wiki, typ }.
+                window.focusAirport = function(cc, a) {
+                    window._clearFocusLayers();
+                    if (window._exitActiveOverlayMode) window._exitActiveOverlayMode();   // skok na lotnisko gasi VISA/CLIMATE/ZONES (patrz focusContinent)
+                    window._selectedCountryId = cc;
+                    window.airportMode = true;
+                    if (window.showAirportModeBtn) window.showAirportModeBtn(true);
+                    var polyItem = poly.getDataItemById(cc);
+                    if (window.highlightCountry) window.highlightCountry(polyItem ? polyItem.get("mapPolygon") : null);
+                    if (window.renderCountryPlaces) window.renderCountryPlaces(cc);
+                    rotateGlobe(a.lat, a.lon, 1000, true);
+                    chart.animate({ key: "zoomLevel", to: 6, duration: 1000, easing: am5.ease.out(am5.ease.cubic) });
+                    // Ten sam ksztalt dataContext, co bullet pinezki w airportSeries - showAirportPanel
+                    // dobiera reszte (miasto, kraj, pogode) z AIRPORT_DB po kodzie IATA.
+                    if (window.showAirportPanel) window.showAirportPanel({ iata: a.iata, apname: a.name, url: a.url, wiki: a.wiki, typ: a.typ });
+                };
+
                 // --- MOSTKI DO window (dla displayMissionRoute na gorze pliku) ---
                 window.rotateGlobe = rotateGlobe;
                 window.pointSeries = pointSeries;
@@ -7393,11 +7425,38 @@
                 return out;
             }
 
+            // --- Indeks LOTNISK do wyszukiwarki (2026-07-27). Zrodlo: AIRPORT_BY_CC, czyli lista JUZ
+            // przefiltrowana do lotnisk widocznych na mapie (klasa z pola [6] albo AIRPORT_TYPE_OVERRIDE).
+            // Dzieki temu wyszukiwarka nie zaproponuje portu, ktorego nie da sie potem kliknac na globusie -
+            // AIRPORT_DB ma 9056 wpisow, a pinezek jest 4174. ---
+            function _buildAirportSearchIndex(){
+                var out = [];
+                var byCC = window.AIRPORT_BY_CC;
+                if (!byCC) return out;
+                for (var cc in byCC) {
+                    byCC[cc].forEach(function(a){
+                        out.push({ cc: cc, a: a, iata: (a.iata || "").toUpperCase(), nameUp: (a.name || "").toUpperCase() });
+                    });
+                }
+                return out;
+            }
+
             searchInput.addEventListener('input', function(e) {
                 const val = e.target.value.toUpperCase();
                 _syncSearchClear();
                 resultsDiv.innerHTML = '';
                 if (val.length < 2) return;
+
+                // BAZA LOTNISK LADUJE SIE LENIWIE (osobny fetch airport-db.json, ~1,6 MB) i normalnie
+                // rusza dopiero przy wejsciu w tryb lotnisk. Wyszukiwarka jest synchroniczna, wiec przy
+                // pierwszym szukaniu bazy jeszcze nie ma - dociagamy ja i POWTARZAMY to samo zapytanie,
+                // o ile user nic w miedzyczasie nie dopisal. Petli z tego nie bedzie: po zaladowaniu
+                // AIRPORT_BY_CC jest ustawione i ten warunek juz nie wchodzi.
+                if (!window.AIRPORT_BY_CC && window.ensureAirportDB) {
+                    window.ensureAirportDB().then(function(){
+                        if (searchInput.value.toUpperCase() === val) searchInput.dispatchEvent(new Event('input'));
+                    });
+                }
 
                 const countries = WORLD_GEO.features;
                 const matches = countries.filter(c =>
@@ -7481,6 +7540,57 @@
                     };
                     resultsDiv.appendChild(d);
                 });
+
+                // --- LOTNISKA (2026-07-27): po KODZIE IATA i po NAZWIE portu ---
+                // RANKING, a nie zwykly filtr - inaczej wpisanie "WAW" tonie w nazwach zawierajacych
+                // te litery. Kolejnosc: dokladny kod (WAW -> Chopin), kod na poczatku, nazwa od
+                // poczatku, nazwa gdziekolwiek; w kazdej grupie alfabetycznie.
+                // Kod dopasowujemy TYLKO od poczatku - IATA ma 3 znaki, wiec "zawiera" zamienialoby
+                // kazde 2-literowe zapytanie w losowa sieczke kodow.
+                if (window.AIRPORT_BY_CC) {
+                    if (!window._airportSearchIndex) window._airportSearchIndex = _buildAirportSearchIndex();
+                    const apMatches = window._airportSearchIndex
+                        .map(function(e){
+                            var r = -1;
+                            if (e.iata === val) r = 0;
+                            else if (e.iata.indexOf(val) === 0) r = 1;
+                            else if (e.nameUp.indexOf(val) === 0) r = 2;
+                            else if (e.nameUp.includes(val)) r = 3;
+                            return { e: e, r: r };
+                        })
+                        .filter(function(x){ return x.r >= 0; })
+                        .sort(function(a, b){ return (a.r - b.r) || a.e.nameUp.localeCompare(b.e.nameUp, 'pl'); })
+                        .slice(0, 20);
+
+                    if ((matches.length || cityMatches.length) && apMatches.length) {
+                        const sep = document.createElement('div');
+                        sep.style.cssText = "padding:4px 12px; font-size:0.7rem; color:#8f9ba8; letter-spacing:1px; border-bottom:1px solid rgba(0,255,0,0.15);";
+                        sep.textContent = "LOTNISKA";
+                        resultsDiv.appendChild(sep);
+                    }
+
+                    apMatches.forEach(function(x){
+                        const a = x.e.a, cc = x.e.cc;
+                        const countryName = (typeof FACTBOOK !== 'undefined' && FACTBOOK[cc]) ? FACTBOOK[cc].name.common.toUpperCase() : cc;
+                        const d = document.createElement('div');
+                        d.style.padding = '8px 12px';
+                        d.style.cursor = 'pointer';
+                        d.style.borderBottom = '1px solid rgba(0,255,0,0.1)';
+                        d.style.color = '#00b3ff';   // ta sama niebieskosc co pinezki lotnisk i wiersz IATA
+                        d.innerHTML = `> 🛬 <span style="font-weight:bold; letter-spacing:1px;">${a.iata}</span> ${(a.name || '').toUpperCase()} <span style="color:#8f9ba8;">(${countryName})</span>`;
+
+                        d.onmouseover = () => d.style.background = 'rgba(0,179,255,0.1)';
+                        d.onmouseout = () => d.style.background = 'transparent';
+
+                        d.onclick = () => {
+                            window.focusAirport(cc, a);
+                            resultsDiv.innerHTML = '';
+                            searchInput.value = a.iata;
+                            _syncSearchClear();
+                        };
+                        resultsDiv.appendChild(d);
+                    });
+                }
             });
         });
 
