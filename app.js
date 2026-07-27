@@ -3376,7 +3376,10 @@
             var _contWm = _cl.wm ? "https://www.worldometers.info/population/countries-in-" + _cl.wm + "-by-population/" : null;
             // KOLEJNOSC ALFABETYCZNA - ta sama zasada co w panelu kraju, miasta i cudu (db-schema.md).
             var _contLinks = [
-                ["UNSPLASH",   (info && info.unsplash) ? '<a href="'+info.unsplash+'" target="_blank" class="windy-btn" style="background: rgba(255,255,255,0.1); border: 1px solid #ffffff; color: #ffffff;">📸 UNSPLASH</a>' : ''],
+                // Etykieta "FOTO" (2026-07-27, decyzja usera) - tak samo jak w panelu kraju, miasta
+                // i cudu. Adres bez zmian, to nadal Unsplash. Zmiana etykiety PRZESUWA przycisk
+                // w siatce (klucz sortowania to etykieta): z konca na poczatek.
+                ["FOTO",       (info && info.unsplash) ? '<a href="'+info.unsplash+'" target="_blank" class="windy-btn" style="background: rgba(255,255,255,0.1); border: 1px solid #ffffff; color: #ffffff;">📸 FOTO</a>' : ''],
                 ["WIKIPEDIA",  (info && info.wiki) ? '<a href="'+info.wiki+'" target="_blank" class="windy-btn" style="background: rgba(0,212,255,0.15); border: 1px solid #00d4ff; color: #00d4ff;">📖 WIKIPEDIA</a>' : ''],
                 ["WIKIVOYAGE", _contWv ? '<a href="'+_contWv+'" target="_blank" class="windy-btn" style="background: rgba(52,211,153,0.15); border: 1px solid #34d399; color: #34d399;">🧭 WIKIVOYAGE</a>' : ''],
                 ["WORLDOMETER", _contWm ? '<a href="'+_contWm+'" target="_blank" class="windy-btn" style="background: rgba(251,146,60,0.15); border: 1px solid #fb923c; color: #fb923c;">📈 WORLDOMETER</a>' : '']
