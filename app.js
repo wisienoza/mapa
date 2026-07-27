@@ -3036,6 +3036,19 @@
             var _aoBtnHtml = _aoUrl
                 ? '<a href="' + _aoUrl + '" target="_blank" class="windy-btn" style="background:rgba(139,0,0,0.2); border:1px solid #8b0000; color:#ff4444;">💀 ATLAS OBSCURA</a>'
                 : '';
+            // GOOGLE STREET VIEW: widok z poziomu ulicy w punkcie miasta. Adres to oficjalny
+            // Maps URLs API (api=1 + map_action=pano + viewpoint), a NIE sklejany recznie link do
+            // "/maps/@lat,lng,3a,75y" - ta druga forma wymaga ID konkretnej panoramy i bez niego
+            // laduje na zwyklej mapie. Wariant "viewpoint" Google sam przyciaga do NAJBLIZSZEJ
+            // panoramy, wiec wystarczaja wspolrzedne z CITIES_DB i zaden slownik nie jest potrzebny.
+            // BRAK LISTY POKRYCIA - SWIADOMIE. Street View nie ma calych krajow (Chiny, Iran,
+            // Bialorus, wieksza czesc Sahary), ale granica pokrycia NIE JEST granica panstwa:
+            // w takich miejscach i tak sa zdjecia sferyczne od uzytkownikow, ktore ten sam adres
+            // otwiera normalnie. Blacklista po ISO2 chowalaby wiec przycisk tam, gdzie dziala.
+            // Gdy w okolicy naprawde nie ma nic, Google pokazuje zwykla mape - nie blad.
+            var _svUrl = (dc.lat != null && dc.lng != null)
+                       ? "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=" + dc.lat + "," + dc.lng
+                       : null;
             if (dc.cname) {
                 // KRAJ W ZAPYTANIU (2026-07-25): sama nazwa miasta trafiala w zle miejsce przy nazwach
                 // powtarzalnych - "Cordoba" szlo do Hiszpanii zamiast Argentyny, "San Jose" do Kostaryki
@@ -3083,6 +3096,9 @@
                 ["GOOGLE MAPS",   btn(gm, "📍 GOOGLE MAPS", "250,204,21")],
                 ["METRO",         btn(_urUrl, "🚇 METRO", "239,68,68")],
                 ["ROME2RIO",      btn(_r2rUrl, "🚄 ROME2RIO", "129,140,248")],
+                // Kolor CELOWO nie jest zolty ani pomaranczowy: w posortowanej siatce ten przycisk
+                // stoi tuz obok TASTEATLAS (244,164,96), a GOOGLE MAPS ma juz zolc (250,204,21).
+                ["STREET VIEW",   btn(_svUrl, "🛣️ STREET VIEW", "236,72,153")],
                 ["TASTEATLAS",    btn(window._taCityUrl(dc.ta), "🍽️ TASTEATLAS", "244,164,96")],
                 ["WIKIPEDIA",     btn(dc.wiki, "📖 WIKIPEDIA", "0,212,255")],
                 ["WIKIVOYAGE",    btn(dc.wv, "🧭 WIKIVOYAGE", "52,211,153")]
