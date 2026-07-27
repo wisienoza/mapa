@@ -44,6 +44,20 @@ window.AIRPORT_LINKS = [
         color: "#ff8a65"
     },
     {
+        // Slownik AIRPORT_WV (airport-wikivoyage-data.js): lotniska majace WLASNY artykul
+        // na Wikivoyage, nie przekierowanie do artykulu miasta. Brak kodu = brak przycisku.
+        // Wartosc w slowniku to TYTUL z podkreslnikami, wiec wchodzi wprost w {path}.
+        // Kolor jak WIKIVOYAGE w panelu kraju, miasta, cudu i kontynentu - jeden serwis,
+        // jeden wyglad w calej aplikacji.
+        key: "wikivoyage",
+        label: "🧭 WIKIVOYAGE",
+        url: "https://en.wikivoyage.org/wiki/{path}",
+        dict: "AIRPORT_WV",
+        bg: "rgba(52, 211, 153, 0.15)",
+        border: "#34d399",
+        color: "#34d399"
+    },
+    {
         key: "water",
         label: "🚰 WATER",
         url: "https://www.wateratairports.com/topic/{path}/",
