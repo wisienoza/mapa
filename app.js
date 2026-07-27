@@ -2991,6 +2991,29 @@
                     _r2rUrl = "https://www.rome2rio.com/map/Warsaw/" + encodeURIComponent(_r2rDest);
                 }
             }
+            // KOLEJNOSC PRZYCISKOW: ALFABETYCZNIE po etykiecie - dokladnie ta sama zasada i ten sam
+            // mechanizm co w links-grid profilu KRAJU (updateFactbookPanel), zeby oba panele czytalo
+            // sie tak samo. Wczesniej kolejnosc byla historyczna, czyli taka, w jakiej przyciski
+            // dopisywano przez miesiace.
+            // Sortujemy po ETYKIECIE Z TABLICY, nie po tresci HTML: emoji na poczatku kazdego
+            // przycisku ma wlasny punkt kodowy i rozjechaloby kolejnosc kompletnie.
+            // Puste stringi (przycisk schowany przez brak wpisu) wypadaja PRZED sortowaniem.
+            // DOPISUJAC NOWY PRZYCISK: dodaj pare [etykieta, html] - miejsce w siatce wyjdzie samo.
+            var _cityLinksHtml = [
+                ["ATLAS OBSCURA", _aoBtnHtml],
+                ["BOOKING",       btn(_bkgUrl, "🏨 BOOKING", "0,159,235")],
+                ["FOTO",          btn(dc.un, "📸 FOTO", "255,255,255")],
+                ["GOOGLE MAPS",   btn(gm, "📍 GOOGLE MAPS", "250,204,21")],
+                ["METRO",         btn(_urUrl, "🚇 METRO", "239,68,68")],
+                ["ROME2RIO",      btn(_r2rUrl, "🚄 ROME2RIO", "129,140,248")],
+                ["TASTEATLAS",    btn(window._taCityUrl(dc.ta), "🍽️ TASTEATLAS", "244,164,96")],
+                ["WIKIPEDIA",     btn(dc.wiki, "📖 WIKIPEDIA", "0,212,255")],
+                ["WIKIVOYAGE",    btn(dc.wv, "🧭 WIKIVOYAGE", "52,211,153")]
+            ].filter(function(b){ return !!b[1]; })
+             .sort(function(a, b){ return a[0].localeCompare(b[0], 'pl'); })
+             .map(function(b){ return b[1]; })
+             .join("\n              ");
+
             fPanel.innerHTML =
                 '<img id="city-banner-img" alt="" style="display:none; width:100%; height:88px; object-fit:cover; object-position:center; border-radius:4px; margin-bottom:10px; border:1px solid rgba(250,204,21,0.35);">'
               + '<div class="fact-row" style="border:none;"><span class="fact-key">CITY:</span><span class="fact-val" style="color:#facc15; font-weight:bold;">'+ dc.cname +'</span></div>'
