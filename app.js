@@ -1935,7 +1935,7 @@
             // odswieza dokument i skrypty, ale NIE to fetch() - bez tego przegladarka trzyma stara
             // baze i zmiana w danych jest niewidoczna mimo poprawnego kodu. BUMPUJ PRZY KAZDEJ
             // ZMIANIE airport-db.json.
-            window._airportDBPromise = fetch("airport-db.json?v=20260726c").then(function(r){ return r.json(); }).then(function(db){
+            window._airportDBPromise = fetch("airport-db.json?v=20260726d").then(function(r){ return r.json(); }).then(function(db){
                 window.AIRPORT_DB = db.iata || {};
                 var byCC = {};
                 // KTORE LOTNISKA SA WIDOCZNE (zmiana 2026-07-26): do 2026-07-25 warunkiem bylo pole [5],
@@ -1984,7 +1984,6 @@
             var fC = document.getElementById("factbook-content");
             if (!fT || !fC) return;
             if (window.liveClockInterval) { clearInterval(window.liveClockInterval); window.liveClockInterval = null; }
-            if (typeof window._standbyWeatherPanel === 'function') window._standbyWeatherPanel();
 
             var iata = (dc.iata || "").toUpperCase();
             var apname = dc.apname || iata;
@@ -1993,12 +1992,37 @@
             var row = (window.AIRPORT_DB && window.AIRPORT_DB[iata]) || null;
             var apCity = row ? row[2] : "";
             var apCC = row ? row[4] : "";
+            // LIVE ENVIRON FEED na wspolrzednych lotniska ([0]=lat, [1]=lon). Wczesniej panel lotniska
+            // gasil ten box (_standbyWeatherPanel) - teraz pokazuje pogode, jak panel miasta.
+            if (typeof window.updateAirportWeather === 'function') {
+                window.updateAirportWeather(iata, apname, row ? row[0] : null, row ? row[1] : null);
+            }
             // Klasa lotniska: najpierw dc.typ (juz rozwiazany w ensureAirportDB, wiec uwzglednia
             // AIRPORT_TYPE_OVERRIDE), w razie czego pole [6] z bazy. Slownik opisow: AIRPORT_TYPES.
             var apTypCode = dc.typ || (row ? row[6] : "") || "";
             var apTyp = (apTypCode && typeof AIRPORT_TYPES !== 'undefined') ? (AIRPORT_TYPES[apTypCode] || "") : "";
             var ctryName = (apCC && typeof FACTBOOK !== 'undefined' && FACTBOOK[apCC]) ? FACTBOOK[apCC].name.common : apCC;
             var flagSrc = (apCC && window._flagSrc) ? window._flagSrc(apCC) : null;
+
+            // MIASTO jako link WEWNETRZNY (2026-07-26). Do tej pory wiersz byl martwym tekstem, bo
+            // polowa miast obslugiwanych przez lotniska nie miala wpisu w CITIES_DB. Po imporcie
+            // lotniskowym ma go wiekszosc, wiec wiersz prowadzi do realnego profilu miasta.
+            // KLIKALNY TYLKO gdy miasto NAPRAWDE jest w CITIES_DB tego kraju: resolveCityIntel ma
+            // fallback na profil SYNTETYCZNY (zgadywane slugi wv/wiki/tasteatlas) i wlasnie takie
+            // puste linki chowamy w calej reszcie panelu - wiec lepiej zostawic zwykly tekst.
+            // Dobor wiersza: nazwa po _normCity, a przy dublach nazwy w jednym kraju (18 takich par
+            // w bazie, np. US/Columbus) wygrywa ten najblizszy wspolrzednym LOTNISKA.
+            var apCityRow = null;
+            if (apCity && apCC && typeof CITIES_DB !== 'undefined' && CITIES_DB[apCC] && window._normCity) {
+                var _wantCity = window._normCity(apCity);
+                var _apLat = row ? row[0] : null, _apLon = row ? row[1] : null;
+                var _bestCityD = Infinity;
+                CITIES_DB[apCC].forEach(function(c){
+                    if (window._normCity(c[0]) !== _wantCity) return;
+                    var d = (_apLat != null && _apLon != null) ? (Math.abs(c[1] - _apLat) + Math.abs(c[2] - _apLon)) : 0;
+                    if (d < _bestCityD) { _bestCityD = d; apCityRow = c; }
+                });
+            }
 
             fT.innerText = "INTEL: " + apname.toUpperCase();
 
@@ -2027,12 +2051,30 @@
                 window._panelBanner("foty/airport.jpg")
               + '<div class="fact-row" style="border:none;"><span class="fact-key">AIRPORT:</span><span class="fact-val" style="color:#facc15; font-weight:bold;">' + apname + '</span></div>'
               + '<div class="fact-row"><span class="fact-key">IATA:</span><span class="fact-val" style="color:#00b3ff; font-weight:bold; letter-spacing:1px;">🛬 ' + iata + '</span></div>'
-              + (apCity ? '<div class="fact-row"><span class="fact-key">MIASTO:</span><span class="fact-val">🏙️ ' + apCity + '</span></div>' : '')
+              + (apCity ? '<div class="fact-row"' + (apCityRow ? ' id="airport-city-row" style="cursor:pointer;" title="Pokaż profil miasta"' : '') + '><span class="fact-key">MIASTO:</span><span class="fact-val">🏙️ ' + apCity + (apCityRow ? '<span class="int-ico">›</span>' : '') + '</span></div>' : '')
               + (apTyp ? '<div class="fact-row"><span class="fact-key">RUCH:</span><span class="fact-val">' + apTyp + '</span></div>' : '')
               + (ctryName ? '<div class="fact-row"><span class="fact-key">KRAJ:</span><span class="fact-val">'
                     + (flagSrc ? '<img src="' + flagSrc + '" style="width:20px; height:14px; object-fit:cover; vertical-align:-2px; margin-right:6px; border:1px solid rgba(255,255,255,0.25);" alt="">' : '')
                     + ctryName + '</span></div>' : '')
+              // CZAS LOKALNY - wypelnia go _startLiveClock z updateAirportWeather (strefa z open-meteo,
+              // ta sama odpowiedz co pogoda). Wiersz renderuje sie tylko, gdy lotnisko ma wspolrzedne;
+              // bez nich pogoda idzie w standby i zegar nigdy by nie wystartowal, wiec "CONNECTING..."
+              // zostaloby na ekranie na zawsze.
+              + ((row && row[0] != null && row[1] != null)
+                    ? '<div class="fact-row"><span class="fact-key">CZAS LOKALNY:</span><span class="fact-val" id="airport-local-time" style="color:#facc15; animation: blink 1s infinite;">CONNECTING...</span></div>'
+                    : '')
               + '<div class="links-grid" style="margin-top:12px;">' + btnsHtml + '</div>';
+
+            // Handler dopinany PO wstawieniu HTML - ten sam wzorzec co wiersz CAPITAL w updateFactbookPanel.
+            // Wspolrzedne bierzemy z WIERSZA MIASTA (nie lotniska), wiec resolveCityIntel trafia dokladnie
+            // w ten sam rekord, ktory tu wybralismy. Bez obracania globusa: user patrzy juz na ten kraj,
+            // bo kliknal w nim pinezke lotniska (identycznie jak przy CAPITAL).
+            if (apCityRow && window.resolveCityIntel && window.showCityIntel) {
+                var _apCityRowEl = document.getElementById("airport-city-row");
+                if (_apCityRowEl) _apCityRowEl.onclick = function(){
+                    window.showCityIntel(window.resolveCityIntel(apCityRow[0], apCityRow[1], apCityRow[2]));
+                };
+            }
         };
         window._normCity = function(s){ return (s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]/g,""); };
         // --- ODWIEDZONE MIASTA: ID = "KOD|znormalizowananazwa", cache zbioru + toggle z natychmiastowym zapisem ---
@@ -2742,6 +2784,49 @@
                     console.error("City Weather Uplink Error:", err);
                     wPanel.innerHTML = '<div style="color: #dc2626; font-family: \'Consolas\', monospace; font-weight: bold;">⚠️ SIGNAL LOST</div>';
                     var _clk = document.getElementById("city-local-time"); if (_clk) { _clk.innerText = "OFFLINE"; _clk.style.color = "#dc2626"; _clk.style.animation = "none"; }
+                });
+        };
+        // --- POGODA DLA LOTNISKA (LIVE ENVIRON FEED) ---
+        // To samo zrodlo co miasta (open-meteo przez _fetchWeather) - OurAirports jest statyczna baza
+        // lotnisk i nie ma zadnych pomiarow. Roznica: wspolrzedne biore z pol [0]/[1] airport-db.json,
+        // czyli z SAMEGO LOTNISKA, a nie z punktu miasta. To istotne, bo lotnisko lezy czesto
+        // kilkadziesiat km od centrum (WMI Modlin ~35 km od Warszawy) i przy oberwaniu chmury
+        // albo mgle roznica jest realna.
+        // BEZ przycisku CLIMATE (decyzja usera): timeanddate ma normaly klimatyczne dla MIAST, nie dla
+        // lotnisk, wiec climateUrl zostaje null i _weatherEnvHTML sam pomija ten przycisk.
+        // TOKEN WSPOLNY z pogoda miasta (_cityWeatherToken): resetIntelPanels i klik w miasto
+        // uniewazniaja lot w powietrzu tak samo, wiec spozniona odpowiedz nie wpisze sie do panelu,
+        // ktory user zdazyl zmienic.
+        window.updateAirportWeather = function(iata, apname, lat, lon) {
+            var wPanel = document.getElementById("weather-content");
+            var wTarget = document.getElementById("weather-target");
+            if (!wPanel || !wTarget) return;
+            if (lat == null || lon == null) { window._standbyWeatherPanel(); return; }
+            wTarget.innerText = "TARGET: " + String(apname || iata).toUpperCase();
+            wPanel.innerHTML = '<div class="scanning-text">ESTABLISHING UPLINK...</div>';
+            var token = (window._cityWeatherToken = (window._cityWeatherToken || 0) + 1);
+            window._fetchWeather(lat, lon)
+                .then(function(data){
+                    if (window._cityWeatherToken !== token) return;
+                    // Czas lokalny lotniska - strefa z open-meteo (utc_offset_seconds przychodzi w tej
+                    // samej odpowiedzi, wiec nie ma dodatkowego zapytania). Element #airport-local-time
+                    // powstaje w showAirportPanel; innerHTML leci SYNCHRONICZNIE zaraz po tym wywolaniu,
+                    // a to jest .then, wiec wiersz na pewno juz istnieje.
+                    window._startLiveClock("airport-local-time", data.utc_offset_seconds);
+                    var cur = data.current || {};
+                    var temp = cur.temperature_2m, wind = cur.wind_speed_10m, code = cur.weather_code;
+                    var hum = (cur.relative_humidity_2m != null) ? Math.round(cur.relative_humidity_2m) : null;
+                    var pres = (cur.surface_pressure != null) ? Math.round(cur.surface_pressure) : null;
+                    var desc = getWeatherDesc(code), icon = getWeatherIcon(code);
+                    var windyUrl = 'https://www.windy.com/?' + lat + ',' + lon + ',11';
+                    wPanel.innerHTML = window._weatherEnvHTML(temp, wind, desc, icon, windyUrl, null, hum, pres);
+                })
+                .catch(function(err){
+                    if (window._cityWeatherToken !== token) return;
+                    console.error("Airport Weather Uplink Error:", err);
+                    wPanel.innerHTML = '<div style="color: #dc2626; font-family: \'Consolas\', monospace; font-weight: bold;">⚠️ SIGNAL LOST</div>';
+                    var _clk = document.getElementById("airport-local-time");
+                    if (_clk) { _clk.innerText = "OFFLINE"; _clk.style.color = "#dc2626"; _clk.style.animation = "none"; }
                 });
         };
         // --- KLIMAT MIASTA: sparkline temp (srednia) + slupki opadu; normalne NASA POWER 2001-2020 ---
@@ -4336,12 +4421,15 @@
                 var rankSidebar = document.getElementById('rank-list');
                 if (rankSidebar) {
                     var rsTop = rankSidebar.getBoundingClientRect().top;
-                    // Pod drzewkiem rang stoi jeszcze przycisk GDZIE TERAZ? - jego wysokosc trzeba
-                    // wylaczyc z puli, inaczej lista zajmie cala przestrzen do dolnego HUD, a przycisk
-                    // wyjedzie pod niego. offsetHeight jest w skali PRZED transformacja (tak jak
+                    // Pod drzewkiem rang stoja jeszcze przyciski GDZIE TERAZ? i SZCZEPIENIA - ich wysokosc
+                    // trzeba wylaczyc z puli, inaczej lista zajmie cala przestrzen do dolnego HUD, a
+                    // przyciski wyjada pod niego. offsetHeight jest w skali PRZED transformacja (tak jak
                     // maxHeight), wiec odejmujemy go dopiero PO podzieleniu odstepu przez scale.
+                    // Doliczamy tez margin-top kazdego przycisku (10px / 8px, patrz index.html).
                     var wnBtn = document.getElementById('wherenow-toggle');
-                    var reserve = wnBtn ? (wnBtn.offsetHeight + 10) : 0;  // +10 = margin-top przycisku
+                    var vacBtn = document.getElementById('vaccinations-link');
+                    var reserve = (wnBtn ? (wnBtn.offsetHeight + 10) : 0)
+                                + (vacBtn ? (vacBtn.offsetHeight + 8) : 0);
                     rankSidebar.style.maxHeight = Math.max(100, (hudTop - rsTop - gapPx) / scale - reserve) + 'px';
                 }
             }
@@ -4669,15 +4757,9 @@
                     let gmapsTarget = (typeof GMAPS_OVERRIDES !== 'undefined' && GMAPS_OVERRIDES[id]) ? GMAPS_OVERRIDES[id] : countryNameSafe;
                     const gmapsUrl = `https://www.google.com/maps/place/${gmapsTarget}`;
 
-                    // SZCZEPIENIA: staly PDF (tabela szczepien dla podrozujacych), ten sam dla kazdego kraju.
-                    // Ukryty dla PL - to poradnik przed WYJAZDEM z Polski, wiec w profilu kraju domowego jest
-                    // bez sensu (ta sama zasada co przy NUMBEO i MSZ, gdzie PL tez nie dostaje przycisku).
-                    const vaccinationsUrl = (id === 'PL')
-                        ? null
-                        : "https://zagrozeniazdrowotne.gssewarszawa.pl/docs/Tabela_szczepien.pdf";
-                    const vaccinationsBtnHtml = vaccinationsUrl
-                        ? `<a href="${vaccinationsUrl}" target="_blank" class="windy-btn" style="background: rgba(106, 27, 154, 0.15); border: 1px solid #8E24AA; color: #BA68C8;">💉 SZCZEPIENIA</a>`
-                        : '';
+                    // SZCZEPIENIA: przeniesione 2026-07-26 z tego paska do STALEGO przycisku pod GDZIE TERAZ?
+                    // (#vaccinations-link w index.html). To jeden i ten sam PDF dla kazdego kierunku, wiec w
+                    // profilu kraju tylko zageszczal siatke i udawal dane zalezne od panstwa.
 
                     // UNESCO: profil kraju na unesco.org (obiekty swiatowego dziedzictwa, konwencje).
                     // Adres GENEROWANY z ISO2 malymi literami - wzorzec regularny, wiec ZERO slownika.
@@ -4842,7 +4924,6 @@
                             <a href="${tripUrl}" target="_blank" class="windy-btn" style="background: rgba(52, 224, 161, 0.15); border: 1px solid #34e0a1; color: #34e0a1;">🦉 TRIP ADVISOR</a>
                             ${wikiBtnHtml}
                             <a href="${gmapsUrl}" target="_blank" class="windy-btn" style="background: rgba(66, 133, 244, 0.15); border: 1px solid #4285F4; color: #4285F4;">🗺️ GOOGLE MAPS</a>
-                            ${vaccinationsBtnHtml}
                             ${railBtnHtml}
                             ${unescoBtnHtml}
                         </div>

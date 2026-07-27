@@ -22,9 +22,9 @@
 	<script src="achievements-catalog.js?v=20260719l"></script>
 	<script src="achievements-tiers-data.js?v=20260719l"></script>
 	<script src="visited-cities-data.js"></script>
-	<script src="airport-links-data.js?v=20260726g"></script>
-	<script src="airport-coverage-data.js?v=20260726g"></script>
-	<script src="urbanrail-data.js?v=20260726j"></script>
+	<script src="airport-links-data.js?v=20260726k"></script>
+	<script src="airport-coverage-data.js?v=20260726k"></script>
+	<script src="urbanrail-data.js?v=20260726k"></script>
 	<!-- TAD_CLIMATE_OK: whitelist pokrycia klimatu timeanddate dla miast (audyt 2026-07-25).
 	     BEZ defer mimo malego rozmiaru (31 KB) - defer oplaca sie tylko przy plikach rzedu MB,
 	     a wprowadza ryzyko opisane wyzej przy flags-data.js. -->
@@ -583,10 +583,15 @@
         <div class="right-hud">
             <h1>Progression Tree</h1>
             <div class="rank-sidebar" id="rank-list"></div>
-            <!-- Przycisk siedzi POD drzewkiem rang, w tej samej kolumnie 240px. Miejsce na niego
-                 rezerwuje adjustLayout w app.js (odejmuje jego wysokosc od max-height #rank-list),
-                 inaczej lista rozpycha sie do dolnego HUD i przycisk wyjezdza poza ekran. -->
+            <!-- Przyciski siedza POD drzewkiem rang, w tej samej kolumnie 240px. Miejsce na nie
+                 rezerwuje adjustLayout w app.js (odejmuje ICH SUMARYCZNA wysokosc od max-height
+                 #rank-list), inaczej lista rozpycha sie do dolnego HUD i przyciski wyjezdzaja poza
+                 ekran. Dodajesz tu kolejny przycisk -> dopisz go tam do puli rezerwacji. -->
             <div class="reset-btn" id="wherenow-toggle" style="position:static; margin-top:10px; box-sizing:border-box; display:flex; align-items:center; justify-content:center; gap:6px; padding:8px 10px; border-color:#22d3ee; color:#22d3ee; white-space:nowrap;" title="Ranking najlepszych celow podrozy na wybrany miesiac (klimat + dojazd + ceny + wiza + bezpieczenstwo)">🎯 GDZIE TERAZ?</div>
+            <!-- SZCZEPIENIA: staly PDF (tabela szczepien dla podrozujacych), IDENTYCZNY dla kazdego kraju.
+                 Dlatego od 2026-07-26 stoi tu - globalnie, raz - a nie w gestym pasku linkow w profilu
+                 kazdego panstwa, gdzie udawal dane zalezne od kraju. -->
+            <a href="https://zagrozeniazdrowotne.gssewarszawa.pl/docs/Tabela_szczepien.pdf" target="_blank" rel="noopener" class="reset-btn" id="vaccinations-link" style="position:static; margin-top:8px; box-sizing:border-box; display:flex; align-items:center; justify-content:center; gap:6px; padding:8px 10px; border-color:#8E24AA; color:#BA68C8; white-space:nowrap; text-decoration:none;" title="Tabela szczepien dla podrozujacych - staly PDF (GSSE Warszawa), ten sam dla wszystkich kierunkow">💉 SZCZEPIENIA</a>
         </div>
     </div>
 
@@ -638,7 +643,7 @@
          tego pliku trzeba bumpnac TAMTEN numer osobno.
          Celowo TYLKO te pliki: ciezkie bazy (flags 2 MB, climate 2.3 MB) maja sie cache'owac,
          bo zmieniaja sie raz na ruski rok, a publiczna kopia na GitHub Pages sciagalaby je od nowa. -->
-    <script src="help.js?v=20260726g"></script>
-    <script src="app.js?v=20260726g"></script>
+    <script src="help.js?v=20260726k"></script>
+    <script src="app.js?v=20260726k"></script>
 </body>
 </html>

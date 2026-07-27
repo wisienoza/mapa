@@ -34,6 +34,14 @@ pidx.csv
 build-climate-data.php
 build-climate-data.mjs
 
+# --- pliki WERYFIKACYJNE przed podmiana baz danych, dodane 2026-07-26 ---
+#     Kandydat na nowa baze jest najpierw wgrywany pod nazwa _verify_*.js i ladowany
+#     w OSOBNEJ karcie (/_verify.html) - dopiero gdy sie sparsuje i przejdzie kontrole
+#     struktury, podmieniamy plik strony. WPISANE TU ZANIM POWSTALY: sync.sh commituje
+#     co 5 minut, a kandydat wazy przy okazji 1,5 MB. Kasowane po weryfikacji.
+_verify_*.js
+_verify.html
+
 # --- narzedzia audytowe (link-rot), dodane 2026-07-25 ---
 #     Wewnetrzny tooling: nie jest czescia strony i nie ma po co byc publiczny.
 #     Raporty zawieraja surowe listy URL-i i kody bledow. WPISANE TU ZANIM

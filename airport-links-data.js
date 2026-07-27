@@ -66,8 +66,7 @@ window.AIRPORT_TYPES = {
     M: "✈️ port regionalny",
     S: "🛩️ małe lotnisko",
     H: "🚁 heliport",
-    W: "🛥️ baza wodnosamolotów",
-    Z: "⏸️ ruch zawieszony"
+    W: "🛥️ baza wodnosamolotów"
 };
 
 // ====================================================================
@@ -77,16 +76,20 @@ window.AIRPORT_TYPES = {
 //
 // Reguła bazowa brzmi "nie ma rozkładu, nie ma pinezki" i 2026-07-26 wycięła 12 lotnisk.
 // Dziewięć z nich wyleciało słusznie (porty zastąpione nowszymi, małe lotniska GA).
-// Trzy poniżej to co innego: duże, czynne porty, którym ruch cywilny wstrzymała WOJNA,
-// a nie zamknięcie. Zniknięcie ich z mapy Ukrainy byłoby mylące - dlatego wracają,
-// ale z uczciwą etykietą "ruch zawieszony", a nie udając normalnie działające porty.
+// Trzy poniżej to co innego: istniejące, nieuszkodzone porty, którym ruch cywilny
+// wstrzymała WOJNA, a nie zamknięcie. Traktujemy je jak normalne lotniska i opisujemy
+// klasą, jaką mają w rzeczywistości - bez adnotacji o zawieszeniu.
+//
+// SKĄD TE KLASY: NIE ze źródła. OurAirports ma dla KBP "medium_airport" (zaniżone - to
+// główny port Ukrainy, przed 2022 ok. 15 mln pasażerów rocznie), a IEV nie ma tam wpisu
+// pod tym kodem w ogóle. Dlatego klasy są przypisane po faktycznej roli lotniska.
 //
 // GDY RUCH WRÓCI: skasuj wpis. OurAirports przestawi wtedy scheduled_service na yes
-// i lotnisko wejdzie na mapę normalną drogą, z prawdziwą klasą (KBP to large_airport).
+// i lotnisko wejdzie na mapę normalną drogą, klasą wprost z danych.
 // Ten słownik ma zostać MAŁY - to lista wyjątków, nie druga baza lotnisk.
 // ====================================================================
 window.AIRPORT_TYPE_OVERRIDE = {
-    KBP: "Z",   // Kijów-Boryspol      - zamknięty dla ruchu cywilnego od 2022-02
-    IEV: "Z",   // Kijów-Żulany        - j.w.
-    HRK: "Z"    // Charków             - j.w.
+    KBP: "L",   // Kijów-Boryspol - główny port kraju; OurAirports zaniża do medium_airport
+    IEV: "M",   // Kijów-Żulany   - brak wpisu pod tym kodem w OurAirports
+    HRK: "M"    // Charków        - medium_airport w OurAirports
 };
