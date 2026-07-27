@@ -2393,7 +2393,12 @@
                 })()
             };
         };
-        window.resolveCityIntel = function(name, lat, lng) {
+        // DOPASOWANIE NAZWY+WSPOLRZEDNYCH DO WIERSZA CITIES_DB. Wydzielone z resolveCityIntel
+        // 2026-07-27, bo potrzebuja tego DWIE rzeczy naraz: profil miasta (resolveCityIntel nizej,
+        // ktoremu wystarczy gotowy obiekt) ORAZ skok na globus z panelu KONTYNENTU (focusCityFromRow,
+        // ktory potrzebuje SUROWEGO wiersza i kodu kraju, zeby podswietlic panstwo i narysowac punkt).
+        // Zwraca { cc, r, cap } albo null. Logika dopasowania sie NIE ZMIENILA - to przeniesienie 1:1.
+        window._resolveCityRow = function(name, lat, lng) {
             if (!window._cityIndex && typeof CITIES_DB !== "undefined") {
                 var idx = {};
                 for (var cc in CITIES_DB) { (function(cc){ CITIES_DB[cc].forEach(function(c){ var k = window._normCity(c[0]); (idx[k] = idx[k] || []).push({ r: c, cc: cc }); }); })(cc); }
@@ -2402,15 +2407,17 @@
             var cand = (window._cityIndex && window._cityIndex[window._normCity(name)]) || [];
             var best = null, bestD = 9;
             cand.forEach(function(o){ var c = o.r; var d = Math.abs(c[1]-lat) + Math.abs(c[2]-lng); if (d < bestD) { bestD = d; best = o; } });
-            if (best && bestD < 3) {
-                var bc = best.r;
-                // Wykryj, czy trafione miasto to stolica swojego kraju (ten sam indeks co _findCapitalIndex).
-                // Wpis w indeksie trzyma referencje do tej samej tablicy z CITIES_DB, wiec porownanie === dziala.
-                var _list = (typeof CITIES_DB !== "undefined") ? CITIES_DB[best.cc] : null;
-                var _capIdx = (_list && window._findCapitalIndex) ? window._findCapitalIndex(best.cc, _list) : -1;
-                var _isCap = (_capIdx >= 0 && _list && _list[_capIdx] === bc);
-                return window._cityObjFromRow(best.cc, bc, _isCap);
-            }
+            if (!best || bestD >= 3) return null;
+            var bc = best.r;
+            // Wykryj, czy trafione miasto to stolica swojego kraju (ten sam indeks co _findCapitalIndex).
+            // Wpis w indeksie trzyma referencje do tej samej tablicy z CITIES_DB, wiec porownanie === dziala.
+            var _list = (typeof CITIES_DB !== "undefined") ? CITIES_DB[best.cc] : null;
+            var _capIdx = (_list && window._findCapitalIndex) ? window._findCapitalIndex(best.cc, _list) : -1;
+            return { cc: best.cc, r: bc, cap: (_capIdx >= 0 && _list && _list[_capIdx] === bc) };
+        };
+        window.resolveCityIntel = function(name, lat, lng) {
+            var m = window._resolveCityRow(name, lat, lng);
+            if (m) return window._cityObjFromRow(m.cc, m.r, m.cap);
             var u = String(name).replace(/ /g, "_");
             var slug = String(name).normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[’'.]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"");
             return { cname: name, cap: false, lat: lat, lng: lng,
@@ -3249,6 +3256,16 @@
                 // (w.name, ta sama, ktora widac w naglowku panelu) - serwis jest anglojezyczny w bazie,
                 // choc domena .pl daje polski interfejs i ceny w PLN. Fiolet jak w panelu MIASTA.
                 var _wGyg = 'https://www.getyourguide.pl/s/?q=' + encodeURIComponent(w.name);
+                // ROME2RIO: dojazd z Warszawy pod sam obiekt. NAZWA CUDU, A NIE WSPOLRZEDNE - dokladnie
+                // ta sama decyzja co w panelu miasta: wspolrzedne dzialaja, ale Rome2Rio reverse-geokoduje
+                // je do ADRESU i naglowek brzmi wtedy "to 1 Piazza del Colosseo" zamiast "to Colosseum".
+                // KRAJ W ZAPYTANIU (w.id to ISO-2 kraju cudu): "Great Wall", "Christ the Redeemer" czy
+                // "Pyramid" to nazwy, ktore bez kraju potrafia trafic w przypadkowa restauracje albo hotel.
+                // Nazwa kraju z _extCountryName - to samo zrodlo co BOOKING/ROME2RIO w panelu miasta.
+                var _wCn = window._extCountryName ? window._extCountryName(w.id) : null;
+                var _wR2rDest = w.name + (_wCn ? ", " + _wCn : "");
+                if (typeof stripDiacritics === 'function') _wR2rDest = stripDiacritics(_wR2rDest);
+                var _wR2r = 'https://www.rome2rio.com/map/Warsaw/' + encodeURIComponent(_wR2rDest);
                 function _wBtn(url, label, col) {
                     if (!url) return '';
                     return '<a href="' + url + '" target="_blank" class="windy-btn" style="background:rgba(' + col + ',0.15); border:1px solid rgb(' + col + '); color:rgb(' + col + ');">' + label + '</a>';
@@ -3262,6 +3279,9 @@
                     ["GETYOURGUIDE", _wBtn(_wGyg, "🎫 GETYOURGUIDE", "168,85,247")],
                     ["GOOGLE MAPS",  _wBtn(_wGm,  "📍 GOOGLE MAPS",  "66,133,244")],
                     ["OFFICIAL",     _siteBtn],
+                    // Indygo jak w panelu MIASTA. Stoi pod GOOGLE MAPS (66,133,244) - to dwa
+                    // niebieskie, ale nasycony Google-blue i blady periwinkle daja sie odroznic.
+                    ["ROME2RIO",     _wBtn(_wR2r, "🚄 ROME2RIO",     "129,140,248")],
                     ["STREET VIEW",  _wBtn(_wSv,  "🛣️ STREET VIEW",  "236,72,153")],
                     ["UNSPLASH",     _wBtn(d.unsplash, "📸 UNSPLASH", "255,255,255")],
                     ["WIKIPEDIA",    _wBtn(d.wiki, "📖 WIKIPEDIA",   "0,212,255")],
