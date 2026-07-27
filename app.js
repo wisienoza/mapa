@@ -4609,9 +4609,23 @@
                     let capitalForNumbeo = _capOverride ? _capOverride : stripDiacritics(capitalRaw);
                     let countryBase = (typeof NUMBEO_COUNTRY_OVERRIDES !== 'undefined' && NUMBEO_COUNTRY_OVERRIDES[id]) ? NUMBEO_COUNTRY_OVERRIDES[id] : c.name.common;
                     const countryNameSafe = stripDiacritics(countryBase).replace(/ /g, "+");
+                    // NAZWA "CZYSTA", BEZ nadpisan Numbeo (poprawka 2026-07-27). countryNameSafe jest
+                    // zbudowana z NUMBEO_COUNTRY_OVERRIDES, czyli ze slownika, ktory istnieje wylacznie po to,
+                    // zeby trafic w nazewnictwo Numbeo - a byla uzywana TAKZE do TripAdvisora i Google Maps.
+                    // Skutek: klik GOOGLE MAPS na Watykanie otwieral "Italy", na TF (Fr. Terytoria Pld.)
+                    // "Reunion", a na MF (Saint-Martin, francuskie) "Sint Maarten" - czyli HOLENDERSKA polowe
+                    // wyspy, ktora jest na mapie osobnym kodem SX. Nadpisania Numbeo zostaja przy Numbeo.
+                    const _plainNameSafe = stripDiacritics(c.name.common).replace(/ /g, "+");
+                    // TERYTORIA BEZLUDNE (UNINHABITED_CODES w intel.js): patrz komentarz przy tej liscie.
+                    // Chowamy cala warstwe "turystyczno-gospodarcza" - nie dlatego, ze linki sa martwe
+                    // (czesc oddaje HTTP 200 ze smieciowa trescia), tylko dlatego, ze pytanie o koszty zycia
+                    // czy kuchnie narodowa Wyspy Bouveta nie ma sensu. Guard typeof jak wszedzie indziej.
+                    const _isUninhabited = (typeof UNINHABITED_CODES !== 'undefined') && UNINHABITED_CODES.indexOf(id) >= 0;
                     const capitalNameSafe = capitalForNumbeo.replace(/ /g, "+");
                     const numbeoUrl = `https://www.numbeo.com/cost-of-living/compare_cities.jsp?country1=Poland&country2=${countryNameSafe}&city1=Warsaw&city2=${capitalNameSafe}`;
-                    const numbeoCountryUrl = `https://www.numbeo.com/cost-of-living/country_result.jsp?country=${countryNameSafe}&displayCurrency=PLN`;
+                    const numbeoCountryUrl = _isUninhabited
+                        ? null
+                        : `https://www.numbeo.com/cost-of-living/country_result.jsp?country=${countryNameSafe}&displayCurrency=PLN`;
                     // Przycisk NUMBEO (porownanie miast) znika tam, gdzie Numbeo nie zna stolicy - patrz
                     // NUMBEO_NO_CITY w intel.js. Lista jest NIEPELNA (probka, nie pelny przebieg - Numbeo banuje),
                     // wiec to poprawa czesciowa: kraje spoza listy moga nadal trafic w "cannot find city".
@@ -4619,14 +4633,19 @@
                     // PL nie dostaje tego przycisku w ogole: porownanie jest ZASZYTE jako Warszawa -> stolica
                     // kraju, wiec dla Polski wychodzi "Warsaw vs Warsaw" - strona bez tresci. Wiersz COST INDEX
                     // zostaje (numbeoCountryUrl dla Polski jest sensowny: koszty zycia w kraju bazowym).
-                    const numbeoBtnHtml = (id === 'PL' || (typeof NUMBEO_NO_CITY !== 'undefined' && NUMBEO_NO_CITY.indexOf(id) >= 0))
+                    const numbeoBtnHtml = (id === 'PL' || _isUninhabited || (typeof NUMBEO_NO_CITY !== 'undefined' && NUMBEO_NO_CITY.indexOf(id) >= 0))
                         ? ''
                         : `<a href="${numbeoUrl}" target="_blank" class="numbeo-btn">💲 NUMBEO</a>`;
                     // LOCAL TIME -> zegar swiatowy kraju na timeanddate.com. Slug bierzemy z tego samego
                     // TAD_COUNTRY_OVERRIDES (+ _tadCountrySlug) co przycisk CLIMATE, zeby /worldclock/ i
                     // /weather/ nigdy sie nie rozjechaly (np. US -> "usa").
                     const tadCountrySlug = (typeof TAD_COUNTRY_OVERRIDES !== 'undefined' && TAD_COUNTRY_OVERRIDES[id]) ? TAD_COUNTRY_OVERRIDES[id] : window._tadCountrySlug(c.name.common);
-                    const timeUrl = `https://www.timeanddate.com/worldclock/${tadCountrySlug}`;
+                    // BRAMKA DOPISANA 2026-07-27 (TAD_NO_CLOCK w intel.js): GO/JU nie maja strony zegara.
+                    // SAM ZEGAR dziala dalej - liczy sie z CAPITAL_COORDS i stref, nie z tego adresu;
+                    // znika wylacznie strzalka linku przy godzinie.
+                    const timeUrl = (typeof TAD_NO_CLOCK !== 'undefined' && TAD_NO_CLOCK.indexOf(id) >= 0)
+                        ? null
+                        : `https://www.timeanddate.com/worldclock/${tadCountrySlug}`;
 
                     // AREA -> thetruesize.com z krajem X "upuszczonym" na Polske (porownanie realnej wielkosci).
                     // Format hasha rozszyfrowany z ich bundla (main.*.bundle.js), bo nie ma publicznego API:
@@ -4638,8 +4657,12 @@
                     // Polygon X renderuje sie wtedy nad Polska w swoim prawdziwym (mercatorowym) rozmiarze, a sama
                     // Polske widac na mapie bazowej. UWAGA: prywatny, nieudokumentowany format - przy ich redeployu
                     // moze przestac dzialac (kraj i tak sie otworzy, tylko pozycja/widok sie rozjada).
+                    // BRAMKA DOPISANA 2026-07-27: TRUESIZE_NO_ENTITY (intel.js) - 32 kody, dla ktorych ich
+                    // wlasne /api/entity/<ISO> oddaje 404, wiec nakladka nie ma czego narysowac (mapa otwierala
+                    // sie pusta). Sprawdzone na wszystkich 257 kodach geodaty.
+                    const _trueSizeKnown = !(typeof TRUESIZE_NO_ENTITY !== 'undefined' && TRUESIZE_NO_ENTITY.indexOf(id) >= 0);
                     let trueSizeUrl = null;
-                    if (id !== 'PL' && c.latlng && c.latlng.length === 2) {
+                    if (id !== 'PL' && _trueSizeKnown && c.latlng && c.latlng.length === 2) {
                         const _b64 = function(num){ return btoa(String(num)).replace(/=+$/, '').replace(/[+/]/g, function(ch){ return ch === '+' ? '-' : '_'; }); };
                         const _enc = function(v, add, p){ return _b64(Math.round((v + add) * Math.pow(10, p))); };
                         const _toRad = function(d){ return d * Math.PI / 180; };
@@ -4686,10 +4709,22 @@
                     // wystarczy krotka lista wykluczen w intel.js. Guard typeof jak wszedzie: stara kopia
                     // intel.js z cache przegladarki nie moze wywrocic panelu - w najgorszym razie przycisk
                     // zostanie pokazany jak dotad.
-                    const tasteAtlasBtnHtml = (typeof TASTEATLAS_NO_PAGE !== 'undefined' && TASTEATLAS_NO_PAGE.indexOf(id) >= 0)
+                    const tasteAtlasBtnHtml = (_isUninhabited || (typeof TASTEATLAS_NO_PAGE !== 'undefined' && TASTEATLAS_NO_PAGE.indexOf(id) >= 0))
                         ? ''
                         : `<a href="${tasteAtlasUrl}" target="_blank" class="windy-btn" style="background: rgba(255, 165, 0, 0.15); border: 1px solid orange; color: orange;">🥘 TASTE ATLAS</a>`;
-                    const holidaysUrl = (typeof QPP_LINKS !== 'undefined' && QPP_LINKS[id]) ? QPP_LINKS[id] : `https://www.qppstudio.net/public-holidays/${qppNameSlug}.htm`;
+                    // SWIETA (QPP): fallback ze slugu zostaje - audyt 2026-07-27 przepytal WSZYSTKIE 252 kody
+                    // i wypadl 243 OK / 9 martwych, przy czym komplet 226 wpisow ze slownika QPP_LINKS jest
+                    // zdrowy, a martwa jest DOKLADNIE dziewiatka terytoriow bezludnych (czyli te, ktore szly
+                    // fallbackiem). Stad bramka na UNINHABITED_CODES zamiast kasowania fallbacku.
+                    // >>> UWAGA METODOLOGICZNA: qppstudio robi MIEKKIE 404 - nieistniejaca strona oddaje
+                    // HTTP 200 z identycznymi 7604 bajtami tresci "not found" (PL dla porownania: 23 370 B).
+                    // Audyt patrzacy na kod HTTP widzi tu same dwusetki. Klasyfikuj po ROZMIARZE/TRESCI.
+                    const holidaysUrl = _isUninhabited
+                        ? null
+                        : ((typeof QPP_LINKS !== 'undefined' && QPP_LINKS[id]) ? QPP_LINKS[id] : `https://www.qppstudio.net/public-holidays/${qppNameSlug}.htm`);
+                    const holidaysBtnHtml = holidaysUrl
+                        ? `<a href="${holidaysUrl}" target="_blank" class="windy-btn" style="background: rgba(255, 255, 255, 0.1); border: 1px solid #ccc; color: #ccc;">📅 ŚWIĘTA (QPP)</a>`
+                        : '';
                     // SIM WIKI / ATLAS OBSCURA: BEZ generowanego fallbacku (audyt 2026-07-23). Wczesniej kraj
                     // bez wpisu dostawal link sklejony z nazwy - i dla 32 (SIM) oraz 20 (Atlas) krajow byla to
                     // strona NIEISTNIEJACA, bo oba serwisy czesci panstw po prostu nie opisuja albo grupuja je
@@ -4734,8 +4769,20 @@
                     // nizej (FCDO_SLUGS z fallbackiem na countryNameSlug) - jedno zrodlo prawdy, zeby link i
                     // sprawdzenie live NIGDY sie nie rozjechaly.
                     const fcdoSlug = (typeof FCDO_SLUGS !== 'undefined' && FCDO_SLUGS[id]) ? FCDO_SLUGS[id] : countryNameSlug;
-                    const fcdoTravelUrl = `https://www.gov.uk/foreign-travel-advice/${fcdoSlug}`;
-                    const tripUrl = `https://www.tripadvisor.com/Search?q=${countryNameSafe}`;
+                    // BRAMKA DOPISANA 2026-07-27 (FCDO_NO_ADVICE w intel.js): 26 kodow bez porady podroznej -
+                    // wtedy _extVal zwraca sam tekst poziomu bezpieczenstwa, bez martwego linku. Znaczek live
+                    // obok (#live-safety-badge) ma juz wlasne chowanie w .catch(), wiec go to nie dotyczy.
+                    const fcdoTravelUrl = (typeof FCDO_NO_ADVICE !== 'undefined' && FCDO_NO_ADVICE.indexOf(id) >= 0)
+                        ? null
+                        : `https://www.gov.uk/foreign-travel-advice/${fcdoSlug}`;
+                    // TRIP ADVISOR: wyszukiwarka ZAWSZE oddaje HTTP 200, nawet gdy nie ma ani jednego wyniku -
+                    // wiec martwoty tego przycisku nie wykryje zaden audyt HTTP. Dla terytoriow bezludnych
+                    // chowamy go wprost: opinie turystow o Wyspie Bouveta nie istnieja.
+                    // Nazwa z _plainNameSafe, NIE countryNameSafe - patrz komentarz przy _plainNameSafe.
+                    const tripUrl = _isUninhabited ? null : `https://www.tripadvisor.com/Search?q=${_plainNameSafe}`;
+                    const tripBtnHtml = tripUrl
+                        ? `<a href="${tripUrl}" target="_blank" class="windy-btn" style="background: rgba(52, 224, 161, 0.15); border: 1px solid #34e0a1; color: #34e0a1;">🦉 TRIP ADVISOR</a>`
+                        : '';
                     // WIKIVOYAGE: audyt 2026-07-24 (API MediaWiki, wszystkie 252 tytuly) potwierdzil, ze
                     // generyczny slug z nazwy trafia w 251/252 przypadkach - Wikivoyage samo przekierowuje
                     // wersje bez diakrytykow. Slownik WIKIVOYAGE_OVERRIDES lata tylko realne wyjatki.
@@ -4754,7 +4801,7 @@
                     // przeniesione 2026-07-22). Guard typeof jak przy pozostalych: stara kopia intel.js
                     // z cache przegladarki (plik bez ?v) nie moze wywrocic calego panelu - link po prostu
                     // wraca na sama nazwe kraju.
-                    let gmapsTarget = (typeof GMAPS_OVERRIDES !== 'undefined' && GMAPS_OVERRIDES[id]) ? GMAPS_OVERRIDES[id] : countryNameSafe;
+                    let gmapsTarget = (typeof GMAPS_OVERRIDES !== 'undefined' && GMAPS_OVERRIDES[id]) ? GMAPS_OVERRIDES[id] : _plainNameSafe;
                     const gmapsUrl = `https://www.google.com/maps/place/${gmapsTarget}`;
 
                     // SZCZEPIENIA: przeniesione 2026-07-26 z tego paska do STALEGO przycisku pod GDZIE TERAZ?
@@ -4765,8 +4812,15 @@
                     // Adres GENEROWANY z ISO2 malymi literami - wzorzec regularny, wiec ZERO slownika.
                     // Sprawdzone 2026-07-26: /en/countries/<iso2> dziala, a bzdurny kod zwraca UCZCIWE 404
                     // (w odroznieniu od whc.unesco.org, ktore odrzuca automaty kodem 403).
-                    const unescoUrl = `https://www.unesco.org/en/countries/${id.toLowerCase()}`;
-                    const unescoBtnHtml = `<a href="${unescoUrl}" target="_blank" class="windy-btn" style="background: rgba(14, 165, 233, 0.15); border: 1px solid #0ea5e9; color: #38bdf8;">🏛️ UNESCO</a>`;
+                    // BRAMKA DOPISANA 2026-07-27 (UNESCO_NO_PAGE w intel.js): "regularny wzorzec, wiec zero
+                    // slownika" bylo prawda tylko dla panstw czlonkowskich. Dla 42 z 63 terytoriow zaleznych
+                    // /en/countries/<iso2> to 404 - m.in. Grenlandia, Portoryko, Hongkong, Gibraltar, Majotta.
+                    const unescoUrl = (typeof UNESCO_NO_PAGE !== 'undefined' && UNESCO_NO_PAGE.indexOf(id) >= 0)
+                        ? null
+                        : `https://www.unesco.org/en/countries/${id.toLowerCase()}`;
+                    const unescoBtnHtml = unescoUrl
+                        ? `<a href="${unescoUrl}" target="_blank" class="windy-btn" style="background: rgba(14, 165, 233, 0.15); border: 1px solid #0ea5e9; color: #38bdf8;">🏛️ UNESCO</a>`
+                        : '';
 
                     const intel = getIntel(id);
                     const pColor = intel.p.includes("NIE") ? "#00ff00" : "#dc2626";
@@ -4916,12 +4970,12 @@
                             ${numbeoBtnHtml}
                             ${mszBtnHtml}
                             ${tasteAtlasBtnHtml}
-                            <a href="${holidaysUrl}" target="_blank" class="windy-btn" style="background: rgba(255, 255, 255, 0.1); border: 1px solid #ccc; color: #ccc;">📅 ŚWIĘTA (QPP)</a>
+                            ${holidaysBtnHtml}
                             ${simWikiBtnHtml}
                             ${radioBtnHtml}
                             <a href="${unsplashUrl}" target="_blank" class="windy-btn" style="background: rgba(255, 255, 255, 0.1); border: 1px solid #ffffff; color: #ffffff;">📸 FOTO</a>
                             ${atlasBtnHtml}
-                            <a href="${tripUrl}" target="_blank" class="windy-btn" style="background: rgba(52, 224, 161, 0.15); border: 1px solid #34e0a1; color: #34e0a1;">🦉 TRIP ADVISOR</a>
+                            ${tripBtnHtml}
                             ${wikiBtnHtml}
                             <a href="${gmapsUrl}" target="_blank" class="windy-btn" style="background: rgba(66, 133, 244, 0.15); border: 1px solid #4285F4; color: #4285F4;">🗺️ GOOGLE MAPS</a>
                             ${railBtnHtml}

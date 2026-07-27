@@ -658,10 +658,16 @@ const QPP_LINKS = {
 					"GL": "greenland/nuuk",
 					"SG": "singapore/singapore",
 					"VA": "vatican-city-state/vatican-city",
-					"JU": "usa/jarvis-island",
 					"UM": "usa/wake-island"
-					// GO (Juan de Nova) CELOWO BEZ WPISU: timeanddate nie ma tej wyspy w zadnym sprawdzonym
-					// wariancie sciezki, wiec app.js chowa przycisk. Nie dopisuj tu zgadywanego sluga.
+					// GO (Wyspy Glorioso) i JU (Juan de Nova) CELOWO BEZ WPISU: timeanddate nie ma zadnej
+					// z nich - sprawdzone 2026-07-27 fetchem same-origin z ich karty, cztery warianty
+					// sciezki (glorioso-islands, france/glorioso, juan-de-nova-island, france/juan-de-nova)
+					// oddaly 404 "Unknown address". Nie dopisuj tu zgadywanego sluga.
+					// USUNIETY 2026-07-27: "JU": "usa/jarvis-island". Wpis byl SKUTKIEM literowki w
+					// FACTBOOK, gdzie JU nazywalo sie "Jarvis Island" (Jarvis to w rzeczywistosci UM-DQ).
+					// Link oddawal HTTP 200 i wygladal zdrowo, ale pokazywal czas INNEJ wyspy, na drugiej
+					// polkuli (Pacyfik zamiast Kanalu Mozambickiego). Klasyczne "200, ale zly cel" -
+					// audyt patrzacy na kod HTTP nie mial szans tego zlapac.
 				};
 				
 				const TAD_CITY_OVERRIDES = {
