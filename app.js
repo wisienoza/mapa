@@ -2369,7 +2369,21 @@
                 text: m.toLocaleString("pl-PL", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + "×",
                 color: col,
                 // Slug NIE jest wyprowadzalny z nazwy (Bali, New-York, Penang) - siedzi w danych.
-                url: "https://www.numbeo.com/cost-of-living/in/" + row[6]
+                url: "https://www.numbeo.com/cost-of-living/in/" + row[6],
+                // PORONWANIE Z WARSZAWA - ten sam adres co przycisk 💲 NUMBEO w panelu KRAJU, tylko dla
+                // DOWOLNEGO miasta, nie tylko stolicy. city2 bierzemy z row[7] (nazwa w nazewnictwie
+                // NUMBEO), bo klucz trzyma nazwe z CITIES_DB i te dwie potrafia sie roznic:
+                // Zuerich/Zurich, Koeln/Cologne, Ulan Bator/Ulaanbaatar. Ze sluga tez tego nie da sie
+                // wyprowadzic - slug Winston-Salem to "Winston-salem", z mala litera.
+                // null dla samej Warszawy: "Warsaw vs Warsaw" to strona bez tresci (ten sam powod,
+                // dla ktorego panel kraju chowa przycisk przy PL).
+                cmp: (function(){
+                    var cc = key.split("|")[0];
+                    var cn = window._numbeoCountryName ? window._numbeoCountryName(cc) : null;
+                    if (!cn || !row[7] || (typeof NUMBEO_BASE !== "undefined" && key === NUMBEO_BASE)) return null;
+                    return "https://www.numbeo.com/cost-of-living/compare_cities.jsp?country1=Poland&country2=" + cn
+                         + "&city1=Warsaw&city2=" + row[7].replace(/ /g, "+");
+                })()
             };
         };
         window.resolveCityIntel = function(name, lat, lng) {
@@ -3061,6 +3075,10 @@
             var _cityLinksHtml = [
                 ["ATLAS OBSCURA", _aoBtnHtml],
                 ["BOOKING",       btn(_bkgUrl, "🏨 BOOKING", "0,159,235")],
+                // NUMBEO: porownanie TEGO miasta z Warszawa - dokladnie ten sam sens co przycisk
+                // w panelu KRAJU (tam: stolica vs Warszawa). Kolor jak tam: zielen #00ff00.
+                // Jest tylko przy miastach z wiersza KOSZTY i nigdy przy samej Warszawie (patrz .cmp).
+                ["NUMBEO",        btn(_cCost && _cCost.cmp, "💲 NUMBEO", "0,255,0")],
                 ["FOTO",          btn(dc.un, "📸 FOTO", "255,255,255")],
                 ["GOOGLE MAPS",   btn(gm, "📍 GOOGLE MAPS", "250,204,21")],
                 ["METRO",         btn(_urUrl, "🚇 METRO", "239,68,68")],

@@ -22,9 +22,9 @@
 	<script src="achievements-catalog.js?v=20260719l"></script>
 	<script src="achievements-tiers-data.js?v=20260719l"></script>
 	<script src="visited-cities-data.js"></script>
-	<script src="airport-links-data.js?v=20260727b"></script>
-	<script src="airport-coverage-data.js?v=20260727b"></script>
-	<script src="urbanrail-data.js?v=20260727b"></script>
+	<script src="airport-links-data.js?v=20260727d"></script>
+	<script src="airport-coverage-data.js?v=20260727d"></script>
+	<script src="urbanrail-data.js?v=20260727d"></script>
 	<!-- ATLAS_CITY_LINKS: biala lista miast opisanych przez Atlas Obscura (1066 z 7991).
 	     Bez defer, tak jak urbanrail-data.js obok - oba czyta showCityIntel, a 41 KB nie jest
 	     powodem, zeby ryzykowac kolejnoscia ladowania (patrz komentarz przy flags-data.js). -->
@@ -32,7 +32,7 @@
 <!-- NUMBEO_CITY: koszty zycia per MIASTO (540 miast w 121 krajach) + NUMBEO_BASE.
      Czyta to showCityIntel (wiersz KOSZTY) ORAZ updateFactbookPanel (mnoznik przy COST INDEX
      dla stolicy), wiec bez defer - dokladnie z tego samego powodu co atlas-city-data.js wyzej. -->
-<script src="numbeo-city-data.js?v=20260727a"></script>
+<script src="numbeo-city-data.js?v=20260727d"></script>
 	<!-- TAD_CLIMATE_OK: whitelist pokrycia klimatu timeanddate dla miast (audyt 2026-07-25).
 	     BEZ defer mimo malego rozmiaru (31 KB) - defer oplaca sie tylko przy plikach rzedu MB,
 	     a wprowadza ryzyko opisane wyzej przy flags-data.js. -->
@@ -656,7 +656,7 @@
          tego pliku trzeba bumpnac TAMTEN numer osobno.
          Celowo TYLKO te pliki: ciezkie bazy (flags 2 MB, climate 2.3 MB) maja sie cache'owac,
          bo zmieniaja sie raz na ruski rok, a publiczna kopia na GitHub Pages sciagalaby je od nowa. -->
-    <script src="help.js?v=20260727b"></script>
-    <script src="app.js?v=20260727b"></script>
+    <script src="help.js?v=20260727d"></script>
+    <script src="app.js?v=20260727d"></script>
 </body>
 </html>
