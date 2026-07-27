@@ -299,7 +299,12 @@
         .flight-stats { display:flex; gap:5px; margin-top:5px; }
         .flight-stats .fs-cell { flex:1; text-align:center; background:rgba(0,234,255,0.08); border:1px solid rgba(0,234,255,0.28); border-radius:4px; padding:4px 2px; }
         .flight-stats .fs-num { display:block; font-family:'JetBrains Mono',monospace; font-size:1.1rem; font-weight:700; color:#00eaff; line-height:1; }
-        .flight-stats .fs-lbl { display:block; font-size:0.5rem; letter-spacing:0.5px; color:#7fb8c4; margin-top:3px; font-family:'Rajdhani',sans-serif; font-weight:600; }
+        /* 0.8rem (bylo 0.5rem): przy 0.5rem podpisy LOTY/LOTNISKA/TRASY byly praktycznie
+           nieczytelne. Najszersze "LOTNISKA" ma przy 0.8rem ~53px w komorce o 72px swiatla,
+           wiec zapas zostaje; nowrap pilnuje, zeby przy innej szerokosci panelu nie zlamalo
+           sie na dwie linie i nie rozjechalo wysokosci komorek. letter-spacing 0.5px -> 0.3px
+           i margin-top 3px -> 2px, zeby komorka urosla tylko o ~2px, a nie o cala roznice. */
+        .flight-stats .fs-lbl { display:block; font-size:0.8rem; letter-spacing:0.3px; color:#7fb8c4; margin-top:2px; font-family:'Rajdhani',sans-serif; font-weight:600; white-space:nowrap; }
 
         /* padding 7px (bylo 15px, i to bez wariantu w @media - stad najgrubsza ramka wewnetrzna
            w calym HUD). box-sizing:border-box juz tu bylo, wiec max-height liczone przez adjustLayout
