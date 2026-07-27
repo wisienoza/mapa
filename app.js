@@ -2324,6 +2324,34 @@
         window._cityObjFromRow = function(cc, row, isCap){
             return { cname: row[0], cap: !!isCap, lat: row[1], lng: row[2], wv: row[3], wiki: row[4], ta: row[5], un: row[6], pop: row[7], cc: cc };
         };
+        // KOSZTY ZYCIA MIASTA vs WARSZAWA (NUMBEO_CITY z numbeo-city-data.js). JEDNO zrodlo dla OBU
+        // paneli: wiersza KOSZTY w profilu MIASTA i mnoznika przy COST INDEX w profilu KRAJU (tam
+        // liczonego dla STOLICY). Nie duplikuj tego wzoru w zadnym z nich.
+        // KLUCZ "CC|Nazwa" - dokladnie nazwa z CITIES_DB, ta sama konwencja co URBANRAIL_LINKS
+        // i ATLAS_CITY_LINKS, wiec zero normalizacji w locie.
+        // BIALA LISTA: ranking Numbeo zna 540 z 7991 miast bazy. Brak wpisu -> null, a oba panele
+        // wtedy po prostu nic nie dorysowuja (wiersz COST INDEX kraju zostaje bez zmian).
+        window._numbeoCost = function(cc, cname) {
+            if (!cc || !cname || typeof NUMBEO_CITY === "undefined") return null;
+            var row = NUMBEO_CITY[cc + "|" + cname];
+            var base = (typeof NUMBEO_BASE !== "undefined") ? NUMBEO_CITY[NUMBEO_BASE] : null;
+            if (!row || !base || !base[0]) return null;
+            var m = row[0] / base[0];
+            // Progi wzgledem Warszawy (1,00x). Pasmo "podobnie" jest szerokie celowo: roznica
+            // 10-15% w indeksie Numbeo miesci sie w szumie metody (dane sa crowdsourcowane).
+            var col = "#ff0000";
+            if (m < 0.7)       col = "#00ff00";
+            else if (m < 1.15) col = "#aaff00";
+            else if (m < 1.8)  col = "#ffaa00";
+            return {
+                mult: m,
+                // Zawsze 2 miejsca po przecinku i polski przecinek - "2,31×".
+                text: m.toLocaleString("pl-PL", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + "×",
+                color: col,
+                // Slug NIE jest wyprowadzalny z nazwy (Bali, New-York, Penang) - siedzi w danych.
+                url: "https://www.numbeo.com/cost-of-living/in/" + row[6]
+            };
+        };
         window.resolveCityIntel = function(name, lat, lng) {
             if (!window._cityIndex && typeof CITIES_DB !== "undefined") {
                 var idx = {};
@@ -2937,6 +2965,17 @@
                 _isV = !!(window._visitedCitySet && window._visitedCitySet()[_vid]);
                 _cVisitedRow = '<div class="fact-row" id="city-visited-row" style="cursor:' + (_isV ? 'default' : 'pointer') + ';" title="' + (_isV ? '' : 'Kliknij, zeby oznaczyc jako odwiedzone') + '"><span class="fact-key">ODWIEDZONE:</span><span class="fact-val" id="city-visited-val" style="color:' + (_isV ? '#22c55e' : '#8f9ba8') + ';">' + (_isV ? '✅ TAK' : '☐ NIE (kliknij)') + '</span></div>';
             }
+            // KOSZTY: mnoznik cen wzgledem Warszawy (Numbeo COLI, czyli koszty BEZ czynszu).
+            // Wartosc jest linkiem do strony miasta w Numbeo - stad brak osobnego przycisku 💲 w siatce
+            // (w profilu KRAJU przycisk zostaje, bo tam prowadzi do PORONWANIA dwoch miast).
+            // Wiersz znika calkowicie dla miast spoza rankingu - patrz window._numbeoCost.
+            var _cCost = window._numbeoCost ? window._numbeoCost(dc.cc, dc.cname) : null;
+            var _cCostRow = '';
+            if (_cCost) {
+                _cCostRow = '<div class="fact-row"><span class="fact-key">KOSZTY:</span><span class="fact-val" style="color:' + _cCost.color + ';">'
+                          + '<a href="' + _cCost.url + '" target="_blank" rel="noopener" title="Koszty życia w tym mieście vs. Warszawa (Numbeo, indeks bez czynszu)" style="color:inherit; text-decoration:none;">'
+                          + _cCost.text + ' WARSZAWY<span class="ext-ico">↗</span></a></span></div>';
+            }
             // Rome2Rio: planer trasy z Warszawy do tego miasta (jak wiersz DISTANCE TO WARSAW w profilu kraju).
             // Pomijamy, gdy miasto to praktycznie sama Warszawa (dist < 1 km) - trasa Warsaw->Warsaw jest bez sensu.
             // Booking: wyszukiwarka noclegow w tym miescie - zawsze. stripDiacritics zywe z intel.js (guard na wszelki wypadek).
@@ -3022,6 +3061,7 @@
               + _cVisitedRow
               + '<div class="fact-row"><span class="fact-key">CZAS LOKALNY:</span><span class="fact-val" id="city-local-time" style="color:#facc15; animation: blink 1s infinite;">CONNECTING...</span></div>'
               + _cDistRow
+              + _cCostRow
               + '<div id="city-climate" style="margin-top:6px;"></div>'
               + '<div class="links-grid" style="margin-top:12px;">'
               + _cityLinksHtml

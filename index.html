@@ -29,6 +29,10 @@
 	     Bez defer, tak jak urbanrail-data.js obok - oba czyta showCityIntel, a 41 KB nie jest
 	     powodem, zeby ryzykowac kolejnoscia ladowania (patrz komentarz przy flags-data.js). -->
 	<script src="atlas-city-data.js?v=20260727a"></script>
+<!-- NUMBEO_CITY: koszty zycia per MIASTO (540 miast w 121 krajach) + NUMBEO_BASE.
+     Czyta to showCityIntel (wiersz KOSZTY) ORAZ updateFactbookPanel (mnoznik przy COST INDEX
+     dla stolicy), wiec bez defer - dokladnie z tego samego powodu co atlas-city-data.js wyzej. -->
+<script src="numbeo-city-data.js?v=20260727a"></script>
 	<!-- TAD_CLIMATE_OK: whitelist pokrycia klimatu timeanddate dla miast (audyt 2026-07-25).
 	     BEZ defer mimo malego rozmiaru (31 KB) - defer oplaca sie tylko przy plikach rzedu MB,
 	     a wprowadza ryzyko opisane wyzej przy flags-data.js. -->
