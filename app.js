@@ -2335,6 +2335,20 @@
             if (!cc || !cname) return null;
             return window._numbeoCostByKey(cc + "|" + cname);
         };
+        // NAZWA KRAJU W NAZEWNICTWIE NUMBEO (ze spacjami zamienionymi na "+"), zbudowana dokladnie
+        // tak samo jak countryNameSafe w updateFactbookPanel.
+        // >>> WOLAJ TO WYLACZNIE DLA LINKOW NUMBEO. NUMBEO_COUNTRY_OVERRIDES to slownik istniejacy
+        // TYLKO po to, zeby trafic w nazewnictwo Numbeo - raz juz wyciekl do TripAdvisora i Google
+        // Maps i robil z Watykanu "Italy", a z Saint-Martin holenderskie "Sint Maarten"
+        // (patrz db-schema.md). Do innych serwisow sluzy _extCountryName.
+        window._numbeoCountryName = function(cc) {
+            if (!cc) return null;
+            var base = (typeof NUMBEO_COUNTRY_OVERRIDES !== "undefined" && NUMBEO_COUNTRY_OVERRIDES[cc])
+                     ? NUMBEO_COUNTRY_OVERRIDES[cc]
+                     : ((typeof FACTBOOK !== "undefined" && FACTBOOK[cc] && FACTBOOK[cc].name) ? FACTBOOK[cc].name.common : null);
+            if (!base) return null;
+            return (typeof stripDiacritics === "function" ? stripDiacritics(base) : base).replace(/ /g, "+");
+        };
         // Wariant "po gotowym kluczu" - dla NUMBEO_CAPITAL_ALIAS (stolice bez wiersza w CITIES_DB).
         // Caly wzor mnoznika i cala paleta siedza TYLKO tutaj.
         window._numbeoCostByKey = function(key) {
