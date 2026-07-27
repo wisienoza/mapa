@@ -2332,8 +2332,14 @@
         // BIALA LISTA: ranking Numbeo zna 540 z 7991 miast bazy. Brak wpisu -> null, a oba panele
         // wtedy po prostu nic nie dorysowuja (wiersz COST INDEX kraju zostaje bez zmian).
         window._numbeoCost = function(cc, cname) {
-            if (!cc || !cname || typeof NUMBEO_CITY === "undefined") return null;
-            var row = NUMBEO_CITY[cc + "|" + cname];
+            if (!cc || !cname) return null;
+            return window._numbeoCostByKey(cc + "|" + cname);
+        };
+        // Wariant "po gotowym kluczu" - dla NUMBEO_CAPITAL_ALIAS (stolice bez wiersza w CITIES_DB).
+        // Caly wzor mnoznika i cala paleta siedza TYLKO tutaj.
+        window._numbeoCostByKey = function(key) {
+            if (!key || typeof NUMBEO_CITY === "undefined") return null;
+            var row = NUMBEO_CITY[key];
             var base = (typeof NUMBEO_BASE !== "undefined") ? NUMBEO_CITY[NUMBEO_BASE] : null;
             if (!row || !base || !base[0]) return null;
             var m = row[0] / base[0];
@@ -5018,6 +5024,37 @@
                     if(costVal === "$$$") costColor = "#ffaa00";
                     if(costVal === "$$$$") costColor = "#ff0000";
 
+                    // MNOZNIK CEN DLA STOLICY (Numbeo per miasto) dopisywany do wiersza COST INDEX.
+                    // Same "$$" mowia tylko, w ktorej z czterech szufladek jest kraj; mnoznik mowi,
+                    // ILE RAZY drozej niz w domu - i to na poziomie miasta, ktore user realnie odwiedzi.
+                    // NAZWE MIASTA DAJE resolveCityIntel - DOKLADNIE to samo wywolanie, ktore obsluguje
+                    // KLIK w wiersz CAPITAL (patrz nizej, _capRow.onclick). Dzieki temu mnoznik zawsze
+                    // dotyczy tego miasta, ktore user zobaczy po kliknieciu, i NIE POWSTAJE drugi
+                    // mechanizm dopasowywania stolicy do bazy - wlasnie taki rozjazd zepsul kiedys
+                    // Numbeo i timeanddate naraz (CZ/TR, patrz db-schema.md).
+                    // Brak stolicy w rankingu Numbeo (wiekszosc krajow) -> null i wiersz zostaje jak byl.
+                    let _capCost = null, _capCostName = "";
+                    const _capCoordsForCost = (typeof CAPITAL_COORDS !== 'undefined') ? CAPITAL_COORDS[id] : null;
+                    if (_capCoordsForCost && window._hasCapital && window._hasCapital(id) && window.resolveCityIntel && window._numbeoCost) {
+                        const _capIntel = window.resolveCityIntel(capitalRaw, _capCoordsForCost[0], _capCoordsForCost[1]);
+                        // Fallback resolveCityIntel (stolica spoza CITIES_DB) nie ma pola cc - wtedy odpuszczamy.
+                        if (_capIntel && _capIntel.cc) {
+                            _capCost = window._numbeoCost(_capIntel.cc, _capIntel.cname);
+                            _capCostName = _capIntel.cname;
+                        }
+                    }
+                    // FALLBACK: stolica bez wiersza w CITIES_DB, ale z danymi w Numbeo (US, IN, MN, HK).
+                    // Odpala sie TYLKO gdy sciezka glowna nic nie dala - patrz NUMBEO_CAPITAL_ALIAS.
+                    if (!_capCost && typeof NUMBEO_CAPITAL_ALIAS !== 'undefined' && NUMBEO_CAPITAL_ALIAS[id] && window._numbeoCostByKey) {
+                        _capCost = window._numbeoCostByKey(NUMBEO_CAPITAL_ALIAS[id]);
+                        if (_capCost) _capCostName = NUMBEO_CAPITAL_ALIAS[id].split("|")[1];
+                    }
+                    // letter-spacing:normal - wiersz COST INDEX ma 2px na rozstrzelenie "$$$", co przy
+                    // liczbie wygladaloby jak blad renderowania.
+                    const capCostHtml = _capCost
+                        ? `<span style="letter-spacing:normal;"> · <a href="${_capCost.url}" target="_blank" rel="noopener" title="${_capCostName}: koszty życia vs. Warszawa (Numbeo, indeks bez czynszu)" style="color:${_capCost.color}; text-decoration:none;">${_capCost.text}<span class="ext-ico">↗</span></a></span>`
+                        : '';
+
                     const wawLat = 52.2297; const wawLon = 21.0122;
                     let distance = "N/A";
                     if (c.latlng) distance = Math.round(getDist(wawLat, wawLon, c.latlng[0], c.latlng[1])).toLocaleString() + " KM";
@@ -5069,7 +5106,7 @@
                         <div class="fact-row"><span class="fact-key">LANG:</span><span class="fact-val">${_extVal(_langDisplay, `https://www.localingual.com/?ISO=${id}`, _langTitle)}</span></div>
                         
                         <div class="fact-row"><span class="fact-key">RELIGION:</span><span class="fact-val" style="color:#ddd;">${religionHtml}</span></div>
-                        <div class="fact-row"><span class="fact-key">COST INDEX:</span><span class="fact-val" style="color:${costColor}; letter-spacing: 2px;">${_extVal(costVal, numbeoCountryUrl, "Koszty życia w tym kraju vs. PLN (Numbeo)")}</span></div>
+                        <div class="fact-row"><span class="fact-key">COST INDEX:</span><span class="fact-val" style="color:${costColor}; letter-spacing: 2px;">${_extVal(costVal, numbeoCountryUrl, "Koszty życia w tym kraju vs. PLN (Numbeo)")}${capCostHtml}</span></div>
 
                         <div class="fact-row" id="live-rate-row" style="display:none;">
                             <span class="fact-key">1 PLN =</span>

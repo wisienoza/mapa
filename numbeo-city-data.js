@@ -572,3 +572,16 @@ const NUMBEO_CITY = {
 // BAZA ODNIESIENIA dla mnoznika. Klucz musi istniec w NUMBEO_CITY - app.js sprawdza to
 // przed uzyciem i przy braku po prostu nie pokazuje mnoznika (wiersz COST INDEX zostaje).
 const NUMBEO_BASE = "PL|Warsaw";
+
+// MOSTEK STOLIC. app.js rozwiazuje stolice przez resolveCityIntel - to SAMO wywolanie,
+// ktore obsluguje klik w wiersz CAPITAL. Dla tych krajow ono nie trafia, bo nazwa stolicy
+// z FACTBOOK nie ma wiersza w CITIES_DB, a dane Numbeo dla tego miasta istnieja.
+// UZYWANE WYLACZNIE JAKO FALLBACK (gdy sciezka glowna nic nie zwroci) - to celowo NIE jest
+// drugi mechanizm dopasowania, tylko lata na 4 znane przypadki. Generator sprawdza, ze
+// kazdy klucz po prawej ISTNIEJE w NUMBEO_CITY.
+const NUMBEO_CAPITAL_ALIAS = {
+    "HK": "HK|Hong Kong",
+    "IN": "IN|Delhi",
+    "MN": "MN|Ulan Bator",
+    "US": "US|Washington"
+};
