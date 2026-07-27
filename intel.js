@@ -2516,6 +2516,67 @@ const RADIO_NO_PAGE = [
 // wydaje ostrzezen dla wlasnego kraju.
 const MSZ_NO_PROFILE = ["AQ", "CC", "CX", "EH", "GO", "HM", "IO", "JU", "MS", "NF", "PL", "TK", "UM"];
 
+// ============================================================================
+// === TERYTORIA BEZLUDNE (audyt 2026-07-27) ===
+// ============================================================================
+// Kody BEZ stalej ludnosci cywilnej: lod, pingwiny, stacja naukowa albo garnizon na rotacji.
+// Dla nich CALA warstwa turystyczno-gospodarcza profilu jest bez sensu NIEZALEZNIE od tego,
+// czy serwis oddaje HTTP 200: nie ma kosztow zycia, kuchni narodowej, swiat panstwowych ani
+// opinii turystow o miejscu, do ktorego nie da sie polecieciec. Chowane dla tej listy:
+//   💲 NUMBEO (porownanie miast) + link w wierszu COST INDEX, 🥘 TASTE ATLAS,
+//   📅 SWIETA (QPP), 🦉 TRIP ADVISOR.
+// ZOSTAJA, bo maja realna tresc: 📸 FOTO (Unsplash ma zdjecia Bouveta), 🌐 WIKIVOYAGE
+//   (artykuly istnieja - zweryfikowane audytem 2026-07-24), 🗺️ GOOGLE MAPS, LOCAL TIME,
+//   POWER/WATER/TIPPING oraz - tam gdzie faktycznie sa - MSZ, SIM WIKI, ATLAS OBSCURA.
+// KRYTERIUM DOBORU (nie "na oko"): COST_INDEX[id] === "N/A". Dlatego NIE MA tu SJ (Svalbard,
+// $$$$ i realna turystyka), PN (Pitcairn, ~40 osob), TK/CC/CX/NF (zamieszkane wysepki).
+// Terytoria bezludne, ktore MAJA porade FCDO albo wpis SIM (GS, IO) zachowuja te przyciski -
+// gatuja je wlasne slowniki, nie ta lista.
+const UNINHABITED_CODES = ["AQ", "BV", "GO", "GS", "HM", "IO", "JU", "TF", "UM",
+    "UM-DQ", "UM-FQ", "UM-HQ", "UM-JQ", "UM-KQ", "UM-MQ", "UM-NQ", "UM-PQ", "UM-WQ"];
+
+// === UNESCO: KODY BEZ PROFILU KRAJU (ukryj przycisk 🏛️ UNESCO) ===
+// AUDYT 2026-07-27: przycisk generowal adres wprost z ISO2 (unesco.org/en/countries/<iso2>)
+// BEZ zadnej bramki - a to sa profile PANSTW CZLONKOWSKICH i czlonkow stowarzyszonych, wiec
+// dla wiekszosci terytoriow zaleznych to zwykle 404. Przepytane wszystkie 63 kody terytoriow
+// FETCHEM SAME-ORIGIN Z KARTY unesco.org, bo serwer zrywa polaczenie z PowerShellem (anty-bot)
+// i audyt serwerowy dawal same falszywe "NIEPEWNE".
+// MAJA profil (NIE dopisuj ich tutaj): NC KY PS FO AX AW CW SX AI VG MS CK NU TK.
+// MO (Makau) NIE JEST na liscie CELOWO: oddaje HTTP 500 "The website encountered an unexpected
+// error", a nie 404 - to awaria po ich stronie, ktora moze minac. Zgodnie z zasada trzech
+// kubelkow nie kasujemy wpisu na podstawie niepewnego wyniku. Sprawdz przy nastepnym audycie.
+const UNESCO_NO_PAGE = ["AQ", "AS", "BL", "BM", "BQ", "BV", "CC", "CX", "EH", "FK", "GF", "GG",
+    "GI", "GL", "GO", "GP", "GS", "GU", "HK", "HM", "IM", "IO", "JE", "JU", "MF", "MP", "MQ",
+    "NF", "PF", "PM", "PN", "PR", "RE", "SH", "SJ", "TC", "TF", "UM", "VI", "WF", "XK", "YT"];
+
+// === THETRUESIZE: KODY BEZ OBIEKTU W ICH API (ukryj link w wierszu AREA) ===
+// AUDYT 2026-07-27: przepytane /api/entity/<ISO> dla WSZYSTKICH 257 kodow geodaty (ten sam
+// endpoint, ktorym potwierdzono format hasha - patrz komentarz przy trueSizeUrl w app.js).
+// 32 kody oddaja 404, czyli nakladka nie ma czego narysowac: link otwieral mape bez kraju.
+// Nie myl tego z lista bezludnych - UM (zbiorczy) DZIALA, a zamieszkane HK/PR/RE/YT nie.
+const TRUESIZE_NO_ENTITY = ["AI", "AS", "BL", "BM", "BQ", "BV", "CC", "CX", "GF", "GI", "GO",
+    "GP", "GU", "HK", "JU", "MQ", "MS", "NC", "PF", "PR", "RE", "SJ", "TC", "TK",
+    "UM-DQ", "UM-FQ", "UM-HQ", "UM-JQ", "UM-MQ", "UM-WQ", "WF", "YT"];
+
+// === FCDO: KODY BEZ PORADY PODROZNEJ (ukryj link w wierszu SAFETY) ===
+// AUDYT 2026-07-27: przepytane gov.uk/foreign-travel-advice/<slug> dla wszystkich 252 kodow
+// (slug z FCDO_SLUGS, a gdy brak - generowany z nazwy, dokladnie jak w app.js). 226 OK, 26 x 404.
+// GB jest tu mimo WPISU w FCDO_SLUGS: gov.uk nie wydaje porad podroznych dla samej Wielkiej
+// Brytanii - slug "united-kingdom" nie istnieje w tym serwisie. To nie jest blad slugu do
+// poprawienia, tylko brak strony z natury rzeczy.
+// UWAGA: sam ZNACZEK live (#live-safety-badge) NIE potrzebuje tej listy - chowa sie sam
+// w .catch(), gdy API gov.uk oddaje blad. Ta lista dotyczy TYLKO linku z tekstu SAFETY.
+const FCDO_NO_ADVICE = ["AQ", "AX", "BV", "CC", "CK", "CX", "FO", "GB", "GG", "GL", "GO", "GU",
+    "HM", "IM", "JE", "JU", "MP", "NF", "NU", "PR", "SJ", "SX", "TF", "TK", "UM", "VI"];
+
+// === TIMEANDDATE: KODY BEZ ZEGARA SWIATOWEGO (ukryj link w wierszu LOCAL TIME) ===
+// Sam zegar dziala dalej - liczy sie z CAPITAL_COORDS + strefy, nie z tego linku.
+// Sprawdzone 2026-07-27 fetchem same-origin z karty timeanddate.com (serwis oddaje 403
+// PowerShellowi niezaleznie od naglowkow - to znany falszywy negatyw audytu serwerowego).
+// Zweryfikowane recznie tylko dla terytoriow bezludnych; PELNY przebieg po 252 kodach
+// to osobne zadanie (patrz db-schema.md, sekcja audytu 2026-07-27).
+const TAD_NO_CLOCK = ["GO", "JU"];
+
 function getMszLink(cca2) {
     // Nowy schemat MSZ (Odyseusz): https://odyseusz.gov.pl/<ISO2>
     return cca2 ? `https://odyseusz.gov.pl/${String(cca2).toUpperCase()}` : "https://odyseusz.gov.pl/";
