@@ -2947,6 +2947,22 @@
             var _urUrl = (window.URBANRAIL_LINKS && dc.cc && dc.cname)
                        ? (window.URBANRAIL_LINKS[dc.cc + "|" + dc.cname] || null)
                        : null;
+            // ATLAS OBSCURA DLA MIASTA (atlas-city-data.js). Ten sam klucz "CC|Nazwa" co przy METRO.
+            // BIALA lista: Atlas opisuje 1066 z 7991 miast bazy, wiec brak wpisu = brak przycisku.
+            // Prefiks adresu jest staly dla calego kompletu, wiec w danych siedzi sam slug - ale
+            // slug NIE jest wyprowadzalny z nazwy (warsaw-poland, ale los-angeles-california,
+            // london-england, new-york), dlatego nie sklejamy go tutaj z dc.cname.
+            var _aoSlug = (window.ATLAS_CITY_LINKS && dc.cc && dc.cname)
+                        ? (window.ATLAS_CITY_LINKS[dc.cc + "|" + dc.cname] || null)
+                        : null;
+            var _aoUrl = _aoSlug ? ("https://www.atlasobscura.com/things-to-do/" + _aoSlug) : null;
+            // Styl NIE przez btn(): ten helper daje jeden kolor na tlo, ramke i tekst, a wyszlaby
+            // wtedy czerwien #ff4444 - praktycznie nieodroznialna od sasiedniego METRO (#ef4444).
+            // Bierzemy wiec dokladnie te paletę co przycisk ATLAS OBSCURA w panelu KRAJU
+            // (ciemna bordowa ramka + jasny tekst), zeby ten sam serwis wygladal wszedzie tak samo.
+            var _aoBtnHtml = _aoUrl
+                ? '<a href="' + _aoUrl + '" target="_blank" class="windy-btn" style="background:rgba(139,0,0,0.2); border:1px solid #8b0000; color:#ff4444;">💀 ATLAS OBSCURA</a>'
+                : '';
             if (dc.cname) {
                 // KRAJ W ZAPYTANIU (2026-07-25): sama nazwa miasta trafiala w zle miejsce przy nazwach
                 // powtarzalnych - "Cordoba" szlo do Hiszpanii zamiast Argentyny, "San Jose" do Kostaryki
@@ -2985,14 +3001,7 @@
               + _cDistRow
               + '<div id="city-climate" style="margin-top:6px;"></div>'
               + '<div class="links-grid" style="margin-top:12px;">'
-              + btn(dc.wv, "🧭 WIKIVOYAGE", "52,211,153")
-              + btn(dc.wiki, "📖 WIKIPEDIA", "0,212,255")
-              + btn(window._taCityUrl(dc.ta), "🍽️ TASTEATLAS", "244,164,96")
-              + btn(gm, "📍 GOOGLE MAPS", "250,204,21")
-              + btn(_r2rUrl, "🚄 ROME2RIO", "129,140,248")
-              + btn(_bkgUrl, "🏨 BOOKING", "0,159,235")
-              + btn(_urUrl, "🚇 METRO", "239,68,68")
-              + btn(dc.un, "📸 FOTO", "255,255,255")
+              + _cityLinksHtml
               + '</div>';
             window._cityIntelToken = (window._cityIntelToken || 0) + 1;
             var _wb = fPanel.querySelector('a[href^="https://en.wikivoyage.org"]');
