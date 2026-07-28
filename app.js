@@ -3046,16 +3046,19 @@
         };
         window._staySearchUrls = function(o) {
             var cfg = window.STAY_SEARCH || {};
+            // WSZYSTKIE cztery serwisy dostaja nazwe PO PODMIANIE (o.cc + slownik), a nie surowa
+            // z bazy - zniekształcony zapis myli je tak samo jak Kayaka.
+            var city = window._searchCityName ? window._searchCityName(o.cc, o.city) : o.city;
             // qslug dla Airbnb: "Barcelona, Spain" -> "Barcelona--Spain". Podwojny myslnik rozdziela
             // miasto od kraju, pojedynczy zastepuje spacje ("New York City--United States").
-            var slug = encodeURIComponent(String(o.city).replace(/\s+/g, "-"))
+            var slug = encodeURIComponent(String(city).replace(/\s+/g, "-"))
                      + (o.country ? ("--" + encodeURIComponent(String(o.country).replace(/\s+/g, "-"))) : "");
-            var q = encodeURIComponent(o.city + (o.country ? ", " + o.country : ""));
+            var q = encodeURIComponent(city + (o.country ? ", " + o.country : ""));
             // Kayak: "Miasto Kraj" przez SPACJE, BEZ PRZECINKA (encodeURIComponent robi z niej %20).
             // Przecinek wpychal Kayaka w forme "-a" (obszar), ktora ginie w DRUGIM przekierowaniu
             // i konczy na /stays - patrz dowody w stay-links-data.js. Kraju nie wolno wyrzucic,
             // bo sama nazwa prowadzi Valencie i Cordobe do Hiszpanii.
-            var qkayak = encodeURIComponent(o.city + (o.country ? (" " + o.country) : ""));
+            var qkayak = encodeURIComponent(city + (o.country ? (" " + o.country) : ""));
             // SERWIS Z needsDates ZNIKA Z LISTY przy pustych datach, a nie dostaje szablonu z datami
             // na sucho. Dziś dotyczy to Kayaka: jego /hotels ma daty i gosci w SCIEZCE, a kazda
             // skrocona wersja leci 302 na /stays (pusty formularz) - patrz komentarz w
@@ -3151,7 +3154,7 @@
                 // ktorejkolwiek daty = wariant "bez terminu" dla WSZYSTKICH czterech naraz.
                 if (!cin || !cout) { cin = ""; cout = ""; }
                 var urls = window._staySearchUrls({
-                    city: cityName, country: _cn, cin: cin, cout: cout,
+                    city: cityName, cc: cityCC, country: _cn, cin: cin, cout: cout,
                     adults: document.getElementById("ss-adults").value,
                     rooms:  document.getElementById("ss-rooms").value
                 });
