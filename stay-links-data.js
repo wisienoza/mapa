@@ -1,15 +1,25 @@
 // ====================================================================
 // SZUKANIE NOCLEGU - konfiguracja przycisku "🏨 NOCLEGI" w panelu MIASTA
 // (window.showCityIntel -> window.showStaySearchModal w app.js).
-// Jeden popup, CZTERY serwisy otwierane naraz: Booking, Agoda, Trivago, Airbnb.
+// Jeden popup, TRZY serwisy otwierane naraz: Booking, Kayak, Airbnb.
 // Zbudowane 2026-07-28 na wzór popupu LOTÓW (FLIGHT_SEARCH w airport-links-data.js).
 // ====================================================================
-// DLACZEGO TE CZTERY, A NIE INNE: każdy pokrywa INNĄ kategorię, a nie to samo w innym kolorze.
+// DLACZEGO TE TRZY, A NIE INNE: każdy pokrywa INNĄ kategorię, a nie to samo w innym kolorze.
 //   Booking    - największa baza hoteli i apartamentów, punkt odniesienia dla reszty
 //   Kayak      - PORÓWNYWARKA, nie sprzedawca: zestawia ceny między serwisami, więc jedno okno
 //                zastępuje kilka osobnych
-//   Hotels.com - Expedia Group, czyli inwentarz i ceny spoza świata Bookinga
-//   Airbnb     - mieszkania prywatne, kategoria, której trzy pozostałe prawie nie mają
+//   Airbnb     - mieszkania prywatne, kategoria, której dwa pozostałe prawie nie mają
+//
+// >>> HOTELS.COM WYRZUCONY 2026-07-28 (decyzja usera) - NIE PRZYWRACAJ GO ODRUCHOWO.
+// Nie dlatego, że nie działał - działał, a jego sortowanie po cenie było wręcz jedynym, które
+// dało się potwierdzić z linii poleceń. Powód jest inny: DUBLOWAŁ KAYAKA. W kodzie strony
+// wyników Kayaka figurują `hotels.com`, `agoda`, `booking.com` i `priceline` jako dostawcy,
+// więc porównywarka i tak zestawia oferty Expedii - osobne okno na to samo było czwartą kartą
+// bez nowej informacji. Do składu wszedł zresztą tylko awaryjnie, żeby zatkać dziurę po
+// wyrzuconym Trivago, którego jako sprzedawca i tak nie zastępował.
+// Gdyby kiedyś wracał, szablon brzmiał:
+//   https://pl.hotels.com/Hotel-Search?destination={q}&startDate={in}&endDate={out}
+//     &adults={adults}&rooms={rooms}&sort=PRICE_LOW_TO_HIGH
 //
 // >>> AGODA I TRIVAGO ZOSTAŁY WYRZUCONE 2026-07-28 - NIE PRÓBUJ ICH WRACAĆ BEZ CZYTANIA TEGO.
 // Były tu przez jedną wersję. User sprawdził oba linki w przeglądarce i OBA ZAWIODŁY:
