@@ -161,7 +161,12 @@ window.FLIGHT_SEARCH = {
     // Forma /deep? bierze kody IATA, czyli dokładnie to, co już policzyliśmy. Zero zgadywania.
     skyscannerBase: "https://www.skyscanner.pl/transport/loty/",
     kayakBase:      "https://www.kayak.pl/flights/",
-    kiwiBase:       "https://www.kiwi.com/deep?",
+    // /pl/deep? a nie /deep? - PRZEDROSTEK JĘZYKA MA ZNACZENIE i nie jest kosmetyką.
+    // Bez niego Kiwi wyrzuca wyniki po ANGIELSKU (/en/search/results/...). Z nim ląduje dokładnie
+    // tam, co przy ręcznym klikaniu na stronie: /pl/search/results/lotnisko-chopina-w-warszawie-
+    // warszawa-polska/port-lotniczy-helsinki-vantaa-helsinki-finlandia/2026-08-27/2026-09-03/
+    // ?adults=1&sortBy=price. POTWIERDZONE 2026-07-28 (kod 200, adres końcowy sprawdzony).
+    kiwiBase:       "https://www.kiwi.com/pl/deep?",
     googleBase:     "https://www.google.com/travel/flights?hl=pl&curr=PLN&q=",
     // SORTOWANIE OD NAJTAŃSZEGO (życzenie usera 2026-07-28). Każdy serwis nazywa to inaczej,
     // dlatego to trzy osobne pola, a nie jedna flaga. Pusta wartość = nie doklejaj nic.

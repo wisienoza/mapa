@@ -96,9 +96,21 @@ window.STAY_SEARCH = {
             // Ale my podajemy nazwe, nie ID miasta, wiec KAZDE nasze wejscie idzie przez
             // przekierowanie nazwa -> adres kanoniczny, a ono KASUJE cala query string:
             //   /hotels/Malmo%20Sweden/.../2adults?sort=price_a -> /hotels/Malmo-Sweden-c34151/...;map
-            // Forma macierzowa `;sort=price_a` w sciezce ginie tak samo. Zeby to obejsc, trzeba by
-            // znac `-c<ID>` dla 7991 miast - czyli dokladnie to, przez co wypadly Trivago i Agoda.
-            // Na Kayaku user przelacza sortowanie jednym klikiem w wynikach.
+            // ROZSTRZYGNIETE 2026-07-28 na adresie, ktory user skopiowal z ich strony po recznym
+            // kliknieciu w sortowanie. Jedyna rzecza, ktora cokolwiek zmienia, jest OBECNOSC `-c<ID>`:
+            //   /hotels/Malmo-Sweden/.../2adults;map?sort=price_a       -> 302 -> ...-c34151/...;map
+            //                                                              (sort ZGUBIONY)
+            //   /hotels/Jyvaskyla-Finland-c44565/.../2adults;map?sort=price_a -> 200, sort ZACHOWANY
+            // Z ID nie ma przekierowania, wiec nie ma czego gubic. SPRAWDZONE I ODRZUCONE ksztalty:
+            // `?sort` przed `;map`, `;map?sort`, `;map;sort`, `;sort;map`, nazwa ze spacja i z
+            // myslnikiem, oraz ich wlasny endpoint /stays?...&action=dohotels (zwraca strone
+            // formularza, nie wyniki). Zaden nie przenosi sortowania.
+            // DROGA WYJSCIA ISTNIEJE, ale to osobna decyzja: Kayak oddaje `-c<ID>` w naglowku
+            // Location pierwszego przekierowania, wiec da sie je zebrac jednym tanim zapytaniem
+            // na miasto (~2 h w trzech watkach dla 7991 miast, mniej niz przebieg TasteAtlas).
+            // Zysk bylby podwojny: sortowanie ORAZ brak przekierowania, czyli koniec ladowania
+            // na /stays. Koszt: kolejny slownik ~8 tys. wpisow do utrzymania.
+            // Do tego czasu: na Kayaku user przelacza sortowanie jednym klikiem w wynikach.
             needsDates: true
         },
         {
