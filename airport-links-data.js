@@ -109,7 +109,7 @@ window.AIRPORT_TYPE_OVERRIDE = {
 };
 
 // ====================================================================
-// SZUKANIE LOTÓW Z DOMU (Skyscanner) - konfiguracja przycisku "✈️ WAW → XXX"
+// SZUKANIE LOTÓW Z DOMU (Skyscanner) - konfiguracja przycisku "✈️ LOTY Z WAW → XXX"
 // w panelu MIASTA (window.showCityIntel -> window.showFlightSearchModal w app.js).
 // ====================================================================
 // BUDOWA ADRESU (potwierdzona forma Skyscannera, domena .pl = polski interfejs i PLN):

@@ -3249,10 +3249,12 @@
             // jeszcze nie znamy: AIRPORT_DB (1,6 MB) laduje sie leniwie i przy pierwszym wejsciu
             // w miasto moze go nie byc w pamieci. Wypelnia go blok ensureAirportDB().then pod
             // fPanel.innerHTML - i on tez decyduje, czy przycisk w ogole sie pokaze.
-            // ETYKIETA "WAW → XXX", a nie "LOTY Z WAW → XXX": kolumna siatki ma ~141 px, czyli
-            // 18 znakow monospace 0.8rem - dluzszy napis zawija sie do drugiej linii i ten JEDEN
-            // przycisk rozpycha caly wiersz (ta sama pulapka co przy etykietach w AIRPORT_LINKS).
-            // Pelne "Loty z Warszawy do..." siedzi w tooltipie i w naglowku popupu.
+            // ETYKIETA JEST NA GRANICY SZEROKOSCI - ZMIERZONE, NIE OSZACOWANE: kolumna siatki ma
+            // 155 px, a "✈️ LOTY Z WAW → BCN" zajmuje 147,5 px. Zapas to 7,5 px, wiec KAZDE
+            // wydluzenie napisu (pelna nazwa miasta zamiast kodu IATA, dopisek "TANIE" itp.) zawinie
+            // go do drugiej linii i ten JEDEN przycisk rozepnie caly wiersz siatki z 34 na 51 px -
+            // ta sama pulapka co przy etykietach w AIRPORT_LINKS. Kod IATA ma zawsze 3 znaki, wiec
+            // szerokosc jest STALA dla kazdego miasta. Pelna nazwa portu siedzi w tooltipie.
             var _flyBtnHtml = (dc.lat != null && dc.lng != null)
                 ? '<a href="#" id="city-fly-btn" class="windy-btn" style="display:none; background:rgba(56,189,248,0.15); border:1px solid #38bdf8; color:#38bdf8;"></a>'
                 : '';
@@ -3319,7 +3321,7 @@
                     var _ap = window._nearestFlightAirport(dc.lat, dc.lng);
                     var _org = (window.SKYSCANNER && window.SKYSCANNER.origin) || "WAW";
                     if (!_ap || _ap.iata === _org) return;
-                    _flyEl.textContent = "✈️ " + _org + " → " + _ap.iata;
+                    _flyEl.textContent = "✈️ LOTY Z " + _org + " → " + _ap.iata;
                     _flyEl.title = "Loty z Warszawy do: " + _ap.name + " (" + _ap.km + " km od miasta) - Skyscanner";
                     _flyEl.style.display = "flex";
                     _flyEl.onclick = function(ev){ ev.preventDefault(); window.showFlightSearchModal(_ap, dc.cname); };
@@ -7836,6 +7838,7 @@
             { id: "cont-countries-overlay",    hide: "hideContinentCountries" },
             { id: "visited-countries-overlay", hide: "hideVisitedCountries" },
             { id: "help-overlay",              hide: "hideHelpPanel" },
+            { id: "flight-search-overlay",     hide: "hideFlightSearch" },
             { id: "wherenow-overlay",          hide: null }
         ];
         document.addEventListener("keydown", function(ev){
