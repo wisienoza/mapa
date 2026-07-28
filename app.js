@@ -3351,31 +3351,30 @@
                 // pokazujemy zwykle linki do recznego klikniecia zamiast cicho zgubic dwa serwisy.
                 // BEZ trzeciego argumentu "noopener" - z nim window.open ZAWSZE zwraca null i nie
                 // dalo by sie odroznic blokady od sukcesu. Referencje zrywamy recznie zaraz potem.
-                var opened = urls.map(function(u){
+                // JEDYNY WIARYGODNY SYGNAL BLOKADY TO null ZWROCONY PRZEZ window.open.
+                // >>> NIE PROBUJ SPRAWDZAC w.closed - BYLO, DAWALO FALSZYWE ALARMY.
+                // Wersja z 2026-07-28 patrzyla po 700 ms na w.closed, zeby zlapac okna "oddane
+                // i zaraz zamkniete". Efekt byl odwrotny od zamierzonego: otwieraly sie wszystkie
+                // cztery karty, a popup i tak pisal "wpuscila tylko 3 z 4". Powod: serwisy lotnicze
+                // wysylaja naglowek Cross-Origin-Opener-Policy, przez ktory przegladarka ODCINA
+                // nasza referencje do okna po jego nawigacji na obca domene - w.closed zwraca
+                // wtedy true dla ZYWEJ karty. Falszywy alarm jest gorszy niz brak alarmu, bo kaze
+                // klikac linki do kart, ktore juz sa otwarte.
+                var blocked = [];
+                urls.forEach(function(u){
                     var w = null;
                     try { w = window.open(u.url, "_blank"); } catch (e) { w = null; }
                     if (w) { try { w.opener = null; } catch (e) {} }
-                    return { u: u, w: w };
+                    else blocked.push(u);
                 });
-                // SPRAWDZAMY PO CHWILI, NIE OD RAZU. Pierwsza wersja patrzyla wylacznie na to, czy
-                // window.open zwrocilo null - i przepuszczala przypadek zglaszany przez usera
-                // ("nadal otwiera 3 strony"): przegladarka oddaje obiekt okna dla WSZYSTKICH czterech,
-                // a nadmiarowe zamyka chwile pozniej. null wtedy nie wystapi, komunikat sie nie
-                // pokazywal, a karty po prostu nie bylo. Po ~700 ms takie okno ma juz closed === true.
-                // Cross-origin nie przeszkadza: .closed jest czytelne nawet dla obcej domeny.
-                setTimeout(function(){
-                    var blocked = opened.filter(function(o){
-                        try { return !o.w || o.w.closed; } catch (e) { return false; }
-                    }).map(function(o){ return o.u; });
-                    if (!blocked.length) { window.hideFlightSearch(); return; }
-                    var bEl = document.getElementById("fs-blocked");
-                    if (!bEl) return;
-                    bEl.innerHTML = 'Przeglądarka wpuściła tylko ' + (urls.length - blocked.length) + ' z ' + urls.length
-                        + ' kart. Otwórz brakujące ręcznie:<br>'
-                        + blocked.map(function(u){ return '<a href="' + u.url + '" target="_blank" rel="noopener" style="color:#38bdf8;">→ ' + u.name + '</a>'; }).join('<br>')
-                        + '<br><span style="color:#8f9ba8; font-size:0.64rem;">Na stałe: kłódka/ikona w pasku adresu → zezwól tej stronie na wyskakujące okienka.</span>';
-                    bEl.style.display = "block";
-                }, 700);
+                if (!blocked.length) { window.hideFlightSearch(); return; }
+                var bEl = document.getElementById("fs-blocked");
+                if (!bEl) return;
+                bEl.innerHTML = 'Przeglądarka zablokowała ' + blocked.length + ' z ' + urls.length
+                    + ' kart. Otwórz brakujące ręcznie:<br>'
+                    + blocked.map(function(u){ return '<a href="' + u.url + '" target="_blank" rel="noopener" style="color:#38bdf8;">→ ' + u.name + '</a>'; }).join('<br>')
+                    + '<br><span style="color:#8f9ba8; font-size:0.64rem;">Na stałe: kłódka/ikona w pasku adresu → zezwól tej stronie na wyskakujące okienka.</span>';
+                bEl.style.display = "block";
             };
             el.style.display = "flex";
         };
