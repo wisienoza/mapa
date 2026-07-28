@@ -5121,6 +5121,41 @@
                     // (SIM WIKI < ŚWIĘTA < TASTE ATLAS); zwykle porownanie wypchneloby Ś na koniec.
                     // Puste stringi (przycisk schowany przez bramke) wypadaja przed sortowaniem.
                     // DOPISUJAC NOWY PRZYCISK: dodaj pare [etykieta, html] - miejsce w pasku wyjdzie samo.
+                    // --- WIERSZ "WIZA" (2026-07-27) ------------------------------------------------
+                    // Do dzis dossier kraju NIE MOWIL O WIZACH ANI SLOWA - ta informacja zyla wylacznie
+                    // w kolorze nakladki VISA i jej tooltipie. A klik w kraj w trybie VISA gasi nakladke
+                    // i otwiera wlasnie ten panel (patrz handler w setVisa), wiec user tracil status
+                    // dokladnie w momencie, w ktorym chcial go doczytac.
+                    // ZRODLO: window._visaFor(id) = VISA_PL_OVERRIDES z pierwszenstwem przed VISA_PL.
+                    // TO SAMO wywolanie karmi nakladke, liczniki odznak i ranking - NIE czytaj tu golego
+                    // VISA_PL, bo wtedy TW i XK pokazywalyby co innego niz mapa (byl juz taki rozjazd).
+                    // ETYKIETY I EMOJI 1:1 Z TOOLTIPEM NAKLADKI (_visaTip) - ten sam kraj ma czytac sie
+                    // identycznie na mapie i w panelu.
+                    // Wartosc liczbowa w danych = liczba dni bez wizy ("90"), stad osobna galaz.
+                    // BRAK LINKU (na razie): slownik oficjalnych portali wnioskowych jest do zebrania
+                    // osobno - patrz db-schema.md, sekcja VISA_LINKS. Gdy powstanie, wartosc idzie
+                    // przez _extVal(...), tak jak COST INDEX czy WODA - bez ruszania tej logiki.
+                    let visaRowHtml = '';
+                    const _vReq = (typeof window._visaFor === 'function') ? window._visaFor(id) : null;
+                    if (id === 'PL') {
+                        visaRowHtml = '<div class="fact-row"><span class="fact-key">WIZA:</span><span class="fact-val" style="color:#3b82f6;">🇵🇱 TWÓJ PASZPORT</span></div>';
+                    } else if (_vReq != null) {
+                        let _vLab, _vCol;
+                        if (_vReq === 'visa required')          { _vLab = '🔴 WIZA WYMAGANA';        _vCol = '#dc2626'; }
+                        else if (_vReq === 'visa on arrival')   { _vLab = '🟡 WIZA PO PRZYLOCIE';    _vCol = '#f59e0b'; }
+                        else if (_vReq === 'e-visa')            { _vLab = '🟡 E-VISA (ONLINE)';      _vCol = '#f59e0b'; }
+                        else if (_vReq === 'eta')               { _vLab = '🟡 ETA (ONLINE)';         _vCol = '#f59e0b'; }
+                        else if (_vReq === 'visa free')         { _vLab = '🟢 BEZ WIZY';             _vCol = '#22c55e'; }
+                        else                                    { _vLab = '🟢 BEZ WIZY — ' + _vReq + ' DNI'; _vCol = '#22c55e'; }
+                        // Adnotacja o korekcie recznej - ta sama, ktora pokazuje tooltip nakladki.
+                        const _vOv = (typeof VISA_PL_OVERRIDES !== 'undefined') && VISA_PL_OVERRIDES[id];
+                        // Data w title: user musi wiedziec, na ile swiezy jest ten wpis, bo przepisy
+                        // wizowe zmieniaja sie czesciej niz cokolwiek innego w tym panelu.
+                        const _vDate = (typeof VISA_PL_DATE !== 'undefined' && VISA_PL_DATE) ? ' (stan: ' + VISA_PL_DATE + ')' : '';
+                        visaRowHtml = '<div class="fact-row" title="Wymóg wizowy dla obywatela PL' + _vDate
+                                    + (_vOv ? ' — korekta ręczna wg MSZ' : '') + '"><span class="fact-key">WIZA:</span>'
+                                    + '<span class="fact-val" style="color:' + _vCol + ';">' + _vLab + '</span></div>';
+                    }
                     const _linksGridHtml = [
                         ["ATLAS OBSCURA", atlasBtnHtml],
                         ["FOTO",          unsplashBtnHtml],
@@ -5301,6 +5336,7 @@
                         <div class="fact-row"><span class="fact-key">LANG:</span><span class="fact-val">${_extVal(_langDisplay, `https://www.localingual.com/?ISO=${id}`, _langTitle)}</span></div>
                         
                         <div class="fact-row"><span class="fact-key">RELIGION:</span><span class="fact-val" style="color:#ddd;">${religionHtml}</span></div>
+                        ${visaRowHtml}
                         <div class="fact-row"><span class="fact-key">COST INDEX:</span><span class="fact-val" style="color:${costColor}; letter-spacing: 2px;">${_extVal(costVal, numbeoCountryUrl, "Koszty życia w tym kraju vs. PLN (Numbeo)")}${capCostHtml}</span></div>
 
                         <div class="fact-row" id="live-rate-row" style="display:none;">
