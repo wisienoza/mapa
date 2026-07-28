@@ -107,3 +107,35 @@ window.AIRPORT_TYPE_OVERRIDE = {
     IEV: "M",   // Kijów-Żulany   - brak wpisu pod tym kodem w OurAirports
     HRK: "M"    // Charków        - medium_airport w OurAirports
 };
+
+// ====================================================================
+// SZUKANIE LOTÓW Z DOMU (Skyscanner) - konfiguracja przycisku "✈️ WAW → XXX"
+// w panelu MIASTA (window.showCityIntel -> window.showFlightSearchModal w app.js).
+// ====================================================================
+// BUDOWA ADRESU (potwierdzona forma Skyscannera, domena .pl = polski interfejs i PLN):
+//   .../transport/loty/{skad}/{dokad}/{wylot}/{powrot}/?adultsv2=1&cabinclass=economy&rtn=1
+// Kody IATA MAŁYMI literami, daty w formacie YYMMDD. Oba segmenty dat są OPCJONALNE:
+// adres bez nich otwiera wyszukiwarkę z pustym kalendarzem ("dowolny termin"), a nie błąd -
+// dlatego popup pozwala zostawić daty puste. Segmentu powrotu nie da się podać bez wylotu.
+//
+// DOKĄD, czyli "najbliższy port": liczy window._nearestFlightAirport(lat, lon) w app.js,
+// skanując AIRPORT_DB po współrzędnych miasta. Dwa parametry rządzą tym, co wyjdzie:
+//   destClasses - klasy lotnisk brane pod uwagę (pole [6] z airport-db.json). Heliporty "H"
+//                 i bazy wodnosamolotów "W" są POMINIĘTE ŚWIADOMIE: Skyscanner nie sprzeda
+//                 rejsu do żadnej z tych 125 pozycji, więc przycisk prowadziłby w pustkę.
+//   maxKm       - powyżej tego dystansu przycisk się NIE POKAZUJE. "Najbliższe lotnisko"
+//                 800 km od miasta nie jest podpowiedzią dojazdu, tylko szumem.
+window.SKYSCANNER = {
+    origin: "WAW",
+    originName: "Warszawa",
+    base: "https://www.skyscanner.pl/transport/loty/",
+    destClasses: ["L", "M", "S"],
+    maxKm: 500,
+    // Wartości `key` to dosłowne wartości parametru cabinclass w adresie - nie tłumacz ich.
+    cabins: [
+        { key: "economy",        label: "Ekonomiczna" },
+        { key: "premiumeconomy", label: "Premium economy" },
+        { key: "business",       label: "Biznes" },
+        { key: "first",          label: "Pierwsza" }
+    ]
+};

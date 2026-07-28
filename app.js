@@ -2996,6 +2996,124 @@
                 window._climateCache[key]=data; render(data);
               }).catch(function(){ if(window._climateToken===token) el.innerHTML=''; });
         };
+        // --- NAJBLIZSZY PORT LOTNICZY DLA PUNKTU (uzywane przez przycisk "WAW -> XXX" w panelu miasta) ---
+        // Skanuje CALE AIRPORT_DB (9058 wpisow), a nie AIRPORT_BY_CC - lotnisko obslugujace miasto
+        // potrafi lezec za granica (Genewa dla francuskiego Annecy, Bazylea dla Miluzy), a filtr po
+        // kodzie kraju te przypadki by zgubil.
+        // WYMAGA zaladowanej bazy: wolaj po ensureAirportDB(). Bez niej zwraca null, nie czeka.
+        // Klasy lotnisk i limit dystansu siedza w SKYSCANNER (airport-links-data.js) - patrz komentarz tam.
+        // PREFILTR SZEROKOSCI jak w _countryAtPoint: 111 km na stopien to DOLNA granica realnego
+        // dystansu, wiec sam rozjazd w szerokosci wystarczy, zeby odrzucic wpis bez liczenia haversine.
+        // Startowy rekord to od razu maxKm, wiec prefiltr tnie od pierwszej iteracji.
+        window._nearestFlightAirport = function(lat, lon) {
+            var db = window.AIRPORT_DB;
+            if (!db || lat == null || lon == null || typeof getDist !== 'function') return null;
+            var cfg = window.SKYSCANNER || {};
+            var ok = {};
+            (cfg.destClasses || ["L", "M", "S"]).forEach(function(c){ ok[c] = 1; });
+            var ovr = (typeof AIRPORT_TYPE_OVERRIDE !== 'undefined') ? AIRPORT_TYPE_OVERRIDE : {};
+            var best = null, bestKm = cfg.maxKm || 500;
+            for (var code in db) {
+                var v = db[code];
+                var typ = v[6] || ovr[code] || "";
+                if (!ok[typ]) continue;
+                if (Math.abs(v[0] - lat) * 111 > bestKm) continue;
+                var d = getDist(lat, lon, v[0], v[1]);
+                if (d < bestKm) { bestKm = d; best = { iata: code, name: v[3], city: v[2], cc: v[4], typ: typ }; }
+            }
+            if (best) best.km = Math.round(bestKm);
+            return best;
+        };
+        // --- POPUP "SZUKAJ LOTOW" (klik w przycisk lotow w panelu miasta) ---
+        // Skyscanner NIE otwiera sie od razu: najpierw pytamy o termin, liczbe pasazerow i klase,
+        // bo adres bez tych parametrow laduje na formularzu, ktory i tak trzeba wypelnic recznie.
+        // Overlay jest JEDEN i recyklowany (jak #help-overlay), ale tresc przebudowujemy przy kazdym
+        // otwarciu - naglowek zalezy od miasta, a pola maja wracac do stanu domyslnego.
+        window.hideFlightSearch = function(){
+            var el = document.getElementById("flight-search-overlay");
+            if (el) el.style.display = "none";
+        };
+        window.showFlightSearchModal = function(ap, cityName) {
+            if (!ap) return;
+            var cfg = window.SKYSCANNER || {};
+            var org = cfg.origin || "WAW";
+            var el = document.getElementById("flight-search-overlay");
+            if (!el) {
+                el = document.createElement("div");
+                el.id = "flight-search-overlay";
+                el.style.cssText = "display:none; position:fixed; inset:0; z-index:205; background:rgba(0,0,0,0.75); backdrop-filter:blur(4px); align-items:center; justify-content:center;";
+                document.body.appendChild(el);
+                el.addEventListener("click", function(e){ if (e.target === el) window.hideFlightSearch(); });
+            }
+            // Domyslny termin: za 30 dni, powrot tydzien pozniej. Data liczona z UTC (toISOString),
+            // wiec przy strefie PL moze wskazac dzien wczesniej niz kalendarz uzytkownika - to jest
+            // OBOJETNE, bo to tylko wartosc startowa pola, ktora i tak sie zmienia.
+            function iso(d){ return new Date(d).toISOString().slice(0, 10); }
+            var _now = Date.now();
+            var depDef = iso(_now + 30 * 86400000), retDef = iso(_now + 37 * 86400000);
+            var lbl = "font-family:'JetBrains Mono',monospace; font-size:0.72rem; color:#8f9ba8; letter-spacing:1px;";
+            var inp = "background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.18); border-radius:4px; color:#e6edf3; font-family:'JetBrains Mono',monospace; font-size:0.8rem; padding:6px 8px; width:100%; box-sizing:border-box;";
+            el.innerHTML =
+                '<div style="background:rgba(8,8,10,0.96); border:1px solid rgba(56,189,248,0.45); border-radius:8px; padding:20px; width:min(420px,92vw); box-shadow:0 8px 40px rgba(0,0,0,0.6); font-family:\'Rajdhani\',sans-serif;">'
+              +   '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">'
+              +     '<h1 style="margin:0; border:none; padding:0; font-size:1.15rem; color:#38bdf8;">✈️ SZUKAJ LOTÓW</h1>'
+              +     '<span id="fs-close" style="cursor:pointer; font-size:1.4rem; color:#8f9ba8; line-height:1;">✕</span>'
+              +   '</div>'
+              +   '<div style="font-family:\'JetBrains Mono\',monospace; font-size:0.82rem; color:#facc15; font-weight:700;">'
+              +     (cfg.originName || org).toUpperCase() + ' (' + org + ') → ' + String(cityName || ap.city || "").toUpperCase() + ' (' + ap.iata + ')'
+              +   '</div>'
+              +   '<div style="font-family:\'JetBrains Mono\',monospace; font-size:0.68rem; color:#8f9ba8; margin-top:3px; line-height:1.4;">'
+              +     ap.name + ' · ' + ap.km + ' km od miasta'
+              +   '</div>'
+              +   '<label style="display:flex; align-items:center; gap:8px; margin-top:14px; cursor:pointer;">'
+              +     '<input type="checkbox" id="fs-rtn" checked style="accent-color:#38bdf8;">'
+              +     '<span style="' + lbl + ' color:#c6cfd9;">LOT W OBIE STRONY</span>'
+              +   '</label>'
+              +   '<div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:10px;">'
+              +     '<div><div style="' + lbl + '">WYLOT</div><input type="date" id="fs-dep" value="' + depDef + '" style="' + inp + '"></div>'
+              +     '<div><div style="' + lbl + '">POWRÓT</div><input type="date" id="fs-ret" value="' + retDef + '" style="' + inp + '"></div>'
+              +     '<div><div style="' + lbl + '">PASAŻEROWIE</div><select id="fs-adults" style="' + inp + '">'
+              +       [1,2,3,4,5,6,7,8].map(function(n){ return '<option value="' + n + '"' + (n === 1 ? ' selected' : '') + '>' + n + '</option>'; }).join('')
+              +     '</select></div>'
+              +     '<div><div style="' + lbl + '">KLASA</div><select id="fs-cabin" style="' + inp + '">'
+              +       (cfg.cabins || [{ key: "economy", label: "Ekonomiczna" }]).map(function(c, i){ return '<option value="' + c.key + '"' + (i === 0 ? ' selected' : '') + '>' + c.label + '</option>'; }).join('')
+              +     '</select></div>'
+              +   '</div>'
+              +   '<label style="display:flex; align-items:center; gap:8px; margin-top:12px; cursor:pointer;">'
+              +     '<input type="checkbox" id="fs-direct" style="accent-color:#38bdf8;">'
+              +     '<span style="' + lbl + ' color:#c6cfd9;">TYLKO BEZPOŚREDNIE</span>'
+              +   '</label>'
+              +   '<div style="font-family:\'JetBrains Mono\',monospace; font-size:0.64rem; color:#6b7885; margin-top:10px; line-height:1.5;">'
+              +     'Puste pole WYLOT = szukaj w dowolnym terminie (Skyscanner otworzy się z pustym kalendarzem).'
+              +   '</div>'
+              +   '<div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:14px;">'
+              +     '<div id="fs-cancel" class="windy-btn" style="background:rgba(255,255,255,0.06); border:1px solid #56616e; color:#c6cfd9;">ANULUJ</div>'
+              +     '<div id="fs-go" class="windy-btn" style="background:rgba(56,189,248,0.18); border:1px solid #38bdf8; color:#38bdf8;">SZUKAJ ↗</div>'
+              +   '</div>'
+              + '</div>';
+            var depEl = document.getElementById("fs-dep"), retEl = document.getElementById("fs-ret"), rtnEl = document.getElementById("fs-rtn");
+            function syncRtn(){ retEl.disabled = !rtnEl.checked; retEl.style.opacity = rtnEl.checked ? "1" : "0.4"; }
+            rtnEl.onchange = syncRtn; syncRtn();
+            document.getElementById("fs-close").onclick = window.hideFlightSearch;
+            document.getElementById("fs-cancel").onclick = window.hideFlightSearch;
+            document.getElementById("fs-go").onclick = function(){
+                var dep = depEl.value, ret = rtnEl.checked ? retEl.value : "";
+                if (dep && ret && ret < dep) { alert("Data powrotu jest wcześniejsza niż data wylotu."); return; }
+                // Segment powrotu bez segmentu wylotu nie istnieje w adresie Skyscannera - przy pustym
+                // WYLOCIE lecimy wiec na wyszukiwarke bez ZADNEJ daty (rtn zostaje, bo to osobny parametr).
+                var ymd = function(s){ return s.slice(2, 4) + s.slice(5, 7) + s.slice(8, 10); };
+                var url = (cfg.base || "https://www.skyscanner.pl/transport/loty/")
+                        + org.toLowerCase() + "/" + ap.iata.toLowerCase() + "/";
+                if (dep) { url += ymd(dep) + "/"; if (ret) url += ymd(ret) + "/"; }
+                url += "?adultsv2=" + document.getElementById("fs-adults").value
+                     + "&cabinclass=" + document.getElementById("fs-cabin").value
+                     + "&rtn=" + (rtnEl.checked ? 1 : 0)
+                     + "&preferdirects=" + (document.getElementById("fs-direct").checked ? "true" : "false");
+                window.hideFlightSearch();
+                window.open(url, "_blank", "noopener");
+            };
+            el.style.display = "flex";
+        };
         window.showCityIntel = function(dc) {
             var fTarget = document.getElementById("factbook-target");
             var fPanel = document.getElementById("factbook-content");
@@ -3126,6 +3244,18 @@
             // przycisku ma wlasny punkt kodowy i rozjechaloby kolejnosc kompletnie.
             // Puste stringi (przycisk schowany przez brak wpisu) wypadaja PRZED sortowaniem.
             // DOPISUJAC NOWY PRZYCISK: dodaj pare [etykieta, html] - miejsce w siatce wyjdzie samo.
+            // LOTY: przycisk do Skyscannera z Warszawy do najblizszego portu tego miasta.
+            // Wchodzi do siatki jako PUSTY PLACEHOLDER (display:none), bo kodu IATA w tej chwili
+            // jeszcze nie znamy: AIRPORT_DB (1,6 MB) laduje sie leniwie i przy pierwszym wejsciu
+            // w miasto moze go nie byc w pamieci. Wypelnia go blok ensureAirportDB().then pod
+            // fPanel.innerHTML - i on tez decyduje, czy przycisk w ogole sie pokaze.
+            // ETYKIETA "WAW → XXX", a nie "LOTY Z WAW → XXX": kolumna siatki ma ~141 px, czyli
+            // 18 znakow monospace 0.8rem - dluzszy napis zawija sie do drugiej linii i ten JEDEN
+            // przycisk rozpycha caly wiersz (ta sama pulapka co przy etykietach w AIRPORT_LINKS).
+            // Pelne "Loty z Warszawy do..." siedzi w tooltipie i w naglowku popupu.
+            var _flyBtnHtml = (dc.lat != null && dc.lng != null)
+                ? '<a href="#" id="city-fly-btn" class="windy-btn" style="display:none; background:rgba(56,189,248,0.15); border:1px solid #38bdf8; color:#38bdf8;"></a>'
+                : '';
             var _cityLinksHtml = [
                 ["ATLAS OBSCURA", _aoBtnHtml],
                 ["BOOKING",       btn(_bkgUrl, "🏨 BOOKING", "0,159,235")],
@@ -3144,6 +3274,9 @@
                 ["NUMBEO CRIME",  btn(_cCost && _cCost.crime, "🚔 NUMBEO CRIME", "251,191,36")],
                 ["FOTO",          btn(dc.un, "📸 FOTO", "255,255,255")],
                 ["GOOGLE MAPS",   btn(gm, "📍 GOOGLE MAPS", "250,204,21")],
+                // Sortujemy po "LOTY", a nie po tresci etykiety ("WAW → ..."): w siatce ma stac
+                // przy transporcie (nad METRO i ROME2RIO), a nie na koncu alfabetu przy WIKI*.
+                ["LOTY",          _flyBtnHtml],
                 ["METRO",         btn(_urUrl, "🚇 METRO", "239,68,68")],
                 ["ROME2RIO",      btn(_r2rUrl, "🚄 ROME2RIO", "129,140,248")],
                 // Kolor CELOWO nie jest zolty ani pomaranczowy: w posortowanej siatce ten przycisk
@@ -3172,6 +3305,26 @@
               + _cityLinksHtml
               + '</div>';
             window._cityIntelToken = (window._cityIntelToken || 0) + 1;
+            // WYPELNIENIE PRZYCISKU LOTOW (placeholder wyzej). Ten sam token co baner miasta chroni
+            // przed wyscigiem: gdy w trakcie ladowania bazy user kliknie inne miasto, wynik dla
+            // poprzedniego trafilby do juz przebudowanego panelu.
+            // BRAK LOTNISKA W ZASIEGU (maxKm) albo lotnisko = port wylotu (Warszawa i okolice) ->
+            // przycisk zostaje schowany. Ten drugi przypadek to nie kosmetyka: "WAW → WAW" otwiera
+            // u Skyscannera pusty formularz.
+            var _flyEl = document.getElementById("city-fly-btn");
+            if (_flyEl && window.ensureAirportDB && window._nearestFlightAirport) {
+                var _flyTok = window._cityIntelToken;
+                window.ensureAirportDB().then(function(){
+                    if (window._cityIntelToken !== _flyTok) return;
+                    var _ap = window._nearestFlightAirport(dc.lat, dc.lng);
+                    var _org = (window.SKYSCANNER && window.SKYSCANNER.origin) || "WAW";
+                    if (!_ap || _ap.iata === _org) return;
+                    _flyEl.textContent = "✈️ " + _org + " → " + _ap.iata;
+                    _flyEl.title = "Loty z Warszawy do: " + _ap.name + " (" + _ap.km + " km od miasta) - Skyscanner";
+                    _flyEl.style.display = "flex";
+                    _flyEl.onclick = function(ev){ ev.preventDefault(); window.showFlightSearchModal(_ap, dc.cname); };
+                });
+            }
             var _wb = fPanel.querySelector('a[href^="https://en.wikivoyage.org"]');
             if (_wb) _wb.id = "city-wv-btn";
             var _cvRow = document.getElementById("city-visited-row");
