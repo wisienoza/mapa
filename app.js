@@ -3215,6 +3215,9 @@
             if (o.dep) { kay += "/" + o.dep; if (o.ret) kay += "/" + o.ret; }
             if (o.cabin.kayak) kay += "/" + o.cabin.kayak;
             kay += "?adults=" + o.adults;
+            // Sortowanie po cenie dziala TYLKO PRZY LOTACH. Przy hotelach Kayak kasuje cala query
+            // string w przekierowaniu nazwa->adres kanoniczny - powod opisany w stay-links-data.js.
+            if (cfg.kayakSort) kay += "&sort=" + cfg.kayakSort;
             out.push({ name: "Kayak", url: kay });
 
             // 3. KIWI.COM - forma /deep?, daty YYYY-MM-DD, kody IATA WIELKIMI literami.
@@ -3228,6 +3231,7 @@
             if (o.dep) { kiwi += "&departure=" + o.dep; if (o.ret) kiwi += "&return=" + o.ret; }
             kiwi += "&adults=" + o.adults;
             if (o.cabin.kiwi) kiwi += "&cabinClass=" + o.cabin.kiwi;
+            if (cfg.kiwiSort) kiwi += "&sortBy=" + cfg.kiwiSort;
             out.push({ name: "Kiwi.com", url: kiwi });
 
             // 4. GOOGLE FLIGHTS - zapytanie tekstowe. Budujemy je PO ANGIELSKU mimo hl=pl w adresie:
