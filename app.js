@@ -3041,10 +3041,13 @@
             var slug = encodeURIComponent(String(o.city).replace(/\s+/g, "-"))
                      + (o.country ? ("--" + encodeURIComponent(String(o.country).replace(/\s+/g, "-"))) : "");
             var q = encodeURIComponent(o.city + (o.country ? ", " + o.country : ""));
+            // Kayak: "Miasto,Kraj" bez spacji po przecinku. Przecinek MUSI zostac doslowny -
+            // enkodujemy wiec czlony OSOBNO, bo encodeURIComponent na calosci zrobilby z niego %2C.
+            var qkayak = encodeURIComponent(o.city) + (o.country ? ("," + encodeURIComponent(o.country)) : "");
             return (cfg.services || []).map(function(s){
                 var tpl = (o.cin && o.cout) ? s.url : (s.urlNoDates || s.url);
                 return { name: s.name, url: tpl
-                    .replace(/\{q\}/g, q).replace(/\{qslug\}/g, slug)
+                    .replace(/\{q\}/g, q).replace(/\{qslug\}/g, slug).replace(/\{qkayak\}/g, qkayak)
                     .replace(/\{in\}/g, o.cin || "").replace(/\{out\}/g, o.cout || "")
                     .replace(/\{adults\}/g, o.adults).replace(/\{rooms\}/g, o.rooms) };
             });
@@ -3087,7 +3090,7 @@
               +   '</div>'
               +   '<div style="font-family:\'JetBrains Mono\',monospace; font-size:0.64rem; color:#6b7885; margin-top:10px; line-height:1.5;">'
               +     'Puste pole PRZYJAZD = szukaj bez wybranego terminu.<br>'
-              +     '<span style="color:#a1730f;">⚠</span> Trivago otworzy się z pustym kalendarzem — jako jedyne nie przyjmuje terminu w adresie. Airbnb nie zna pojęcia „pokoje”, bo wynajmuje cały lokal.'
+              +     '<span style="color:#a1730f;">⚠</span> Airbnb i Kayak nie znają pojęcia „pokoje” — Airbnb wynajmuje cały lokal, a Kayak ustawia to dopiero w wynikach.'
               +   '</div>'
               +   '<div id="ss-blocked" style="display:none; font-family:\'JetBrains Mono\',monospace; font-size:0.7rem; color:#facc15; margin-top:10px; line-height:1.7;"></div>'
               +   '<div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:14px;">'
@@ -3618,12 +3621,12 @@
             // jeszcze nie znamy: AIRPORT_DB (1,6 MB) laduje sie leniwie i przy pierwszym wejsciu
             // w miasto moze go nie byc w pamieci. Wypelnia go blok ensureAirportDB().then pod
             // fPanel.innerHTML - i on tez decyduje, czy przycisk w ogole sie pokaze.
-            // ETYKIETA JEST NA GRANICY SZEROKOSCI - ZMIERZONE, NIE OSZACOWANE: kolumna siatki ma
-            // 155 px, a "✈️ LOTY Z WAW → BCN" zajmuje 147,5 px. Zapas to 7,5 px, wiec KAZDE
-            // wydluzenie napisu (pelna nazwa miasta zamiast kodu IATA, dopisek "TANIE" itp.) zawinie
-            // go do drugiej linii i ten JEDEN przycisk rozepnie caly wiersz siatki z 34 na 51 px -
-            // ta sama pulapka co przy etykietach w AIRPORT_LINKS. Kod IATA ma zawsze 3 znaki, wiec
-            // szerokosc jest STALA dla kazdego miasta. Pelna nazwa portu siedzi w tooltipie.
+            // ETYKIETA TO SAMO "✈️ LOTY" (decyzja usera 2026-07-28; wczesniej bylo pelne
+            // "✈️ LOTY Z WAW → BCN"). Dokad leci - mowi tooltip i naglowek popupu.
+            // PRZY DOPISYWANIU CZEGOKOLWIEK DO TEJ ETYKIETY: kolumna siatki ma 155 px, a stara,
+            // dluzsza wersja zajmowala 147,5 px - czyli zapas byl 7,5 px. Przekroczenie zawija
+            // napis do drugiej linii i ten JEDEN przycisk rozpycha caly wiersz z 34 na 51 px
+            // (ta sama pulapka co przy etykietach w AIRPORT_LINKS).
             var _flyBtnHtml = (dc.lat != null && dc.lng != null)
                 ? '<a href="#" id="city-fly-btn" class="windy-btn" style="display:none; background:rgba(56,189,248,0.15); border:1px solid #38bdf8; color:#38bdf8;"></a>'
                 : '';
@@ -3707,10 +3710,14 @@
                     // z METRO_IATA jest to kod OBSZARU (PAR, LON, NYC), a nie kod lotniska - inaczej
                     // przycisk obiecywalby LBG, a popup szukalby po calym Paryzu.
                     var _metro = (window.METRO_IATA && dc.cc && dc.cname) ? (window.METRO_IATA[dc.cc + "|" + dc.cname] || null) : null;
-                    _flyEl.textContent = "✈️ LOTY Z " + _org + " → " + (_metro || _ap.iata);
+                    // ETYKIETA TO SAMO "LOTY" (decyzja usera 2026-07-28). Kod docelowy - a wiec
+                    // i informacja, ze przy metropolii szukamy po CALYM miescie - przeniosl sie
+                    // do tooltipa i do naglowka popupu. Sam kod jest dalej liczony, bo popup
+                    // go potrzebuje; z przycisku znikla tylko jego prezentacja.
+                    _flyEl.textContent = "✈️ LOTY";
                     _flyEl.title = _metro
-                        ? ("Loty do: " + dc.cname + " - kod obszaru " + _metro + ", czyli wszystkie lotniska miasta (najblizsze: " + _ap.name + ", " + _ap.km + " km)")
-                        : ("Loty do: " + _ap.name + " (" + _ap.km + " km od miasta)");
+                        ? ("Loty z " + _org + " do: " + dc.cname + " (" + _metro + ") - kod obszaru, czyli wszystkie lotniska miasta. Najblizsze: " + _ap.name + ", " + _ap.km + " km")
+                        : ("Loty z " + _org + " do: " + _ap.name + " (" + _ap.iata + "), " + _ap.km + " km od miasta");
                     _flyEl.style.display = "flex";
                     _flyEl.onclick = function(ev){ ev.preventDefault(); window.showFlightSearchModal(_ap, dc.cname, dc.cc); };
                 });
