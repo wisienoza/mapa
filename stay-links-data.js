@@ -79,6 +79,17 @@ window.STAY_SEARCH = {
             // segment "2adults". Ta sama konwencja ścieżkowa co przy jego wyszukiwarce LOTÓW.
             name: "Kayak",
             url: "https://www.kayak.pl/hotels/{qkayak}/{in}/{out}/{adults}adults",
+            // >>> ADRES Z ID MIASTA - UZYWANY, GDY MIASTO JEST W KAYAK_CITY_ID (6697 z 7973).
+            // Rozni sie od `url` trzema rzeczami naraz, wszystkie sa zyskiem:
+            //  1. SORTOWANIE PO CENIE DZIALA. Adres po nazwie przechodzi przez przekierowanie,
+            //     ktore kasuje cala query string - z ID przekierowania NIE MA, wiec ?sort=price_a
+            //     dociera na miejsce (potwierdzone na adresie skopiowanym przez usera z ich strony).
+            //  2. Znika ryzyko wyladowania na /stays przy nazwie, ktorej Kayak nie rozpozna.
+            //  3. Znika KOTWICZENIE PRZY LOTNISKU: "Chicago-...-c12514" otwiera centrum, podczas gdy
+            //     rozwiazanie po nazwie dawalo "-c12514-lORD", czyli hotele przy lotnisku ORD.
+            // Czlon z nazwa jest KOSMETYCZNY - decyduje ID. Dlatego nie trzeba go dopasowywac
+            // do wlasnego zapisu Kayaka (sprawdzone: "Barcelona-Spain-c22567" dziala tak samo).
+            urlWithId: "https://www.kayak.pl/hotels/{qkayakSlug}-c{kayakId}/{in}/{out}/{adults}adults;map?sort=price_a",
             // >>> MIEJSCOWOŚĆ ODDZIELAMY OD KRAJU SPACJĄ ("Helsinki Finland"), NIE PRZECINKIEM.
             // To nie kosmetyka - przecinek psuł wyszukiwarkę i to był błąd zgłoszony 2026-07-28
             // ("klikam Helsinki, datę dobiera dobrą, ale nie miasto"). Kayak ma DWA przekierowania

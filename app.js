@@ -3059,6 +3059,12 @@
             // i konczy na /stays - patrz dowody w stay-links-data.js. Kraju nie wolno wyrzucic,
             // bo sama nazwa prowadzi Valencie i Cordobe do Hiszpanii.
             var qkayak = encodeURIComponent(city + (o.country ? (" " + o.country) : ""));
+            // ID MIASTA KAYAKA (kayak-city-id-data.js, 6697 z 7973 miast). Jest - budujemy adres
+            // kanoniczny, ktory NIE przekierowuje, wiec przyjmuje sortowanie po cenie. Nie ma -
+            // leci stary adres po nazwie i wszystko dziala jak dotad. Zaden przypadek nie traci.
+            // Slug: ta sama nazwa co w qkayak, tylko spacje na MYSLNIKI ("Malmo-Sweden-c34151").
+            var kayakId = (window.KAYAK_CITY_ID || {})[o.cc + "|" + o.city];
+            var qkayakSlug = encodeURIComponent(String(city + (o.country ? (" " + o.country) : "")).replace(/\s+/g, "-"));
             // SERWIS Z needsDates ZNIKA Z LISTY przy pustych datach, a nie dostaje szablonu z datami
             // na sucho. Dziś dotyczy to Kayaka: jego /hotels ma daty i gosci w SCIEZCE, a kazda
             // skrocona wersja leci 302 na /stays (pusty formularz) - patrz komentarz w
@@ -3069,9 +3075,12 @@
             return (cfg.services || []).filter(function(s){
                 return hasDates || (!s.needsDates && s.urlNoDates);
             }).map(function(s){
-                var tpl = hasDates ? s.url : s.urlNoDates;
+                // urlWithId ma pierwszenstwo TYLKO gdy znamy ID i mamy komplet dat - wariant
+                // bez terminu i tak nie istnieje po stronie Kayaka (patrz needsDates).
+                var tpl = hasDates ? ((s.urlWithId && kayakId) ? s.urlWithId : s.url) : s.urlNoDates;
                 return { name: s.name, url: tpl
                     .replace(/\{q\}/g, q).replace(/\{qslug\}/g, slug).replace(/\{qkayak\}/g, qkayak)
+                    .replace(/\{qkayakSlug\}/g, qkayakSlug).replace(/\{kayakId\}/g, kayakId || "")
                     .replace(/\{in\}/g, o.cin || "").replace(/\{out\}/g, o.cout || "")
                     .replace(/\{adults\}/g, o.adults).replace(/\{rooms\}/g, o.rooms) };
             });
