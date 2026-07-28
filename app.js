@@ -2099,6 +2099,17 @@
                     window.showCityIntel(window.resolveCityIntel(apCityRow[0], apCityRow[1], apCityRow[2]));
                 };
             }
+            // AUTO: klik przechwycony na popup, href zostaje dla srodkowego klikniecia (jak NOCLEGI).
+            // W naglowku popupu pokazujemy KOD I NAZWE lotniska - user musi wiedziec, skad odbiera auto,
+            // bo to inne miejsce niz centrum miasta z drugiego przycisku.
+            var _carApEl = document.getElementById("airport-car-btn");
+            if (_carApEl) _carApEl.onclick = function(ev){
+                ev.preventDefault();
+                window.showCarSearchModal({
+                    mode: "airport", iata: iata, cc: (row && row[4]) ? String(row[4]) : "", city: "",
+                    label: iata + (row && row[3] ? (" · " + row[3]) : "")
+                });
+            };
         };
         window._normCity = function(s){ return (s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]/g,""); };
         // --- ODWIEDZONE MIASTA: ID = "KOD|znormalizowananazwa", cache zbioru + toggle z natychmiastowym zapisem ---
