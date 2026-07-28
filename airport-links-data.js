@@ -124,13 +124,15 @@ window.AIRPORT_TYPE_OVERRIDE = {
 // ODRZUCONE ŚWIADOMIE: Momondo - należy do tego samego właściciela co Kayak i w praktyce pokazuje
 // te same wyniki, czyli piąte okno bez nowej informacji.
 //
-// >>> BAGAŻ: ŻADEN Z TRZECH SERWISÓW NIE PRZYJMUJE GO W ADRESIE. Sprawdzone 2026-07-28 w
-// oficjalnej dokumentacji parametrów Skyscannera (developers.skyscanner.net/docs/referrals/
-// flights-parameters - pełna lista parametrów, bagażu tam NIE MA) oraz w opisach adresów Kayaka
-// i Google Flights. Wszystkie trzy mają filtr bagażu, ale WYŁĄCZNIE jako klikany filtr w wynikach.
-// Pole BAGAŻ w popupie idzie więc TYLKO do Google Flights, i to jako słowa w zapytaniu tekstowym
-// (jedyny z trzech, który cokolwiek takiego parsuje) - popup mówi to użytkownikowi wprost.
-// NIE DOPISUJ tu wymyślonych parametrów typu "&checkedbags=1": zostaną cicho zignorowane,
+// >>> BAGAŻ: NIE MA GO TU I NIE DODAWAJ. Pole BAGAŻ istniało w popupie przez jedną wersję
+// (2026-07-28) i zostało USUNIĘTE tego samego dnia decyzją usera, żeby nie wprowadzało w błąd.
+// Powód: ŻADEN z czterech serwisów nie przyjmuje bagażu w adresie. Sprawdzone w oficjalnej
+// dokumentacji parametrów Skyscannera (developers.skyscanner.net/docs/referrals/flights-parameters -
+// pełna lista, bagażu tam NIE MA) oraz w opisach adresów Kayaka, Kiwi i Google Flights. Wszystkie
+// mają filtr bagażu, ale WYŁĄCZNIE jako klikany filtr w wynikach. Jedyne, co dało się zrobić, to
+// wpisać bagaż słowami w zapytanie Google Flights - czyli pole działające w 1 z 4 okien, co jest
+// gorsze niż jego brak: sugeruje filtr, którego w trzech pozostałych kartach nie ma.
+// NIE PRÓBUJ wymyślonych parametrów typu "&checkedbags=1" - zostaną cicho zignorowane,
 // a użytkownik będzie przekonany, że filtruje.
 //
 // DOKĄD, czyli "najbliższy port": liczy window._nearestFlightAirport(lat, lon) w app.js,
@@ -171,13 +173,6 @@ window.FLIGHT_SEARCH = {
         { key: "business",       label: "Biznes",         kayak: "business", kiwi: "BUSINESS",        google: "business class" },
         { key: "first",          label: "Pierwsza",       kayak: "first",    kiwi: "FIRST",           google: "first class" }
     ],
-    // BAGAŻ - patrz ostrzeżenie wyżej. `google` to jedyne miejsce, gdzie ta wartość ma jakikolwiek
-    // wpływ; pusty string = nie dopisujemy nic do zapytania.
-    bags: [
-        { key: "any",     label: "Bez znaczenia",      google: "" },
-        { key: "cabin",   label: "Tylko podręczny",    google: "carry-on only" },
-        { key: "checked", label: "Z rejestrowanym",    google: "with checked bag" }
-    ]
 };
 
 // ====================================================================
@@ -201,11 +196,58 @@ window.FLIGHT_SEARCH = {
 // nie mają oficjalnego kodu obszaru w ogóle. Przy tych miastach zostaje zwykły kod lotniska -
 // i w większości z nich i tak jest jeden dominujący port, więc strata jest znikoma.
 //
-// >>> NIEZWERYFIKOWANE: czy SKYSCANNER przyjmuje kod obszaru w swoim adresie. Jego oficjalna
-// dokumentacja parametrów mówi tylko o "IATA code" i kodów metropolitalnych NIE WYMIENIA.
-// Kayak obsługuje je od zawsze, a Google Flights dostaje i tak nazwę miasta tekstem, więc dla
-// dwóch z trzech serwisów to jest pewne. Gdyby się okazało, że Skyscanner ich nie łyka -
-// przestaw useMetroForSkyscanner na false, a on jeden wróci do kodu konkretnego lotniska.
+// SKYSCANNER PRZYJMUJE KODY OBSZARU - potwierdzone na żywo przez usera 2026-07-28 (adres
+// /transport/loty/waw/par/ otwiera Paryż, nie błąd). Wcześniej było to niepewne, bo oficjalna
+// dokumentacja parametrów Skyscannera mówi tylko o "IATA code" i kodów metropolitalnych NIE
+// WYMIENIA - jak widać, wymienia niepełną listę. Kayak i Kiwi obsługują je również, a Google
+// Flights dostaje i tak nazwę miasta tekstem. Czyli działa we wszystkich czterech serwisach.
+// Flaga useMetroForSkyscanner zostaje jako wyłącznik awaryjny na wypadek, gdyby Skyscanner
+// kiedyś to zmienił: false cofa jego jednego do kodu konkretnego lotniska, reszta bez zmian.
+// ====================================================================
+// POLSKIE NAZWY MIAST - wyłącznie do WYSZUKIWANIA w polu "Z:" popupu lotów
+// ====================================================================
+// PO CO: AIRPORT_DB trzyma nazwy miast po angielsku ("Warsaw", "London", "Rome"), a użytkownik
+// tej strony jest Polakiem i wpisuje "Warszawa", "Londyn", "Rzym". Bez tego słownika pole
+// nie znajdowało NICZEGO na polską nazwę - sprawdzone na żywo, "warszawa" i "londyn" dawały
+// zero wyników, mimo że oba lotniska są w bazie.
+// TO NIE JEST tłumaczenie do wyświetlania: etykiety podpowiedzi zostają angielskie, tak jak
+// cała reszta nazw w aplikacji. Ten słownik dokłada się WYŁĄCZNIE do pola przeszukiwanego
+// (`hay` w window._buildOriginIndex), więc jest niewidoczny aż do momentu wpisania zapytania.
+// KLUCZ = nazwa miasta DOKŁADNIE tak, jak stoi w AIRPORT_DB[kod][2].
+// Lista obejmuje kierunki realnie latane z Polski + stolice, których polska nazwa różni się od
+// angielskiej. Miasta o identycznej pisowni (Barcelona, Dublin, Hamburg) NIE MAJĄ tu wpisu -
+// byłyby zbędne, bo szukanie po angielskiej nazwie i tak je znajduje.
+window.PL_CITY_ALIAS = {
+    "Warsaw": "Warszawa", "Cracow": "Kraków", "Krakow": "Kraków", "Wroclaw": "Wrocław",
+    "Gdansk": "Gdańsk", "Poznan": "Poznań", "Katowice": "Katowice", "Rzeszow": "Rzeszów",
+    "Szczecin": "Szczecin", "Lodz": "Łódź", "Bydgoszcz": "Bydgoszcz", "Lublin": "Lublin",
+    "London": "Londyn", "Rome": "Rzym", "Milan": "Mediolan", "Florence": "Florencja",
+    "Venice": "Wenecja", "Naples": "Neapol", "Turin": "Turyn", "Genoa": "Genua",
+    "Paris": "Paryż", "Nice": "Nicea", "Marseille": "Marsylia", "Toulouse": "Tuluza",
+    "Vienna": "Wiedeń", "Munich": "Monachium", "Cologne": "Kolonia", "Dresden": "Drezno",
+    "Leipzig": "Lipsk", "Nuremberg": "Norymberga", "Hanover": "Hanower", "Bremen": "Brema",
+    "Prague": "Praga", "Brno": "Brno", "Bratislava": "Bratysława", "Budapest": "Budapeszt",
+    "Bucharest": "Bukareszt", "Belgrade": "Belgrad", "Zagreb": "Zagrzeb", "Ljubljana": "Lublana",
+    "Sofia": "Sofia", "Athens": "Ateny", "Thessaloniki": "Saloniki", "Istanbul": "Stambuł",
+    "Copenhagen": "Kopenhaga", "Stockholm": "Sztokholm", "Gothenburg": "Göteborg",
+    "Oslo": "Oslo", "Helsinki": "Helsinki", "Reykjavik": "Rejkiawik",
+    "Brussels": "Bruksela", "Antwerp": "Antwerpia", "The Hague": "Haga", "Amsterdam": "Amsterdam",
+    "Lisbon": "Lizbona", "Madrid": "Madryt", "Seville": "Sewilla", "Valencia": "Walencja",
+    "Zurich": "Zurych", "Geneva": "Genewa", "Basel": "Bazylea", "Bern": "Berno",
+    "Luxembourg": "Luksemburg", "Edinburgh": "Edynburg", "Moscow": "Moskwa",
+    "Saint Petersburg": "Petersburg", "Kyiv": "Kijów", "Kiev": "Kijów", "Lviv": "Lwów",
+    "Odesa": "Odessa", "Minsk": "Mińsk", "Vilnius": "Wilno", "Kaunas": "Kowno",
+    "Riga": "Ryga", "Tallinn": "Tallin", "Chisinau": "Kiszyniów", "Tbilisi": "Tbilisi",
+    "Yerevan": "Erywań", "Baku": "Baku", "Nicosia": "Nikozja", "Valletta": "Valletta",
+    "Cairo": "Kair", "Marrakesh": "Marrakesz", "Casablanca": "Casablanca", "Tunis": "Tunis",
+    "Tel Aviv": "Tel Awiw", "Jerusalem": "Jerozolima", "Dubai": "Dubaj", "Doha": "Ad-Dauha",
+    "Beijing": "Pekin", "Shanghai": "Szanghaj", "Tokyo": "Tokio", "Kyoto": "Kioto",
+    "Seoul": "Seul", "Bangkok": "Bangkok", "Singapore": "Singapur", "Mumbai": "Bombaj",
+    "New Delhi": "Nowe Delhi", "New York City": "Nowy Jork", "New York": "Nowy Jork",
+    "Mexico City": "Meksyk", "Havana": "Hawana", "Rio de Janeiro": "Rio de Janeiro",
+    "Buenos Aires": "Buenos Aires", "Cape Town": "Kapsztad"
+};
+
 window.FLIGHT_SEARCH.useMetroForSkyscanner = true;
 window.METRO_IATA = {
     "GB|London":         "LON",   // LHR, LGW, STN, LTN, LCY, SEN

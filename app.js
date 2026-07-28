@@ -3087,7 +3087,9 @@
             q.push(o.adults + (o.adults > 1 ? " adults" : " adult"));
             if (o.cabin.google) q.push(o.cabin.google);
             if (o.direct) q.push("nonstop");
-            if (o.bag && o.bag.google) q.push(o.bag.google);
+            // BAGAZU TU NIE MA I NIE DODAWAJ - patrz komentarz przy FLIGHT_SEARCH w danych.
+            // Pole istnialo przez jedna wersje i wylecialo, bo dzialalo w 1 z 4 okien, czyli
+            // sugerowalo filtr, ktorego w trzech pozostalych kartach nie bylo.
             out.push({ name: "Google Flights", url: (cfg.googleBase || "https://www.google.com/travel/flights?hl=pl&curr=PLN&q=") + encodeURIComponent(q.join(", ")) });
 
             return out;
@@ -3101,14 +3103,9 @@
             var el = document.getElementById("flight-search-overlay");
             if (el) el.style.display = "none";
         };
-        // LISTA LOTNISK STARTOWYCH. <datalist>, a NIE <select>: pozycji jest 4165 i rozwijana lista
-        // bez filtrowania byloby nie do przescrollowania. Datalist daje to samo pole wyboru, ale
-        // zawezajace sie w trakcie pisania - dziala i na kod ("WAW"), i na nazwe ("Chopin", "Berlin").
-        // BUDOWANA RAZ i trzymana w DOM: 4165 <option> to ~200 kB, wiec przebudowa przy kazdym
-        // otwarciu popupu bylaby widocznym zacieciem. Kolejnosc: po KODZIE IATA, jak prosil user.
         // KODY OBSZARU JAKO WYLOT: odwrocenie METRO_IATA na {KOD: "Nazwa miasta, CC"}. Potrzebne
-        // w DWOCH miejscach - do listy podpowiedzi i do walidacji wpisanego kodu. Bez tego "PAR"
-        // czy "LON" w polu START odbijalo sie od AIRPORT_DB (to kody OBSZAROW, nie lotnisk),
+        // w DWOCH miejscach - do podpowiedzi i do walidacji wpisanego kodu. Bez tego "PAR"
+        // czy "LON" w polu Z: odbijalo sie od AIRPORT_DB (to kody OBSZAROW, nie lotnisk),
         // choc jako CEL dzialaja normalnie. Wylot z Londynu jest zupelnie zwyczajnym scenariuszem.
         window._metroOrigins = function() {
             var out = {};
@@ -3116,33 +3113,75 @@
             for (var k in m) { var p = k.split("|"); out[m[k]] = p[1] + ", " + p[0]; }
             return out;
         };
-        window._ensureOriginList = function() {
-            if (document.getElementById("fs-origin-list")) return;
+        // --- INDEKS WYSZUKIWANIA LOTNISK WYLOTU ---
+        // DWA PODEJSCIA JUZ ODRZUCONE, nie wracaj do nich:
+        //   <datalist> - renderuje sie jak ZWYKLE POLE TEKSTOWE, bez strzalki i bez sygnalu, ze
+        //     cokolwiek da sie rozwinac, a Chrome filtruje jego podpowiedzi po AKTUALNEJ wartosci
+        //     pola: przy wpisanym "WAW" pokazywal jedna pozycje. Wygladalo to jak brak listy.
+        //   <select> z 4065 pozycjami - rozwijana lista, owszem, ale nie do przescrollowania
+        //     i bez szukania po nazwie miasta.
+        // ZOSTAJE WLASNY COMBOBOX: user pisze "Krakow" albo "Berlin", a dostaje pozycje z KODEM.
+        // Indeks budujemy RAZ (4065 pozycji) i cachujemy w window._originIndex.
+        // `hay` to jeden lowercase string "kod miasto nazwa" BEZ DIAKRYTYKOW - dzieki temu jedno
+        // porownanie zalatwia szukanie po kodzie, miescie i nazwie portu naraz, a "Kraków"
+        // wpisane z polskimi znakami trafia w "Krakow" z bazy.
+        window._originIndex = null;
+        window._buildOriginIndex = function() {
+            if (window._originIndex) return window._originIndex;
             var db = window.AIRPORT_DB;
-            if (!db) return;
+            if (!db) return null;
+            var strip = (typeof stripDiacritics === 'function') ? stripDiacritics : function(s){ return s; };
             var cfg = window.FLIGHT_SEARCH || {};
             var ok = {};
             (cfg.destClasses || ["L", "M", "S"]).forEach(function(c){ ok[c] = 1; });
             var ovr = (typeof AIRPORT_TYPE_OVERRIDE !== 'undefined') ? AIRPORT_TYPE_OVERRIDE : {};
             var mo = window._metroOrigins();
+            var list = [];
+            // Obszary metropolitalne IDA PIERWSZE i maja flage metro - przy remisie trafnosci
+            // wygrywaja, bo "wszystkie lotniska Londynu" jest niemal zawsze lepsza odpowiedzia
+            // na wpisane "London" niz konkretny port.
+            Object.keys(mo).sort().forEach(function(c){
+                list.push({ code: c, label: c + " — " + mo[c] + " (wszystkie lotniska)", metro: true,
+                            hay: strip((c + " " + mo[c]).toLowerCase()) });
+            });
             var codes = [];
             for (var code in db) { if (ok[db[code][6] || ovr[code] || ""]) codes.push(code); }
-            for (var mc in mo) codes.push(mc);
             codes.sort();
-            var dl = document.createElement("datalist");
-            dl.id = "fs-origin-list";
-            dl.innerHTML = codes.map(function(c){
-                if (mo[c]) return '<option value="' + c + '">' + c + ' — ' + mo[c] + ' (wszystkie lotniska)</option>';
+            codes.forEach(function(c){
                 var v = db[c];
-                return '<option value="' + c + '">' + c + ' — ' + v[3] + ' (' + v[2] + ', ' + v[4] + ')</option>';
-            }).join('');
-            document.body.appendChild(dl);
+                list.push({ code: c, label: c + " — " + v[2] + " · " + v[3] + " (" + v[4] + ")", metro: false,
+                            hay: strip((c + " " + v[2] + " " + v[3]).toLowerCase()) });
+            });
+            window._originIndex = list;
+            return list;
+        };
+        // Szukanie: RANGOWANE, nie zwykly filtr. Kolejnosc trafnosci ma znaczenie, bo pokazujemy
+        // tylko 10 pozycji - bez rankingu wpisanie "WAW" tonelo wsrod lotnisk ze slowem "Warsaw"
+        // w nazwie. 0 = dokladny kod, 1 = kod na poczatku, 2 = poczatek slowa (miasto/nazwa),
+        // 3 = gdziekolwiek w srodku. Obszary dostaja bonus -0.5, wiec przy tej samej randze ida wyzej.
+        window._searchOrigins = function(q, limit) {
+            var list = window._buildOriginIndex();
+            if (!list) return [];
+            var strip = (typeof stripDiacritics === 'function') ? stripDiacritics : function(s){ return s; };
+            q = strip(String(q || "").trim().toLowerCase());
+            if (!q) return list.filter(function(x){ return x.metro; }).slice(0, limit || 10);
+            var out = [];
+            for (var i = 0; i < list.length; i++) {
+                var x = list[i], r = -1;
+                if (x.code.toLowerCase() === q) r = 0;
+                else if (x.code.toLowerCase().indexOf(q) === 0) r = 1;
+                else if (x.hay.indexOf(" " + q) >= 0 || x.hay.indexOf(q) === 0) r = 2;
+                else if (x.hay.indexOf(q) >= 0) r = 3;
+                if (r >= 0) out.push({ x: x, r: r - (x.metro ? 0.5 : 0) });
+            }
+            out.sort(function(a, b){ return a.r - b.r; });
+            return out.slice(0, limit || 10).map(function(o){ return o.x; });
         };
         window.showFlightSearchModal = function(ap, cityName, cityCC) {
             if (!ap) return;
             var cfg = window.FLIGHT_SEARCH || {};
             var org = cfg.origin || "WAW";
-            window._ensureOriginList();
+            window._buildOriginIndex();
             // KOD DOCELOWY: kod OBSZARU METROPOLITALNEGO, gdy miasto stoi w METRO_IATA (klucz
             // "CC|Nazwa", dokladnie ta sama konwencja co URBANRAIL_LINKS i ATLAS_CITY_LINKS),
             // a w kazdym innym przypadku kod konkretnego lotniska. Dzieki temu Paryz szuka po
@@ -3192,8 +3231,10 @@
               +   '<div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:10px;">'
               // START zajmuje CALA szerokosc (grid-column:1/-1): podpowiedzi datalistu sa szersze
               // niz polowa okna i w waskiej kolumnie nazwy lotnisk bylyby ucinane w polowie.
-              +     '<div style="grid-column:1 / -1;"><div style="' + lbl + '">START (kod IATA — wpisz kod, nazwę lub miasto)</div>'
-              +       '<input type="text" id="fs-origin" list="fs-origin-list" value="' + org + '" autocomplete="off" spellcheck="false" style="' + inp + ' text-transform:uppercase;"></div>'
+              +     '<div style="grid-column:1 / -1; position:relative;"><div style="' + lbl + '">Z: (wpisz miasto lub kod — np. „Kraków”, „Berlin”, „WAW”)</div>'
+              +       '<input type="text" id="fs-origin" value="' + org + '" autocomplete="off" spellcheck="false" style="' + inp + '">'
+              +       '<div id="fs-origin-drop" style="display:none; position:absolute; left:0; right:0; top:100%; z-index:5; max-height:200px; overflow-y:auto; background:#0d0f13; border:1px solid rgba(56,189,248,0.5); border-radius:4px; margin-top:2px; box-shadow:0 6px 20px rgba(0,0,0,0.7);"></div>'
+              +       '<div id="fs-origin-echo" style="font-family:\'JetBrains Mono\',monospace; font-size:0.66rem; color:#8f9ba8; margin-top:3px;"></div></div>'
               +     '<div><div style="' + lbl + '">WYLOT</div><input type="date" id="fs-dep" value="' + depDef + '" style="' + inp + '"></div>'
               +     '<div><div style="' + lbl + '">POWRÓT</div><input type="date" id="fs-ret" value="' + retDef + '" style="' + inp + '"></div>'
               +     '<div><div style="' + lbl + '">PASAŻEROWIE</div><select id="fs-adults" style="' + inp + '">'
@@ -3202,17 +3243,13 @@
               +     '<div><div style="' + lbl + '">KLASA</div><select id="fs-cabin" style="' + inp + '">'
               +       (cfg.cabins || [{ key: "economy", label: "Ekonomiczna" }]).map(function(c, i){ return '<option value="' + c.key + '"' + (i === 0 ? ' selected' : '') + '>' + c.label + '</option>'; }).join('')
               +     '</select></div>'
-              +     '<div style="grid-column:1 / -1;"><div style="' + lbl + '">BAGAŻ</div><select id="fs-bag" style="' + inp + '">'
-              +       (cfg.bags || [{ key: "any", label: "Bez znaczenia" }]).map(function(b, i){ return '<option value="' + b.key + '"' + (i === 0 ? ' selected' : '') + '>' + b.label + '</option>'; }).join('')
-              +     '</select></div>'
               +   '</div>'
               +   '<label style="display:flex; align-items:center; gap:8px; margin-top:12px; cursor:pointer;">'
               +     '<input type="checkbox" id="fs-direct" style="accent-color:#38bdf8;">'
               +     '<span style="' + lbl + ' color:#c6cfd9;">TYLKO BEZPOŚREDNIE</span>'
               +   '</label>'
               +   '<div style="font-family:\'JetBrains Mono\',monospace; font-size:0.64rem; color:#6b7885; margin-top:10px; line-height:1.5;">'
-              +     'Puste pole WYLOT = szukaj w dowolnym terminie.<br>'
-              +     '<span style="color:#a1730f;">⚠</span> BAGAŻ trafia tylko do Google Flights — Skyscanner i Kayak nie przyjmują go w adresie, tam trzeba kliknąć filtr bagażu w wynikach.'
+              +     'Puste pole WYLOT = szukaj w dowolnym terminie.'
               +   '</div>'
               +   '<div id="fs-blocked" style="display:none; font-family:\'JetBrains Mono\',monospace; font-size:0.7rem; color:#facc15; margin-top:10px; line-height:1.7;"></div>'
               +   '<div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:14px;">'
@@ -3223,6 +3260,55 @@
             var depEl = document.getElementById("fs-dep"), retEl = document.getElementById("fs-ret"), rtnEl = document.getElementById("fs-rtn");
             function syncRtn(){ retEl.disabled = !rtnEl.checked; retEl.style.opacity = rtnEl.checked ? "1" : "0.4"; }
             rtnEl.onchange = syncRtn; syncRtn();
+            // --- COMBOBOX "Z:" ---
+            // Pole tekstowe trzyma to, CO USER WPISAL, a wybrany kod IATA siedzi osobno w oCodeSel.
+            // Rozdzielenie jest konieczne: user pisze "Krakow", a do adresu ma pojsc "KRK".
+            // Gdy pisze dalej bez wyboru z listy, oCodeSel jest kasowany i przy SZUKAJ decyduje
+            // najlepsze trafienie z rankingu - inaczej wpisanie samego "KRK" bez klikniecia
+            // w podpowiedz nie dzialaloby wcale.
+            var oEl = document.getElementById("fs-origin");
+            var oDrop = document.getElementById("fs-origin-drop");
+            var oEcho = document.getElementById("fs-origin-echo");
+            var oCodeSel = org;
+            function oResolve(){
+                if (oCodeSel) return oCodeSel;
+                var hits = window._searchOrigins(oEl.value, 1);
+                return hits.length ? hits[0].code : (oEl.value || "").trim().toUpperCase();
+            }
+            function oEchoUpd(){
+                var c = oResolve();
+                var row = (window.AIRPORT_DB && window.AIRPORT_DB[c]) || null;
+                var mo = window._metroOrigins()[c];
+                oEcho.innerHTML = (row || mo)
+                    ? ('wylot: <span style="color:#38bdf8; font-weight:700;">' + c + '</span> — ' + (mo ? mo + " (wszystkie lotniska)" : row[3]))
+                    : '<span style="color:#f87171;">nie rozpoznaję: ' + (oEl.value || "—") + '</span>';
+            }
+            function oClose(){ oDrop.style.display = "none"; }
+            function oOpen(){
+                var hits = window._searchOrigins(oEl.value === oCodeSel ? "" : oEl.value, 10);
+                if (!hits.length) { oClose(); return; }
+                oDrop.innerHTML = hits.map(function(h){
+                    return '<div class="fs-oopt" data-code="' + h.code + '" style="padding:6px 8px; cursor:pointer; font-family:\'JetBrains Mono\',monospace; font-size:0.7rem; color:'
+                         + (h.metro ? '#facc15' : '#c6cfd9') + '; border-bottom:1px solid rgba(255,255,255,0.06);">' + h.label + '</div>';
+                }).join('');
+                [].forEach.call(oDrop.querySelectorAll(".fs-oopt"), function(d){
+                    d.onmouseenter = function(){ d.style.background = "rgba(56,189,248,0.18)"; };
+                    d.onmouseleave = function(){ d.style.background = "transparent"; };
+                    // mousedown, NIE click: blur pola zamyka liste wczesniej, niz zdazylby paść click.
+                    d.onmousedown = function(ev){
+                        ev.preventDefault();
+                        oCodeSel = d.getAttribute("data-code");
+                        oEl.value = oCodeSel;
+                        oClose(); oEchoUpd();
+                    };
+                });
+                oDrop.style.display = "block";
+            }
+            oEl.oninput = function(){ oCodeSel = null; oOpen(); oEchoUpd(); };
+            oEl.onfocus = function(){ oEl.select(); oOpen(); };
+            oEl.onblur = function(){ setTimeout(oClose, 120); oEchoUpd(); };
+            oEl.onkeydown = function(ev){ if (ev.key === "Enter") { ev.preventDefault(); var h = window._searchOrigins(oEl.value, 1); if (h.length) { oCodeSel = h[0].code; oEl.value = oCodeSel; } oClose(); oEchoUpd(); } };
+            oEchoUpd();
             document.getElementById("fs-close").onclick = window.hideFlightSearch;
             document.getElementById("fs-cancel").onclick = window.hideFlightSearch;
             document.getElementById("fs-go").onclick = function(){
@@ -3231,14 +3317,14 @@
                 // START: walidujemy wpisany kod przy AIRPORT_DB, bo pole jest zwyklym <input> i user
                 // moze w nie wpisac cokolwiek. Zly kod = wszystkie trzy adresy prowadza donikad,
                 // wiec lepiej zatrzymac sie tutaj niz otworzyc trzy puste karty.
-                var oCode = (document.getElementById("fs-origin").value || "").trim().toUpperCase();
+                var oCode = (oResolve() || "").trim().toUpperCase();
                 if (!oCode) oCode = org;
                 // KOLEJNOSC SPRAWDZEN: najpierw "to samo miejsce", potem "nie znam kodu". Odwrotna
                 // dawala mylacy komunikat - wpisanie celu (np. PAR) jako startu skarzylo sie na
                 // nieznany kod, choc problem byl inny.
                 if (oCode === destCode || oCode === ap.iata) { alert("Lotnisko startowe i docelowe są takie same (" + oCode + ")."); return; }
                 if (!(window.AIRPORT_DB && window.AIRPORT_DB[oCode]) && !window._metroOrigins()[oCode]) {
-                    alert("Nie znam lotniska o kodzie \"" + oCode + "\".\n\nWpisz trzyliterowy kod IATA (np. WAW, KRK, BER) albo zacznij pisać nazwę i wybierz z listy podpowiedzi.");
+                    alert("Nie rozpoznaję lotniska \"" + oCode + "\".\n\nZacznij pisać nazwę miasta (np. Kraków, Berlin) i wybierz pozycję z podpowiedzi — kod IATA podstawi się sam.");
                     return;
                 }
                 var _find = function(arr, k){ for (var i = 0; i < (arr || []).length; i++) if (arr[i].key === k) return arr[i]; return (arr || [])[0] || { key: k }; };
@@ -3250,7 +3336,6 @@
                     dep: dep, ret: ret, rtn: rtnEl.checked,
                     adults: parseInt(document.getElementById("fs-adults").value, 10) || 1,
                     cabin:  _find(cfg.cabins, document.getElementById("fs-cabin").value),
-                    bag:    _find(cfg.bags,   document.getElementById("fs-bag").value),
                     direct: document.getElementById("fs-direct").checked
                 });
                 // CZTERY KARTY NARAZ vs. BLOKADA POPUPOW. Przegladarki przepuszczaja zwykle pierwsze
@@ -3259,19 +3344,31 @@
                 // pokazujemy zwykle linki do recznego klikniecia zamiast cicho zgubic dwa serwisy.
                 // BEZ trzeciego argumentu "noopener" - z nim window.open ZAWSZE zwraca null i nie
                 // dalo by sie odroznic blokady od sukcesu. Referencje zrywamy recznie zaraz potem.
-                var blocked = [];
-                urls.forEach(function(u){
+                var opened = urls.map(function(u){
                     var w = null;
                     try { w = window.open(u.url, "_blank"); } catch (e) { w = null; }
                     if (w) { try { w.opener = null; } catch (e) {} }
-                    else blocked.push(u);
+                    return { u: u, w: w };
                 });
-                if (!blocked.length) { window.hideFlightSearch(); return; }
-                var bEl = document.getElementById("fs-blocked");
-                bEl.innerHTML = 'Przeglądarka zablokowała ' + blocked.length + ' z ' + urls.length
-                    + ' okien. Kliknij ręcznie:<br>'
-                    + blocked.map(function(u){ return '<a href="' + u.url + '" target="_blank" rel="noopener" style="color:#38bdf8;">→ ' + u.name + '</a>'; }).join('<br>');
-                bEl.style.display = "block";
+                // SPRAWDZAMY PO CHWILI, NIE OD RAZU. Pierwsza wersja patrzyla wylacznie na to, czy
+                // window.open zwrocilo null - i przepuszczala przypadek zglaszany przez usera
+                // ("nadal otwiera 3 strony"): przegladarka oddaje obiekt okna dla WSZYSTKICH czterech,
+                // a nadmiarowe zamyka chwile pozniej. null wtedy nie wystapi, komunikat sie nie
+                // pokazywal, a karty po prostu nie bylo. Po ~700 ms takie okno ma juz closed === true.
+                // Cross-origin nie przeszkadza: .closed jest czytelne nawet dla obcej domeny.
+                setTimeout(function(){
+                    var blocked = opened.filter(function(o){
+                        try { return !o.w || o.w.closed; } catch (e) { return false; }
+                    }).map(function(o){ return o.u; });
+                    if (!blocked.length) { window.hideFlightSearch(); return; }
+                    var bEl = document.getElementById("fs-blocked");
+                    if (!bEl) return;
+                    bEl.innerHTML = 'Przeglądarka wpuściła tylko ' + (urls.length - blocked.length) + ' z ' + urls.length
+                        + ' kart. Otwórz brakujące ręcznie:<br>'
+                        + blocked.map(function(u){ return '<a href="' + u.url + '" target="_blank" rel="noopener" style="color:#38bdf8;">→ ' + u.name + '</a>'; }).join('<br>')
+                        + '<br><span style="color:#8f9ba8; font-size:0.64rem;">Na stałe: kłódka/ikona w pasku adresu → zezwól tej stronie na wyskakujące okienka.</span>';
+                    bEl.style.display = "block";
+                }, 700);
             };
             el.style.display = "flex";
         };
