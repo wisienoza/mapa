@@ -3025,10 +3025,10 @@
             return best;
         };
         // --- BUDOWA ADRESOW TRZECH WYSZUKIWAREK LOTOW ---
-        // Zwraca [{name, url}] dla Skyscannera, Kayaka i Google Flights. Szablony i slowniki siedza
-        // w FLIGHT_SEARCH (airport-links-data.js) - tu jest wylacznie sklejanie.
+        // Zwraca [{name, url}] dla Skyscannera, Kayaka, Kiwi.com i Google Flights. Szablony
+        // i slowniki siedza w FLIGHT_SEARCH (airport-links-data.js) - tu jest wylacznie sklejanie.
         // TRZY ROZNE FORMATY DAT, nie pomyl ich: Skyscanner YYMMDD w SCIEZCE, Kayak YYYY-MM-DD
-        // w sciezce, Google Flights YYYY-MM-DD wewnatrz zapytania tekstowego.
+        // w sciezce, Kiwi YYYY-MM-DD w parametrach, Google Flights YYYY-MM-DD wewnatrz zapytania.
         // GOOGLE FLIGHTS DOSTAJE NAZWE MIASTA, NIE KOD IATA - jako jedyny z trzech parsuje zwykly
         // tekst, wiec problem metropolii wielolotniskowych go w ogole nie dotyczy i nie potrzebuje
         // METRO_IATA. Dlatego to on jest tu siatka bezpieczenstwa: nawet gdyby kod obszaru zawiodl
@@ -3059,7 +3059,20 @@
             kay += "?adults=" + o.adults;
             out.push({ name: "Kayak", url: kay });
 
-            // 3. GOOGLE FLIGHTS - zapytanie tekstowe. Budujemy je PO ANGIELSKU mimo hl=pl w adresie:
+            // 3. KIWI.COM - forma /deep?, daty YYYY-MM-DD, kody IATA WIELKIMI literami.
+            // >>> POTWIERDZONE sa wylacznie from/to/departure/return. `adults` i `cabinClass` nosza
+            // nazwy z API Kiwi i dokladamy je NA PROBE - gdyby zostaly zignorowane, wyniki dla trasy
+            // i dat sa nadal poprawne, a uzytkownik widzi liczbe pasazerow na stronie i poprawi ja
+            // jednym kliknieciem. To NIE JEST ta sama sytuacja co bagaz (patrz komentarz w danych):
+            // tam parametr nie istnieje i udawanie, ze dziala, wprowadzaloby w blad.
+            var kiwi = (cfg.kiwiBase || "https://www.kiwi.com/deep?")
+                     + "from=" + org.toUpperCase() + "&to=" + o.metroDest.toUpperCase();
+            if (o.dep) { kiwi += "&departure=" + o.dep; if (o.ret) kiwi += "&return=" + o.ret; }
+            kiwi += "&adults=" + o.adults;
+            if (o.cabin.kiwi) kiwi += "&cabinClass=" + o.cabin.kiwi;
+            out.push({ name: "Kiwi.com", url: kiwi });
+
+            // 4. GOOGLE FLIGHTS - zapytanie tekstowe. Budujemy je PO ANGIELSKU mimo hl=pl w adresie:
             // parser Google rozumie angielskie "from/to/through" niezawodnie, a jezyk interfejsu
             // i waluta ida osobnymi parametrami, wiec strona i tak wyswietli sie po polsku w PLN.
             // TU TEZ LADUJE BAGAZ - jedyne miejsce z calej trojki, gdzie ta wartosc cokolwiek robi.
@@ -3204,7 +3217,7 @@
               +   '<div id="fs-blocked" style="display:none; font-family:\'JetBrains Mono\',monospace; font-size:0.7rem; color:#facc15; margin-top:10px; line-height:1.7;"></div>'
               +   '<div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:14px;">'
               +     '<div id="fs-cancel" class="windy-btn" style="background:rgba(255,255,255,0.06); border:1px solid #56616e; color:#c6cfd9;">ANULUJ</div>'
-              +     '<div id="fs-go" class="windy-btn" style="background:rgba(56,189,248,0.18); border:1px solid #38bdf8; color:#38bdf8;">SZUKAJ ↗ ×3</div>'
+              +     '<div id="fs-go" class="windy-btn" style="background:rgba(56,189,248,0.18); border:1px solid #38bdf8; color:#38bdf8;">SZUKAJ ↗ ×4</div>'
               +   '</div>'
               + '</div>';
             var depEl = document.getElementById("fs-dep"), retEl = document.getElementById("fs-ret"), rtnEl = document.getElementById("fs-rtn");
@@ -3240,7 +3253,7 @@
                     bag:    _find(cfg.bags,   document.getElementById("fs-bag").value),
                     direct: document.getElementById("fs-direct").checked
                 });
-                // TRZY KARTY NARAZ vs. BLOKADA POPUPOW. Przegladarki przepuszczaja zwykle pierwsze
+                // CZTERY KARTY NARAZ vs. BLOKADA POPUPOW. Przegladarki przepuszczaja zwykle pierwsze
                 // window.open po kliknieciu, a kolejne potrafia zablokowac. Dlatego NIE zamykamy
                 // popupu w ciemno: sprawdzamy, ktore okna faktycznie wstaly, i dla zablokowanych
                 // pokazujemy zwykle linki do recznego klikniecia zamiast cicho zgubic dwa serwisy.

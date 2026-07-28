@@ -113,9 +113,16 @@ window.AIRPORT_TYPE_OVERRIDE = {
 // (window.showCityIntel -> window.showFlightSearchModal w app.js).
 // Jeden popup, TRZY wyszukiwarki otwierane naraz: Skyscanner, Kayak, Google Flights.
 // ====================================================================
-// DLACZEGO TRZY, A NIE JEDNA: każda widzi inny wycinek rynku (Skyscanner ma OTA, których nie ma
+// DLACZEGO CZTERY, A NIE JEDNA: każda widzi inny wycinek rynku (Skyscanner ma OTA, których nie ma
 // Google; Google ma taryfy wprost od przewoźników; Kayak agreguje jeszcze inaczej), a porównanie
-// tej samej trasy w trzech miejscach zajmuje tyle samo kliknięć co w jednym.
+// tej samej trasy w czterech miejscach zajmuje tyle samo kliknięć co w jednym.
+// KIWI.COM jest tu z INNEGO POWODU niż pozostała trójka: jako jedyny skleja trasy z przewoźników,
+// którzy nie mają ze sobą żadnej umowy (Ryanair + Wizz + linia lokalna w jednym wyniku), więc
+// pokazuje połączenia, których reszta nie widzi W OGÓLE - nie jest czwartym zdaniem o tym samym.
+// Cena za to jest realna i warto ją znać: przy takiej trasie za przesiadkę odpowiada gwarancja
+// Kiwi, a nie przewoźnik, więc przy opóźnieniu reklamacja idzie do Kiwi, nie do linii lotniczej.
+// ODRZUCONE ŚWIADOMIE: Momondo - należy do tego samego właściciela co Kayak i w praktyce pokazuje
+// te same wyniki, czyli piąte okno bez nowej informacji.
 //
 // >>> BAGAŻ: ŻADEN Z TRZECH SERWISÓW NIE PRZYJMUJE GO W ADRESIE. Sprawdzone 2026-07-28 w
 // oficjalnej dokumentacji parametrów Skyscannera (developers.skyscanner.net/docs/referrals/
@@ -144,17 +151,25 @@ window.FLIGHT_SEARCH = {
     // Segmentu powrotu nie da się podać bez segmentu wylotu.
     // Kayak: daty YYYY-MM-DD, klasa jako SEGMENT ŚCIEŻKI na końcu (patrz `kayak` w cabins).
     // Google Flights: zapytanie TEKSTOWE w ?q= - jako jedyny przyjmuje NAZWĘ MIASTA zamiast kodu.
+    // Kiwi.com: forma /deep?from=&to=&departure=&return= , daty YYYY-MM-DD, kody IATA WIELKIMI.
+    // WYBRANA ŚWIADOMIE zamiast drugiej formy, /search/results/{miasto-kraj}/{miasto-kraj}/ .
+    // Tamta wyglądałaby ładniej ("szukaj do miasta" dosłownie), ale wymaga slugu kraju W NAZEWNICTWIE
+    // KIWI ("czechia", "united-kingdom", "united-states"), którego NIE MAMY i nie da się go
+    // niezawodnie wyprowadzić z naszych nazw krajów - jeden rozjazd i link ląduje na 404.
+    // Forma /deep? bierze kody IATA, czyli dokładnie to, co już policzyliśmy. Zero zgadywania.
     skyscannerBase: "https://www.skyscanner.pl/transport/loty/",
     kayakBase:      "https://www.kayak.pl/flights/",
+    kiwiBase:       "https://www.kiwi.com/deep?",
     googleBase:     "https://www.google.com/travel/flights?hl=pl&curr=PLN&q=",
     // `key` to dosłowna wartość parametru cabinclass Skyscannera - NIE TŁUMACZ jej.
     // `kayak` to segment ścieżki Kayaka (economy = pusty, czyli brak segmentu).
+    // `kiwi` to wartość parametru cabinClass Kiwi.com (WIELKIMI, z podkreślnikiem).
     // `google` to słowa wchodzące w zapytanie tekstowe Google Flights.
     cabins: [
-        { key: "economy",        label: "Ekonomiczna",    kayak: "",         google: "economy" },
-        { key: "premiumeconomy", label: "Premium economy", kayak: "premium",  google: "premium economy" },
-        { key: "business",       label: "Biznes",         kayak: "business", google: "business class" },
-        { key: "first",          label: "Pierwsza",       kayak: "first",    google: "first class" }
+        { key: "economy",        label: "Ekonomiczna",    kayak: "",         kiwi: "ECONOMY",         google: "economy" },
+        { key: "premiumeconomy", label: "Premium economy", kayak: "premium",  kiwi: "PREMIUM_ECONOMY", google: "premium economy" },
+        { key: "business",       label: "Biznes",         kayak: "business", kiwi: "BUSINESS",        google: "business class" },
+        { key: "first",          label: "Pierwsza",       kayak: "first",    kiwi: "FIRST",           google: "first class" }
     ],
     // BAGAŻ - patrz ostrzeżenie wyżej. `google` to jedyne miejsce, gdzie ta wartość ma jakikolwiek
     // wpływ; pusty string = nie dopisujemy nic do zapytania.
