@@ -3001,14 +3001,14 @@
         // potrafi lezec za granica (Genewa dla francuskiego Annecy, Bazylea dla Miluzy), a filtr po
         // kodzie kraju te przypadki by zgubil.
         // WYMAGA zaladowanej bazy: wolaj po ensureAirportDB(). Bez niej zwraca null, nie czeka.
-        // Klasy lotnisk i limit dystansu siedza w SKYSCANNER (airport-links-data.js) - patrz komentarz tam.
+        // Klasy lotnisk i limit dystansu siedza w FLIGHT_SEARCH (airport-links-data.js) - patrz komentarz tam.
         // PREFILTR SZEROKOSCI jak w _countryAtPoint: 111 km na stopien to DOLNA granica realnego
         // dystansu, wiec sam rozjazd w szerokosci wystarczy, zeby odrzucic wpis bez liczenia haversine.
         // Startowy rekord to od razu maxKm, wiec prefiltr tnie od pierwszej iteracji.
         window._nearestFlightAirport = function(lat, lon) {
             var db = window.AIRPORT_DB;
             if (!db || lat == null || lon == null || typeof getDist !== 'function') return null;
-            var cfg = window.SKYSCANNER || {};
+            var cfg = window.FLIGHT_SEARCH || {};
             var ok = {};
             (cfg.destClasses || ["L", "M", "S"]).forEach(function(c){ ok[c] = 1; });
             var ovr = (typeof AIRPORT_TYPE_OVERRIDE !== 'undefined') ? AIRPORT_TYPE_OVERRIDE : {};
@@ -3035,7 +3035,9 @@
         // u pozostalych dwoch, jedno z trzech okien i tak pokaze loty do WLASCIWEGO miasta.
         window._flightSearchUrls = function(o) {
             var cfg = window.FLIGHT_SEARCH || {};
-            var org = cfg.origin || "WAW";
+            // START Z POPUPU, nie z konfiguracji: cfg.origin to tylko wartosc DOMYSLNA pola,
+            // a uzytkownik moze wybrac dowolne lotnisko (np. szukajac taniego lotu z Berlina).
+            var org = o.origin || cfg.origin || "WAW";
             var out = [];
             var ymdShort = function(s){ return s.slice(2, 4) + s.slice(5, 7) + s.slice(8, 10); };
 
@@ -3061,7 +3063,12 @@
             // parser Google rozumie angielskie "from/to/through" niezawodnie, a jezyk interfejsu
             // i waluta ida osobnymi parametrami, wiec strona i tak wyswietli sie po polsku w PLN.
             // TU TEZ LADUJE BAGAZ - jedyne miejsce z calej trojki, gdzie ta wartosc cokolwiek robi.
-            var q = ["Flights from " + (cfg.originCity || "Warsaw") + " to " + o.googleDest];
+            // Nazwa miasta wylotu z AIRPORT_DB (pole [2]) - przy zmienionym starcie "Warsaw" z
+            // konfiguracji bylby po prostu nieprawda. Fallback na sam kod IATA, ktory Google tez zna.
+            var _oRow = (window.AIRPORT_DB && window.AIRPORT_DB[org]) || null;
+            var _oName = (org === (cfg.origin || "WAW")) ? (cfg.originCity || "Warsaw")
+                       : (_oRow ? (_oRow[2] || org) : org);
+            var q = ["Flights from " + _oName + " to " + o.googleDest];
             if (o.dep) q.push(o.rtn && o.ret ? ("on " + o.dep + " through " + o.ret) : ("on " + o.dep));
             q.push(o.adults + (o.adults > 1 ? " adults" : " adult"));
             if (o.cabin.google) q.push(o.cabin.google);
@@ -3080,10 +3087,57 @@
             var el = document.getElementById("flight-search-overlay");
             if (el) el.style.display = "none";
         };
-        window.showFlightSearchModal = function(ap, cityName) {
+        // LISTA LOTNISK STARTOWYCH. <datalist>, a NIE <select>: pozycji jest 4165 i rozwijana lista
+        // bez filtrowania byloby nie do przescrollowania. Datalist daje to samo pole wyboru, ale
+        // zawezajace sie w trakcie pisania - dziala i na kod ("WAW"), i na nazwe ("Chopin", "Berlin").
+        // BUDOWANA RAZ i trzymana w DOM: 4165 <option> to ~200 kB, wiec przebudowa przy kazdym
+        // otwarciu popupu bylaby widocznym zacieciem. Kolejnosc: po KODZIE IATA, jak prosil user.
+        // KODY OBSZARU JAKO WYLOT: odwrocenie METRO_IATA na {KOD: "Nazwa miasta, CC"}. Potrzebne
+        // w DWOCH miejscach - do listy podpowiedzi i do walidacji wpisanego kodu. Bez tego "PAR"
+        // czy "LON" w polu START odbijalo sie od AIRPORT_DB (to kody OBSZAROW, nie lotnisk),
+        // choc jako CEL dzialaja normalnie. Wylot z Londynu jest zupelnie zwyczajnym scenariuszem.
+        window._metroOrigins = function() {
+            var out = {};
+            var m = window.METRO_IATA || {};
+            for (var k in m) { var p = k.split("|"); out[m[k]] = p[1] + ", " + p[0]; }
+            return out;
+        };
+        window._ensureOriginList = function() {
+            if (document.getElementById("fs-origin-list")) return;
+            var db = window.AIRPORT_DB;
+            if (!db) return;
+            var cfg = window.FLIGHT_SEARCH || {};
+            var ok = {};
+            (cfg.destClasses || ["L", "M", "S"]).forEach(function(c){ ok[c] = 1; });
+            var ovr = (typeof AIRPORT_TYPE_OVERRIDE !== 'undefined') ? AIRPORT_TYPE_OVERRIDE : {};
+            var codes = [];
+            for (var code in db) { if (ok[db[code][6] || ovr[code] || ""]) codes.push(code); }
+            codes.sort();
+            var dl = document.createElement("datalist");
+            dl.id = "fs-origin-list";
+            dl.innerHTML = codes.map(function(c){
+                var v = db[c];
+                return '<option value="' + c + '">' + c + ' — ' + v[3] + ' (' + v[2] + ', ' + v[4] + ')</option>';
+            }).join('');
+            document.body.appendChild(dl);
+        };
+        window.showFlightSearchModal = function(ap, cityName, cityCC) {
             if (!ap) return;
-            var cfg = window.SKYSCANNER || {};
+            var cfg = window.FLIGHT_SEARCH || {};
             var org = cfg.origin || "WAW";
+            window._ensureOriginList();
+            // KOD DOCELOWY: kod OBSZARU METROPOLITALNEGO, gdy miasto stoi w METRO_IATA (klucz
+            // "CC|Nazwa", dokladnie ta sama konwencja co URBANRAIL_LINKS i ATLAS_CITY_LINKS),
+            // a w kazdym innym przypadku kod konkretnego lotniska. Dzieki temu Paryz szuka po
+            // CDG+ORY+LBG+BVA naraz, a Bergamo - tylko po BGY, bo klucz jest po MIESCIE, nie
+            // po lotnisku (patrz komentarz przy slowniku w airport-links-data.js).
+            var metro = (window.METRO_IATA && cityCC && cityName) ? (window.METRO_IATA[cityCC + "|" + cityName] || null) : null;
+            var isMetro = !!metro;
+            var destCode = metro || ap.iata;
+            // SKYSCANNER moze dostac inny kod niz Kayak: nie potwierdzilismy, ze przyjmuje kody
+            // obszaru (jego dokumentacja parametrow mowi tylko o "IATA code" lotniska). Flaga
+            // useMetroForSkyscanner pozwala go cofnac do kodu lotniska bez ruszania reszty.
+            var skyDest = (isMetro && cfg.useMetroForSkyscanner === false) ? ap.iata : destCode;
             var el = document.getElementById("flight-search-overlay");
             if (!el) {
                 el = document.createElement("div");
@@ -3107,16 +3161,22 @@
               +     '<span id="fs-close" style="cursor:pointer; font-size:1.4rem; color:#8f9ba8; line-height:1;">✕</span>'
               +   '</div>'
               +   '<div style="font-family:\'JetBrains Mono\',monospace; font-size:0.82rem; color:#facc15; font-weight:700;">'
-              +     (cfg.originName || org).toUpperCase() + ' (' + org + ') → ' + String(cityName || ap.city || "").toUpperCase() + ' (' + ap.iata + ')'
+              +     '→ ' + String(cityName || ap.city || "").toUpperCase() + ' (' + destCode + ')'
               +   '</div>'
               +   '<div style="font-family:\'JetBrains Mono\',monospace; font-size:0.68rem; color:#8f9ba8; margin-top:3px; line-height:1.4;">'
-              +     ap.name + ' · ' + ap.km + ' km od miasta'
+              +     (isMetro
+                      ? ('kod obszaru — wyszukiwarki przejrzą wszystkie lotniska miasta<br>najbliższe: ' + ap.name + ' · ' + ap.km + ' km od centrum')
+                      : (ap.name + ' · ' + ap.km + ' km od miasta'))
               +   '</div>'
               +   '<label style="display:flex; align-items:center; gap:8px; margin-top:14px; cursor:pointer;">'
               +     '<input type="checkbox" id="fs-rtn" checked style="accent-color:#38bdf8;">'
               +     '<span style="' + lbl + ' color:#c6cfd9;">LOT W OBIE STRONY</span>'
               +   '</label>'
               +   '<div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:10px;">'
+              // START zajmuje CALA szerokosc (grid-column:1/-1): podpowiedzi datalistu sa szersze
+              // niz polowa okna i w waskiej kolumnie nazwy lotnisk bylyby ucinane w polowie.
+              +     '<div style="grid-column:1 / -1;"><div style="' + lbl + '">START (kod IATA — wpisz kod, nazwę lub miasto)</div>'
+              +       '<input type="text" id="fs-origin" list="fs-origin-list" value="' + org + '" autocomplete="off" spellcheck="false" style="' + inp + ' text-transform:uppercase;"></div>'
               +     '<div><div style="' + lbl + '">WYLOT</div><input type="date" id="fs-dep" value="' + depDef + '" style="' + inp + '"></div>'
               +     '<div><div style="' + lbl + '">POWRÓT</div><input type="date" id="fs-ret" value="' + retDef + '" style="' + inp + '"></div>'
               +     '<div><div style="' + lbl + '">PASAŻEROWIE</div><select id="fs-adults" style="' + inp + '">'
@@ -3125,17 +3185,22 @@
               +     '<div><div style="' + lbl + '">KLASA</div><select id="fs-cabin" style="' + inp + '">'
               +       (cfg.cabins || [{ key: "economy", label: "Ekonomiczna" }]).map(function(c, i){ return '<option value="' + c.key + '"' + (i === 0 ? ' selected' : '') + '>' + c.label + '</option>'; }).join('')
               +     '</select></div>'
+              +     '<div style="grid-column:1 / -1;"><div style="' + lbl + '">BAGAŻ</div><select id="fs-bag" style="' + inp + '">'
+              +       (cfg.bags || [{ key: "any", label: "Bez znaczenia" }]).map(function(b, i){ return '<option value="' + b.key + '"' + (i === 0 ? ' selected' : '') + '>' + b.label + '</option>'; }).join('')
+              +     '</select></div>'
               +   '</div>'
               +   '<label style="display:flex; align-items:center; gap:8px; margin-top:12px; cursor:pointer;">'
               +     '<input type="checkbox" id="fs-direct" style="accent-color:#38bdf8;">'
               +     '<span style="' + lbl + ' color:#c6cfd9;">TYLKO BEZPOŚREDNIE</span>'
               +   '</label>'
               +   '<div style="font-family:\'JetBrains Mono\',monospace; font-size:0.64rem; color:#6b7885; margin-top:10px; line-height:1.5;">'
-              +     'Puste pole WYLOT = szukaj w dowolnym terminie (Skyscanner otworzy się z pustym kalendarzem).'
+              +     'Puste pole WYLOT = szukaj w dowolnym terminie.<br>'
+              +     '<span style="color:#a1730f;">⚠</span> BAGAŻ trafia tylko do Google Flights — Skyscanner i Kayak nie przyjmują go w adresie, tam trzeba kliknąć filtr bagażu w wynikach.'
               +   '</div>'
+              +   '<div id="fs-blocked" style="display:none; font-family:\'JetBrains Mono\',monospace; font-size:0.7rem; color:#facc15; margin-top:10px; line-height:1.7;"></div>'
               +   '<div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:14px;">'
               +     '<div id="fs-cancel" class="windy-btn" style="background:rgba(255,255,255,0.06); border:1px solid #56616e; color:#c6cfd9;">ANULUJ</div>'
-              +     '<div id="fs-go" class="windy-btn" style="background:rgba(56,189,248,0.18); border:1px solid #38bdf8; color:#38bdf8;">SZUKAJ ↗</div>'
+              +     '<div id="fs-go" class="windy-btn" style="background:rgba(56,189,248,0.18); border:1px solid #38bdf8; color:#38bdf8;">SZUKAJ ↗ ×3</div>'
               +   '</div>'
               + '</div>';
             var depEl = document.getElementById("fs-dep"), retEl = document.getElementById("fs-ret"), rtnEl = document.getElementById("fs-rtn");
@@ -3146,18 +3211,47 @@
             document.getElementById("fs-go").onclick = function(){
                 var dep = depEl.value, ret = rtnEl.checked ? retEl.value : "";
                 if (dep && ret && ret < dep) { alert("Data powrotu jest wcześniejsza niż data wylotu."); return; }
-                // Segment powrotu bez segmentu wylotu nie istnieje w adresie Skyscannera - przy pustym
-                // WYLOCIE lecimy wiec na wyszukiwarke bez ZADNEJ daty (rtn zostaje, bo to osobny parametr).
-                var ymd = function(s){ return s.slice(2, 4) + s.slice(5, 7) + s.slice(8, 10); };
-                var url = (cfg.base || "https://www.skyscanner.pl/transport/loty/")
-                        + org.toLowerCase() + "/" + ap.iata.toLowerCase() + "/";
-                if (dep) { url += ymd(dep) + "/"; if (ret) url += ymd(ret) + "/"; }
-                url += "?adultsv2=" + document.getElementById("fs-adults").value
-                     + "&cabinclass=" + document.getElementById("fs-cabin").value
-                     + "&rtn=" + (rtnEl.checked ? 1 : 0)
-                     + "&preferdirects=" + (document.getElementById("fs-direct").checked ? "true" : "false");
-                window.hideFlightSearch();
-                window.open(url, "_blank", "noopener");
+                // START: walidujemy wpisany kod przy AIRPORT_DB, bo pole jest zwyklym <input> i user
+                // moze w nie wpisac cokolwiek. Zly kod = wszystkie trzy adresy prowadza donikad,
+                // wiec lepiej zatrzymac sie tutaj niz otworzyc trzy puste karty.
+                var oCode = (document.getElementById("fs-origin").value || "").trim().toUpperCase();
+                if (!oCode) oCode = org;
+                if (!(window.AIRPORT_DB && window.AIRPORT_DB[oCode])) {
+                    alert("Nie znam lotniska o kodzie \"" + oCode + "\".\n\nWpisz trzyliterowy kod IATA (np. WAW, KRK, BER) albo zacznij pisać nazwę i wybierz z listy podpowiedzi.");
+                    return;
+                }
+                if (oCode === destCode) { alert("Lotnisko startowe i docelowe są takie same (" + oCode + ")."); return; }
+                var _find = function(arr, k){ for (var i = 0; i < (arr || []).length; i++) if (arr[i].key === k) return arr[i]; return (arr || [])[0] || { key: k }; };
+                var urls = window._flightSearchUrls({
+                    origin:     oCode,
+                    skyDest:    skyDest,
+                    metroDest:  destCode,
+                    googleDest: cityName + (window._extCountryName && cityCC ? (", " + (window._extCountryName(cityCC) || "")) : ""),
+                    dep: dep, ret: ret, rtn: rtnEl.checked,
+                    adults: parseInt(document.getElementById("fs-adults").value, 10) || 1,
+                    cabin:  _find(cfg.cabins, document.getElementById("fs-cabin").value),
+                    bag:    _find(cfg.bags,   document.getElementById("fs-bag").value),
+                    direct: document.getElementById("fs-direct").checked
+                });
+                // TRZY KARTY NARAZ vs. BLOKADA POPUPOW. Przegladarki przepuszczaja zwykle pierwsze
+                // window.open po kliknieciu, a kolejne potrafia zablokowac. Dlatego NIE zamykamy
+                // popupu w ciemno: sprawdzamy, ktore okna faktycznie wstaly, i dla zablokowanych
+                // pokazujemy zwykle linki do recznego klikniecia zamiast cicho zgubic dwa serwisy.
+                // BEZ trzeciego argumentu "noopener" - z nim window.open ZAWSZE zwraca null i nie
+                // dalo by sie odroznic blokady od sukcesu. Referencje zrywamy recznie zaraz potem.
+                var blocked = [];
+                urls.forEach(function(u){
+                    var w = null;
+                    try { w = window.open(u.url, "_blank"); } catch (e) { w = null; }
+                    if (w) { try { w.opener = null; } catch (e) {} }
+                    else blocked.push(u);
+                });
+                if (!blocked.length) { window.hideFlightSearch(); return; }
+                var bEl = document.getElementById("fs-blocked");
+                bEl.innerHTML = 'Przeglądarka zablokowała ' + blocked.length + ' z ' + urls.length
+                    + ' okien. Kliknij ręcznie:<br>'
+                    + blocked.map(function(u){ return '<a href="' + u.url + '" target="_blank" rel="noopener" style="color:#38bdf8;">→ ' + u.name + '</a>'; }).join('<br>');
+                bEl.style.display = "block";
             };
             el.style.display = "flex";
         };
@@ -3366,12 +3460,18 @@
                 window.ensureAirportDB().then(function(){
                     if (window._cityIntelToken !== _flyTok) return;
                     var _ap = window._nearestFlightAirport(dc.lat, dc.lng);
-                    var _org = (window.SKYSCANNER && window.SKYSCANNER.origin) || "WAW";
+                    var _org = (window.FLIGHT_SEARCH && window.FLIGHT_SEARCH.origin) || "WAW";
                     if (!_ap || _ap.iata === _org) return;
-                    _flyEl.textContent = "✈️ LOTY Z " + _org + " → " + _ap.iata;
-                    _flyEl.title = "Loty z Warszawy do: " + _ap.name + " (" + _ap.km + " km od miasta) - Skyscanner";
+                    // Na przycisku ten sam kod, ktory potem trafi do wyszukiwarek: przy metropoliach
+                    // z METRO_IATA jest to kod OBSZARU (PAR, LON, NYC), a nie kod lotniska - inaczej
+                    // przycisk obiecywalby LBG, a popup szukalby po calym Paryzu.
+                    var _metro = (window.METRO_IATA && dc.cc && dc.cname) ? (window.METRO_IATA[dc.cc + "|" + dc.cname] || null) : null;
+                    _flyEl.textContent = "✈️ LOTY Z " + _org + " → " + (_metro || _ap.iata);
+                    _flyEl.title = _metro
+                        ? ("Loty do: " + dc.cname + " - kod obszaru " + _metro + ", czyli wszystkie lotniska miasta (najblizsze: " + _ap.name + ", " + _ap.km + " km)")
+                        : ("Loty do: " + _ap.name + " (" + _ap.km + " km od miasta)");
                     _flyEl.style.display = "flex";
-                    _flyEl.onclick = function(ev){ ev.preventDefault(); window.showFlightSearchModal(_ap, dc.cname); };
+                    _flyEl.onclick = function(ev){ ev.preventDefault(); window.showFlightSearchModal(_ap, dc.cname, dc.cc); };
                 });
             }
             var _wb = fPanel.querySelector('a[href^="https://en.wikivoyage.org"]');
