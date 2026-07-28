@@ -3041,9 +3041,11 @@
             var slug = encodeURIComponent(String(o.city).replace(/\s+/g, "-"))
                      + (o.country ? ("--" + encodeURIComponent(String(o.country).replace(/\s+/g, "-"))) : "");
             var q = encodeURIComponent(o.city + (o.country ? ", " + o.country : ""));
-            // Kayak: "Miasto,Kraj" bez spacji po przecinku. Przecinek MUSI zostac doslowny -
-            // enkodujemy wiec czlony OSOBNO, bo encodeURIComponent na calosci zrobilby z niego %2C.
-            var qkayak = encodeURIComponent(o.city) + (o.country ? ("," + encodeURIComponent(o.country)) : "");
+            // Kayak: "Miasto Kraj" przez SPACJE, BEZ PRZECINKA (encodeURIComponent robi z niej %20).
+            // Przecinek wpychal Kayaka w forme "-a" (obszar), ktora ginie w DRUGIM przekierowaniu
+            // i konczy na /stays - patrz dowody w stay-links-data.js. Kraju nie wolno wyrzucic,
+            // bo sama nazwa prowadzi Valencie i Cordobe do Hiszpanii.
+            var qkayak = encodeURIComponent(o.city + (o.country ? (" " + o.country) : ""));
             // SERWIS Z needsDates ZNIKA Z LISTY przy pustych datach, a nie dostaje szablonu z datami
             // na sucho. Dziś dotyczy to Kayaka: jego /hotels ma daty i gosci w SCIEZCE, a kazda
             // skrocona wersja leci 302 na /stays (pusty formularz) - patrz komentarz w

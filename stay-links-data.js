@@ -37,7 +37,7 @@ window.STAY_SEARCH = {
     // {q}      - "Miasto, Kraj" URL-encoded (Booking, Hotels.com)
     // {qslug}  - "Miasto--Kraj" do ŚCIEŻKI Airbnb (podwójny myślnik dzieli miasto od kraju,
     //            pojedynczy zastępuje spację: "New-York-City--United-States")
-    // {qkayak} - "Miasto,Kraj" BEZ SPACJI po przecinku, do ŚCIEŻKI Kayaka
+    // {qkayak} - "Miasto Kraj" przez SPACJĘ (bez przecinka!), do ŚCIEŻKI Kayaka - powód niżej
     // {in} / {out} - daty YYYY-MM-DD, {adults} - liczba gości, {rooms} - liczba pokoi.
     services: [
         {
@@ -54,13 +54,29 @@ window.STAY_SEARCH = {
             // segment "2adults". Ta sama konwencja ścieżkowa co przy jego wyszukiwarce LOTÓW.
             name: "Kayak",
             url: "https://www.kayak.pl/hotels/{qkayak}/{in}/{out}/{adults}adults",
+            // >>> MIEJSCOWOŚĆ ODDZIELAMY OD KRAJU SPACJĄ ("Helsinki Finland"), NIE PRZECINKIEM.
+            // To nie kosmetyka - przecinek psuł wyszukiwarkę i to był błąd zgłoszony 2026-07-28
+            // ("klikam Helsinki, datę dobiera dobrą, ale nie miasto"). Kayak ma DWA przekierowania
+            // pod rząd i przy przecinku pierwsze wygląda na sukces, a dopiero drugie leci na /stays:
+            //   Helsinki,Finland -> 302 /hotels/Helsinki,Finland,Helsinki,Finlandia-a7232/.../at-Helsinki
+            //                    -> 302 /stays            (forma "-a" = obszar, ginie w drugim hopie)
+            //   Helsinki Finland -> 302 /hotels/Helsinki-Finland-c7232/...  -> 200 WYNIKI
+            // Forma "-c" (miasto) żyje, forma "-a" umiera. Przecinek trafiał w "-a" dla WIĘKSZOŚCI
+            // miast: z 10 sprawdzonych par padło 6 (Helsinki, Zürich, Luang Prabang, Ashgabat,
+            // Kyoto, Valencia), przeszły tylko 4 (Barcelona, Chicago, Ponta Delgada, New York City).
+            // Ze spacją przeszło 13 z 13 - i to od razu we WŁAŚCIWY kraj: "Valencia Venezuela" daje
+            // Carabobo/Wenezuelę, "Cordoba Argentina" daje Córdobę w Argentynie. Sama nazwa miasta
+            // (bez kraju) też zawsze się ładuje, ale obie te nazwy prowadzi do HISZPANII - dlatego
+            // kraju nie wolno tu wyrzucić, mimo że "naprawiłby" ładowanie.
+            // DROBIAZG DO ZAAKCEPTOWANIA: przy części miast Kayak zaczepia wynik o LOTNISKO zamiast
+            // o centrum (Chicago -> "-lORD", Ponta Delgada -> "-lPDL"; to stąd "Barcelona-El Prat
+            // (BCN)" na zrzucie usera). To wciąż hotele w tym samym mieście, a wyboru nie mamy:
+            // trafienie w konkretną encję wymagałoby ID Kayaka (-c12514) dla 7991 miast.
+            // ODRZUCONE PRZY OKAZJI: "Helsinki%2C%20Finland" (przecinek + spacja) -> /stays,
+            // "Cordoba,AR" (kod ISO) -> /stays. Kod kraju Kayaka w tym miejscu NIE działa.
+            //
             // >>> BRAK urlNoDates TO NIE PRZEOCZENIE - KAYAK NIE MA WYSZUKIWANIA BEZ TERMINU.
-            // Sprawdzone 2026-07-28 zapytaniami HTTP (nagłówki, bez przeglądarki). Pełna ścieżka
-            // z datami i gośćmi rozwiązuje się poprawnie: /hotels/Barcelona,Spain/2026-08-27/
-            // 2026-09-03/2adults -> 302 na kanoniczne /hotels/Barcelona,Spain-c22567-lBCN/... -> 200
-            // z wynikami. Miasto rozpoznaje i po polsku, i po angielsku, ze spacjami jako %20
-            // (Chicago, New York City, Ponta Delgada, Zürich, Aszchabad, Luang Prabang - wszystkie OK).
-            // ALE KAŻDA SKRÓCONA ŚCIEŻKA LECI 302 NA /stays (pusty formularz, cel przepadł):
+            // KAŻDA SKRÓCONA ŚCIEŻKA LECI 302 NA /stays (pusty formularz, cel przepadł):
             //   /hotels/{miejsce}                  -> /stays
             //   /hotels/{miejsce}/2adults          -> /stays
             //   /hotels/{miejsce}/anytime/2adults  -> /stays   (i tak samo "flexible")
