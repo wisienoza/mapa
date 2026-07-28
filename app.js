@@ -3034,6 +3034,16 @@
             var el = document.getElementById("stay-search-overlay");
             if (el) el.style.display = "none";
         };
+        // NAZWA MIASTA DO ADRESU WYSZUKIWARKI - nie zawsze ta sama, co w bazie. Import lotniskowy
+        // wniosl nazwy z niemiecka transliteracja umlautow ("Jyvaeskylae", "Malmoe", "Muenster"),
+        // ktorych zaden serwis nie znajduje. Slownik podmian: city-search-names-data.js (tam tez
+        // dowody i lista pulapek). W CITIES_DB tego NIE poprawiamy - nazwa jest kluczem w
+        // VISITED_CITIES i ATLAS_CITY_LINKS, wiec zmiana osierocilaby stan gry.
+        // Uzywaj TYLKO do budowania adresow zewnetrznych, NIGDY do wyszukiwania w naszych danych.
+        window._searchCityName = function(cc, name) {
+            var d = window.CITY_SEARCH_NAME || {};
+            return d[cc + "|" + name] || name;
+        };
         window._staySearchUrls = function(o) {
             var cfg = window.STAY_SEARCH || {};
             // qslug dla Airbnb: "Barcelona, Spain" -> "Barcelona--Spain". Podwojny myslnik rozdziela
