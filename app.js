@@ -3024,6 +3024,111 @@
             if (best) best.km = Math.round(bestKm);
             return best;
         };
+        // --- POPUP "SZUKAJ NOCLEGU" (klik w przycisk NOCLEGI w panelu miasta) ---
+        // Ten sam wzorzec co popup LOTOW nizej: pytamy o termin i liczbe osob, a DOPIERO potem
+        // otwieramy komplet serwisow. Szablony adresow siedza w STAY_SEARCH (stay-links-data.js).
+        // OVERLAY JEST OSOBNY OD LOTNICZEGO (#stay-search-overlay), a nie wspoldzielony: oba maja
+        // inne pola i inna liste serwisow, wiec jeden recyklowany div oznaczalby ciagle
+        // przebudowywanie go w obie strony i latwe pomylki przy dopisywaniu pol.
+        window.hideStaySearch = function(){
+            var el = document.getElementById("stay-search-overlay");
+            if (el) el.style.display = "none";
+        };
+        window._staySearchUrls = function(o) {
+            var cfg = window.STAY_SEARCH || {};
+            // qslug dla Airbnb: "Barcelona, Spain" -> "Barcelona--Spain". Podwojny myslnik rozdziela
+            // miasto od kraju, pojedynczy zastepuje spacje ("New York City--United States").
+            var slug = encodeURIComponent(String(o.city).replace(/\s+/g, "-"))
+                     + (o.country ? ("--" + encodeURIComponent(String(o.country).replace(/\s+/g, "-"))) : "");
+            var q = encodeURIComponent(o.city + (o.country ? ", " + o.country : ""));
+            return (cfg.services || []).map(function(s){
+                var tpl = (o.cin && o.cout) ? s.url : (s.urlNoDates || s.url);
+                return { name: s.name, url: tpl
+                    .replace(/\{q\}/g, q).replace(/\{qslug\}/g, slug)
+                    .replace(/\{in\}/g, o.cin || "").replace(/\{out\}/g, o.cout || "")
+                    .replace(/\{adults\}/g, o.adults).replace(/\{rooms\}/g, o.rooms) };
+            });
+        };
+        window.showStaySearchModal = function(cityName, cityCC) {
+            var cfg = window.STAY_SEARCH || {};
+            var el = document.getElementById("stay-search-overlay");
+            if (!el) {
+                el = document.createElement("div");
+                el.id = "stay-search-overlay";
+                el.style.cssText = "display:none; position:fixed; inset:0; z-index:205; background:rgba(0,0,0,0.75); backdrop-filter:blur(4px); align-items:center; justify-content:center;";
+                document.body.appendChild(el);
+                el.addEventListener("click", function(e){ if (e.target === el) window.hideStaySearch(); });
+            }
+            var _cn = window._extCountryName ? (window._extCountryName(cityCC) || "") : "";
+            function iso(d){ return new Date(d).toISOString().slice(0, 10); }
+            var _now = Date.now();
+            var inDef = iso(_now + 30 * 86400000), outDef = iso(_now + 37 * 86400000);
+            var lbl = "font-family:'JetBrains Mono',monospace; font-size:0.72rem; color:#8f9ba8; letter-spacing:1px;";
+            var inp = "background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.18); border-radius:4px; color:#e6edf3; font-family:'JetBrains Mono',monospace; font-size:0.8rem; padding:6px 8px; width:100%; box-sizing:border-box;";
+            var nSrv = (cfg.services || []).length;
+            el.innerHTML =
+                '<div style="background:rgba(8,8,10,0.96); border:1px solid rgba(0,159,235,0.45); border-radius:8px; padding:20px; width:min(420px,92vw); box-shadow:0 8px 40px rgba(0,0,0,0.6); font-family:\'Rajdhani\',sans-serif;">'
+              +   '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">'
+              +     '<h1 style="margin:0; border:none; padding:0; font-size:1.15rem; color:#009feb;">🏨 SZUKAJ NOCLEGU</h1>'
+              +     '<span id="ss-close" style="cursor:pointer; font-size:1.4rem; color:#8f9ba8; line-height:1;">✕</span>'
+              +   '</div>'
+              +   '<div style="font-family:\'JetBrains Mono\',monospace; font-size:0.82rem; color:#facc15; font-weight:700;">'
+              +     String(cityName || "").toUpperCase() + (_cn ? ('<span style="color:#8f9ba8; font-weight:400;"> · ' + _cn + '</span>') : '')
+              +   '</div>'
+              +   '<div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:14px;">'
+              +     '<div><div style="' + lbl + '">PRZYJAZD</div><input type="date" id="ss-in" value="' + inDef + '" style="' + inp + '"></div>'
+              +     '<div><div style="' + lbl + '">WYJAZD</div><input type="date" id="ss-out" value="' + outDef + '" style="' + inp + '"></div>'
+              +     '<div><div style="' + lbl + '">GOŚCIE</div><select id="ss-adults" style="' + inp + '">'
+              +       (function(){ var a = []; for (var i = 1; i <= (cfg.maxAdults || 8); i++) a.push('<option value="' + i + '"' + (i === 2 ? ' selected' : '') + '>' + i + '</option>'); return a.join(''); })()
+              +     '</select></div>'
+              +     '<div><div style="' + lbl + '">POKOJE</div><select id="ss-rooms" style="' + inp + '">'
+              +       (function(){ var a = []; for (var i = 1; i <= (cfg.maxRooms || 4); i++) a.push('<option value="' + i + '"' + (i === 1 ? ' selected' : '') + '>' + i + '</option>'); return a.join(''); })()
+              +     '</select></div>'
+              +   '</div>'
+              +   '<div style="font-family:\'JetBrains Mono\',monospace; font-size:0.64rem; color:#6b7885; margin-top:10px; line-height:1.5;">'
+              +     'Puste pole PRZYJAZD = szukaj bez wybranego terminu.<br>'
+              +     '<span style="color:#a1730f;">⚠</span> Trivago otworzy się z pustym kalendarzem — jako jedyne nie przyjmuje terminu w adresie. Airbnb nie zna pojęcia „pokoje”, bo wynajmuje cały lokal.'
+              +   '</div>'
+              +   '<div id="ss-blocked" style="display:none; font-family:\'JetBrains Mono\',monospace; font-size:0.7rem; color:#facc15; margin-top:10px; line-height:1.7;"></div>'
+              +   '<div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:14px;">'
+              +     '<div id="ss-cancel" class="windy-btn" style="background:rgba(255,255,255,0.06); border:1px solid #56616e; color:#c6cfd9;">ANULUJ</div>'
+              +     '<div id="ss-go" class="windy-btn" style="background:rgba(0,159,235,0.18); border:1px solid #009feb; color:#38bdf8;">SZUKAJ ↗ ×' + nSrv + '</div>'
+              +   '</div>'
+              + '</div>';
+            var inEl = document.getElementById("ss-in"), outEl = document.getElementById("ss-out");
+            document.getElementById("ss-close").onclick = window.hideStaySearch;
+            document.getElementById("ss-cancel").onclick = window.hideStaySearch;
+            document.getElementById("ss-go").onclick = function(){
+                var cin = inEl.value, cout = outEl.value;
+                if (cin && cout && cout <= cin) { alert("Data wyjazdu musi być późniejsza niż data przyjazdu."); return; }
+                // Nocleg bez KOMPLETU dat nie ma sensu (serwisy licza cene za pobyt), wiec brak
+                // ktorejkolwiek daty = wariant "bez terminu" dla WSZYSTKICH czterech naraz.
+                if (!cin || !cout) { cin = ""; cout = ""; }
+                var urls = window._staySearchUrls({
+                    city: cityName, country: _cn, cin: cin, cout: cout,
+                    adults: document.getElementById("ss-adults").value,
+                    rooms:  document.getElementById("ss-rooms").value
+                });
+                // Detekcja blokady popupow DOKLADNIE jak przy lotach - w tym pulapka z w.closed,
+                // ktora tam dala falszywe alarmy. Czytaj komentarz przy przycisku fs-go.
+                var blocked = [];
+                urls.forEach(function(u){
+                    var w = null;
+                    try { w = window.open(u.url, "_blank"); } catch (e) { w = null; }
+                    if (w) { try { w.opener = null; } catch (e) {} }
+                    else blocked.push(u);
+                });
+                if (!blocked.length) { window.hideStaySearch(); return; }
+                var bEl = document.getElementById("ss-blocked");
+                if (!bEl) return;
+                bEl.innerHTML = 'Przeglądarka zablokowała ' + blocked.length + ' z ' + urls.length
+                    + ' kart. Otwórz brakujące ręcznie:<br>'
+                    + blocked.map(function(u){ return '<a href="' + u.url + '" target="_blank" rel="noopener" style="color:#38bdf8;">→ ' + u.name + '</a>'; }).join('<br>')
+                    + '<br><span style="color:#8f9ba8; font-size:0.64rem;">Na stałe: kłódka/ikona w pasku adresu → zezwól tej stronie na wyskakujące okienka.</span>';
+                bEl.style.display = "block";
+            };
+            el.style.display = "flex";
+        };
         // --- BUDOWA ADRESOW TRZECH WYSZUKIWAREK LOTOW ---
         // Zwraca [{name, url}] dla Skyscannera, Kayaka, Kiwi.com i Google Flights. Szablony
         // i slowniki siedza w FLIGHT_SEARCH (airport-links-data.js) - tu jest wylacznie sklejanie.
@@ -3524,7 +3629,16 @@
                 : '';
             var _cityLinksHtml = [
                 ["ATLAS OBSCURA", _aoBtnHtml],
-                ["BOOKING",       btn(_bkgUrl, "🏨 BOOKING", "0,159,235")],
+                // NOCLEGI: bylo "🏨 BOOKING" prowadzace WPROST na wyniki Booking.com. Od 2026-07-28
+                // otwiera popup (window.showStaySearchModal), ktory pyta o termin i liczbe osob,
+                // a potem odpala Booking, Agode, Trivago i Airbnb naraz - dokladnie ta sama zasada
+                // co przy przycisku lotow. Etykieta zmieniona z "BOOKING" na "NOCLEGI", bo nazwa
+                // jednego serwisu przy czterech otwieranych bylaby mylaca.
+                // KLUCZ SORTOWANIA tez jest teraz "NOCLEGI", wiec przycisk PRZESUNAL SIE w siatce
+                // z drugiej pozycji (po ATLAS OBSCURA) na sasiedztwo METRO - to zamierzone.
+                // Adres w href zostaje BOOKINGOWY mimo popupu: srodkowy klik i "otworz w nowej
+                // karcie" maja dac cokolwiek sensownego, a nie pusty #.
+                ["NOCLEGI",       (_bkgUrl ? '<a href="' + _bkgUrl + '" id="city-stay-btn" class="windy-btn" style="background:rgba(0,159,235,0.15); border:1px solid rgb(0,159,235); color:rgb(0,159,235);">🏨 NOCLEGI</a>' : '')],
                 // GETYOURGUIDE nie dostaje korala marki (#ff5533): w posortowanej siatce siedzi
                 // dokladnie NAD przyciskiem METRO (#ef4444) i te dwie czerwienie bylyby nie do
                 // odroznienia. Fiolet nie koliduje z niczym w sasiedztwie (BOOKING nad nim jest
@@ -3577,6 +3691,10 @@
             // BRAK LOTNISKA W ZASIEGU (maxKm) albo lotnisko = port wylotu (Warszawa i okolice) ->
             // przycisk zostaje schowany. Ten drugi przypadek to nie kosmetyka: "WAW → WAW" otwiera
             // u Skyscannera pusty formularz.
+            // NOCLEGI: przechwytujemy zwykly klik na popup, ale href zostaje (patrz komentarz
+            // przy budowie przycisku) - dzieki temu srodkowy klik dalej otwiera Booking w nowej karcie.
+            var _stayEl = document.getElementById("city-stay-btn");
+            if (_stayEl) _stayEl.onclick = function(ev){ ev.preventDefault(); window.showStaySearchModal(dc.cname, dc.cc); };
             var _flyEl = document.getElementById("city-fly-btn");
             if (_flyEl && window.ensureAirportDB && window._nearestFlightAirport) {
                 var _flyTok = window._cityIntelToken;
@@ -8109,6 +8227,7 @@
             { id: "visited-countries-overlay", hide: "hideVisitedCountries" },
             { id: "help-overlay",              hide: "hideHelpPanel" },
             { id: "flight-search-overlay",     hide: "hideFlightSearch" },
+            { id: "stay-search-overlay",       hide: "hideStaySearch" },
             { id: "wherenow-overlay",          hide: null }
         ];
         document.addEventListener("keydown", function(ev){
