@@ -3066,8 +3066,9 @@
             // Nazwa miasta wylotu z AIRPORT_DB (pole [2]) - przy zmienionym starcie "Warsaw" z
             // konfiguracji bylby po prostu nieprawda. Fallback na sam kod IATA, ktory Google tez zna.
             var _oRow = (window.AIRPORT_DB && window.AIRPORT_DB[org]) || null;
+            var _oMetro = window._metroOrigins ? window._metroOrigins()[org] : null;
             var _oName = (org === (cfg.origin || "WAW")) ? (cfg.originCity || "Warsaw")
-                       : (_oRow ? (_oRow[2] || org) : org);
+                       : (_oMetro ? _oMetro.split(",")[0] : (_oRow ? (_oRow[2] || org) : org));
             var q = ["Flights from " + _oName + " to " + o.googleDest];
             if (o.dep) q.push(o.rtn && o.ret ? ("on " + o.dep + " through " + o.ret) : ("on " + o.dep));
             q.push(o.adults + (o.adults > 1 ? " adults" : " adult"));
@@ -3110,12 +3111,15 @@
             var ok = {};
             (cfg.destClasses || ["L", "M", "S"]).forEach(function(c){ ok[c] = 1; });
             var ovr = (typeof AIRPORT_TYPE_OVERRIDE !== 'undefined') ? AIRPORT_TYPE_OVERRIDE : {};
+            var mo = window._metroOrigins();
             var codes = [];
             for (var code in db) { if (ok[db[code][6] || ovr[code] || ""]) codes.push(code); }
+            for (var mc in mo) codes.push(mc);
             codes.sort();
             var dl = document.createElement("datalist");
             dl.id = "fs-origin-list";
             dl.innerHTML = codes.map(function(c){
+                if (mo[c]) return '<option value="' + c + '">' + c + ' — ' + mo[c] + ' (wszystkie lotniska)</option>';
                 var v = db[c];
                 return '<option value="' + c + '">' + c + ' — ' + v[3] + ' (' + v[2] + ', ' + v[4] + ')</option>';
             }).join('');
@@ -3216,11 +3220,14 @@
                 // wiec lepiej zatrzymac sie tutaj niz otworzyc trzy puste karty.
                 var oCode = (document.getElementById("fs-origin").value || "").trim().toUpperCase();
                 if (!oCode) oCode = org;
-                if (!(window.AIRPORT_DB && window.AIRPORT_DB[oCode])) {
+                // KOLEJNOSC SPRAWDZEN: najpierw "to samo miejsce", potem "nie znam kodu". Odwrotna
+                // dawala mylacy komunikat - wpisanie celu (np. PAR) jako startu skarzylo sie na
+                // nieznany kod, choc problem byl inny.
+                if (oCode === destCode || oCode === ap.iata) { alert("Lotnisko startowe i docelowe są takie same (" + oCode + ")."); return; }
+                if (!(window.AIRPORT_DB && window.AIRPORT_DB[oCode]) && !window._metroOrigins()[oCode]) {
                     alert("Nie znam lotniska o kodzie \"" + oCode + "\".\n\nWpisz trzyliterowy kod IATA (np. WAW, KRK, BER) albo zacznij pisać nazwę i wybierz z listy podpowiedzi.");
                     return;
                 }
-                if (oCode === destCode) { alert("Lotnisko startowe i docelowe są takie same (" + oCode + ")."); return; }
                 var _find = function(arr, k){ for (var i = 0; i < (arr || []).length; i++) if (arr[i].key === k) return arr[i]; return (arr || [])[0] || { key: k }; };
                 var urls = window._flightSearchUrls({
                     origin:     oCode,
