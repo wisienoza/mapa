@@ -3044,8 +3044,17 @@
             // Kayak: "Miasto,Kraj" bez spacji po przecinku. Przecinek MUSI zostac doslowny -
             // enkodujemy wiec czlony OSOBNO, bo encodeURIComponent na calosci zrobilby z niego %2C.
             var qkayak = encodeURIComponent(o.city) + (o.country ? ("," + encodeURIComponent(o.country)) : "");
-            return (cfg.services || []).map(function(s){
-                var tpl = (o.cin && o.cout) ? s.url : (s.urlNoDates || s.url);
+            // SERWIS Z needsDates ZNIKA Z LISTY przy pustych datach, a nie dostaje szablonu z datami
+            // na sucho. Dziś dotyczy to Kayaka: jego /hotels ma daty i gosci w SCIEZCE, a kazda
+            // skrocona wersja leci 302 na /stays (pusty formularz) - patrz komentarz w
+            // stay-links-data.js. Wczesniej podstawialismy tu urlNoDates i uzytkownik dostawal
+            // karte z niczym. Dlatego liczba otwieranych okien ZALEZY OD TERMINU i przycisk SZUKAJ
+            // musi ja przeliczac (_ssCount nizej), zamiast pokazywac na sztywno services.length.
+            var hasDates = !!(o.cin && o.cout);
+            return (cfg.services || []).filter(function(s){
+                return hasDates || (!s.needsDates && s.urlNoDates);
+            }).map(function(s){
+                var tpl = hasDates ? s.url : s.urlNoDates;
                 return { name: s.name, url: tpl
                     .replace(/\{q\}/g, q).replace(/\{qslug\}/g, slug).replace(/\{qkayak\}/g, qkayak)
                     .replace(/\{in\}/g, o.cin || "").replace(/\{out\}/g, o.cout || "")
@@ -3068,6 +3077,11 @@
             var inDef = iso(_now + 30 * 86400000), outDef = iso(_now + 37 * 86400000);
             var lbl = "font-family:'JetBrains Mono',monospace; font-size:0.72rem; color:#8f9ba8; letter-spacing:1px;";
             var inp = "background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.18); border-radius:4px; color:#e6edf3; font-family:'JetBrains Mono',monospace; font-size:0.8rem; padding:6px 8px; width:100%; box-sizing:border-box;";
+            // Serwisy, ktore BEZ DAT w ogole nie startuja (dzis: Kayak - patrz stay-links-data.js).
+            // Nie hardkodujemy nazwy: lista bierze sie z flag w konfiguracji, wiec dopisanie
+            // kolejnego takiego serwisu nie wymaga ruszania tego popupu.
+            var _ssNeedDates = (cfg.services || []).filter(function(s){ return s.needsDates || !s.urlNoDates; })
+                                                   .map(function(s){ return s.name; });
             var nSrv = (cfg.services || []).length;
             el.innerHTML =
                 '<div style="background:rgba(8,8,10,0.96); border:1px solid rgba(0,159,235,0.45); border-radius:8px; padding:20px; width:min(420px,92vw); box-shadow:0 8px 40px rgba(0,0,0,0.6); font-family:\'Rajdhani\',sans-serif;">'
@@ -3091,6 +3105,12 @@
               +   '<div style="font-family:\'JetBrains Mono\',monospace; font-size:0.64rem; color:#6b7885; margin-top:10px; line-height:1.5;">'
               +     'Puste pole PRZYJAZD = szukaj bez wybranego terminu.<br>'
               +     '<span style="color:#a1730f;">⚠</span> Airbnb i Kayak nie znają pojęcia „pokoje” — Airbnb wynajmuje cały lokal, a Kayak ustawia to dopiero w wynikach.'
+              +     (_ssNeedDates.length
+                    ? ('<br><span id="ss-nodate" style="display:none; color:#facc15;">⚠ Bez terminu '
+                       + _ssNeedDates.join(" i ") + ' nie ' + (_ssNeedDates.length > 1 ? 'otworzą' : 'otworzy')
+                       + ' się — ' + (_ssNeedDates.length > 1 ? 'ich wyszukiwarki wymagają' : 'jego wyszukiwarka wymaga')
+                       + ' dat, a skrócony adres wraca na stronę główną.</span>')
+                    : '')
               +   '</div>'
               +   '<div id="ss-blocked" style="display:none; font-family:\'JetBrains Mono\',monospace; font-size:0.7rem; color:#facc15; margin-top:10px; line-height:1.7;"></div>'
               +   '<div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:14px;">'
@@ -3099,6 +3119,17 @@
               +   '</div>'
               + '</div>';
             var inEl = document.getElementById("ss-in"), outEl = document.getElementById("ss-out");
+            // Licznik na przycisku MUSI byc zywy: przy pustych datach otwiera sie mniej kart niz
+            // services.length (Kayak odpada), a milczaca roznica miedzy "×4" a trzema oknami
+            // wygladalaby jak zablokowany popup.
+            var goEl = document.getElementById("ss-go"), ndEl = document.getElementById("ss-nodate");
+            function _ssSync(){
+                var withDates = !!(inEl.value && outEl.value);
+                goEl.textContent = "SZUKAJ ↗ ×" + (withDates ? nSrv : nSrv - _ssNeedDates.length);
+                if (ndEl) ndEl.style.display = withDates ? "none" : "inline";
+            }
+            inEl.oninput = outEl.oninput = inEl.onchange = outEl.onchange = _ssSync;
+            _ssSync();
             document.getElementById("ss-close").onclick = window.hideStaySearch;
             document.getElementById("ss-cancel").onclick = window.hideStaySearch;
             document.getElementById("ss-go").onclick = function(){
@@ -3112,6 +3143,9 @@
                     adults: document.getElementById("ss-adults").value,
                     rooms:  document.getElementById("ss-rooms").value
                 });
+                // Zabezpieczenie na przyszlosc: gdyby KAZDY serwis w konfiguracji wymagal dat,
+                // pusty termin dalby zero okien i popup zamknalby sie bez sladu.
+                if (!urls.length) { alert("Przy pustym terminie żaden z serwisów nie potrafi szukać — podaj daty."); return; }
                 // Detekcja blokady popupow DOKLADNIE jak przy lotach - w tym pulapka z w.closed,
                 // ktora tam dala falszywe alarmy. Czytaj komentarz przy przycisku fs-go.
                 var blocked = [];

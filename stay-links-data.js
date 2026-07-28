@@ -27,11 +27,11 @@
 //   Airbnb      daty + goście            (POTWIERDZONE; nie zna pojęcia "pokoje" - wynajmuje się
 //                                        cały lokal, więc parametru po prostu nie ma)
 //   Kayak       daty + goście            (format ŚCIEŻKOWY /hotels/{miejsce}/{in}/{out}/{N}adults;
-//                                        deep-linki Kayaka potwierdziliśmy już przy LOTACH)
+//                                        POTWIERDZONE 2026-07-28 - ale WYŁĄCZNIE z kompletem dat,
+//                                        patrz needsDates niżej)
 //   Hotels.com  daty + goście + pokoje   (destination= tekstem, konwencja Expedia Group)
-// STATUS: Booking i Airbnb są pewne. Kayak i Hotels.com mają dużo mocniejsze podstawy niż
-// wyrzucona para (Kayak - bo jego deep-linki działają nam przy lotach; Hotels.com - bo
-// destination= to standard Expedii), ale nie zostały jeszcze klikniętе. Jeśli któryś ląduje
+// STATUS: Booking, Airbnb i Kayak (z datami) są pewne. Hotels.com ma mocne podstawy
+// (destination= to standard Expedii), ale nie został jeszcze kliknięty. Jeśli ląduje
 // na stronie głównej zamiast na wynikach - popraw szablon TUTAJ, logika w app.js jest bez zmian.
 window.STAY_SEARCH = {
     // {q}      - "Miasto, Kraj" URL-encoded (Booking, Hotels.com)
@@ -54,7 +54,22 @@ window.STAY_SEARCH = {
             // segment "2adults". Ta sama konwencja ścieżkowa co przy jego wyszukiwarce LOTÓW.
             name: "Kayak",
             url: "https://www.kayak.pl/hotels/{qkayak}/{in}/{out}/{adults}adults",
-            urlNoDates: "https://www.kayak.pl/hotels/{qkayak}"
+            // >>> BRAK urlNoDates TO NIE PRZEOCZENIE - KAYAK NIE MA WYSZUKIWANIA BEZ TERMINU.
+            // Sprawdzone 2026-07-28 zapytaniami HTTP (nagłówki, bez przeglądarki). Pełna ścieżka
+            // z datami i gośćmi rozwiązuje się poprawnie: /hotels/Barcelona,Spain/2026-08-27/
+            // 2026-09-03/2adults -> 302 na kanoniczne /hotels/Barcelona,Spain-c22567-lBCN/... -> 200
+            // z wynikami. Miasto rozpoznaje i po polsku, i po angielsku, ze spacjami jako %20
+            // (Chicago, New York City, Ponta Delgada, Zürich, Aszchabad, Luang Prabang - wszystkie OK).
+            // ALE KAŻDA SKRÓCONA ŚCIEŻKA LECI 302 NA /stays (pusty formularz, cel przepadł):
+            //   /hotels/{miejsce}                  -> /stays
+            //   /hotels/{miejsce}/2adults          -> /stays
+            //   /hotels/{miejsce}/anytime/2adults  -> /stays   (i tak samo "flexible")
+            // Nie ma więc czego tu wpisać - dlatego Kayak jest przy pustych datach POMIJANY
+            // (flaga needsDates, obsługa w _staySearchUrls w app.js), a nie otwierany na pusto.
+            // Alternatywa "podstawmy Kayakowi jakieś domyślne daty" została ODRZUCONA: user prosi
+            // o brak terminu, więc ciche wstawienie +30/+37 dnia pokazałoby ceny za pobyt,
+            // o który nie pytał.
+            needsDates: true
         },
         {
             // Hotels.com - konwencja Expedia Group: destination= tekstem, daty jako startDate/endDate.
