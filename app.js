@@ -5147,6 +5147,13 @@
                         else if (_vReq === 'eta')               { _vLab = '🟡 ETA (ONLINE)';         _vCol = '#f59e0b'; }
                         else if (_vReq === 'visa free')         { _vLab = '🟢 BEZ WIZY';             _vCol = '#22c55e'; }
                         else                                    { _vLab = '🟢 BEZ WIZY — ' + _vReq + ' DNI'; _vCol = '#22c55e'; }
+                        // LINK DO OFICJALNEGO WNIOSKU (visa-links-data.js, 52 kraje). Wartosc wiersza
+                        // staje sie linkiem przez _extVal - dokladnie jak COST INDEX, WODA czy PRAD.
+                        // Brak wpisu = wiersz zostaje zwyklym tekstem: 5 portali jest realnie martwych
+                        // (MM/BD/JO/KW/IQ), a przy 9 krajach z "wiza wymagana" wniosku online NIE MA
+                        // i link do MSZ obcego panstwa prowadzilby w pustke (patrz db-schema.md).
+                        // Guard na window - stara kopia index.html z cache nie moze wywrocic panelu.
+                        const _vLink = (window.VISA_LINKS && window.VISA_LINKS[id]) ? window.VISA_LINKS[id] : null;
                         // Adnotacja o korekcie recznej - ta sama, ktora pokazuje tooltip nakladki.
                         const _vOv = (typeof VISA_PL_OVERRIDES !== 'undefined') && VISA_PL_OVERRIDES[id];
                         // Data w title: user musi wiedziec, na ile swiezy jest ten wpis, bo przepisy
@@ -5154,7 +5161,9 @@
                         const _vDate = (typeof VISA_PL_DATE !== 'undefined' && VISA_PL_DATE) ? ' (stan: ' + VISA_PL_DATE + ')' : '';
                         visaRowHtml = '<div class="fact-row" title="Wymóg wizowy dla obywatela PL' + _vDate
                                     + (_vOv ? ' — korekta ręczna wg MSZ' : '') + '"><span class="fact-key">WIZA:</span>'
-                                    + '<span class="fact-val" style="color:' + _vCol + ';">' + _vLab + '</span></div>';
+                                    + '<span class="fact-val" style="color:' + _vCol + ';">'
+                                    + _extVal(_vLab, _vLink, "Oficjalna rządowa strona, na której składa się wniosek — nie pośrednik")
+                                    + '</span></div>';
                     }
                     const _linksGridHtml = [
                         ["ATLAS OBSCURA", atlasBtnHtml],

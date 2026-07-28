@@ -9,5 +9,9 @@ const VISA_PL_OVERRIDES = {
     // Dataset zrodlowy nie ma tych dwoch (brak uznania/statusu w bazie, z ktorej leci VISA_PL),
     // a paszport PL wjezdza do obu bez wizy na 90 dni.
     "TW": "90", // Tajwan
-    "XK": "90"  // Kosowo
+    "XK": "90", // Kosowo
+    // KN dopisany 2026-07-28: dataset mowil "eta", a oficjalna strona MSZ Saint Kitts i Nevis
+    // (mofa.gov.kn) podaje 90 DNI BEZ WIZY. Wylapane przy zbieraniu VISA_LINKS - szukalismy portalu
+    // wnioskowego dla eTA i okazalo sie, ze nie ma czego szukac, bo eTA tam nie obowiazuje.
+    "KN": "90"  // Saint Kitts i Nevis
 };
