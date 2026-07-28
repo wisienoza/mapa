@@ -41,12 +41,17 @@ window.STAY_SEARCH = {
     // {in} / {out} - daty YYYY-MM-DD, {adults} - liczba gości, {rooms} - liczba pokoi.
     services: [
         {
+            // order=price - sortowanie od najtanszego (zyczenie usera 2026-07-28). To parametr,
+            // ktorego Booking uzywa we wlasnym przelaczniku sortowania. NIE UDALO SIE go potwierdzic
+            // z linii polecen: Booking odpowiada botom kodem 202 i pustym searchresults bez zadnego
+            // parametru, wiec test niczego nie dowodzi ANI w jedna, ANI w druga strone. Jesli po
+            // kliknieciu wyniki nie sa posortowane po cenie - to jest pierwsze miejsce do poprawki.
             name: "Booking",
             url: "https://www.booking.com/searchresults.pl.html?ss={q}&checkin={in}&checkout={out}"
-               + "&group_adults={adults}&group_children=0&no_rooms={rooms}&selected_currency=PLN",
+               + "&group_adults={adults}&group_children=0&no_rooms={rooms}&selected_currency=PLN&order=price",
             // Bez dat wystarczy samo ss= - Booking otwiera wtedy wyniki z pustym kalendarzem.
             urlNoDates: "https://www.booking.com/searchresults.pl.html?ss={q}"
-                      + "&group_adults={adults}&group_children=0&no_rooms={rooms}&selected_currency=PLN"
+                      + "&group_adults={adults}&group_children=0&no_rooms={rooms}&selected_currency=PLN&order=price"
         },
         {
             // Kayak trzyma WSZYSTKO w ŚCIEŻCE, nie w parametrach - inaczej niż pozostała trójka.
@@ -85,15 +90,28 @@ window.STAY_SEARCH = {
             // Alternatywa "podstawmy Kayakowi jakieś domyślne daty" została ODRZUCONA: user prosi
             // o brak terminu, więc ciche wstawienie +30/+37 dnia pokazałoby ceny za pobyt,
             // o który nie pytał.
+            // >>> SORTOWANIA PO CENIE TU NIE DA SIE WYMUSIC (proba z 2026-07-28, zyczenie usera).
+            // Kayak zna token `sort=price_a` i na adresie KANONICZNYM dziala:
+            //   /hotels/Malmo-Sweden-c34151/.../2adults?sort=price_a  -> 200, parametr zachowany.
+            // Ale my podajemy nazwe, nie ID miasta, wiec KAZDE nasze wejscie idzie przez
+            // przekierowanie nazwa -> adres kanoniczny, a ono KASUJE cala query string:
+            //   /hotels/Malmo%20Sweden/.../2adults?sort=price_a -> /hotels/Malmo-Sweden-c34151/...;map
+            // Forma macierzowa `;sort=price_a` w sciezce ginie tak samo. Zeby to obejsc, trzeba by
+            // znac `-c<ID>` dla 7991 miast - czyli dokladnie to, przez co wypadly Trivago i Agoda.
+            // Na Kayaku user przelacza sortowanie jednym klikiem w wynikach.
             needsDates: true
         },
         {
             // Hotels.com - konwencja Expedia Group: destination= tekstem, daty jako startDate/endDate.
+            // sort=PRICE_LOW_TO_HIGH - sortowanie od najtanszego. POTWIERDZONE, ze parametr PRZEZYWA
+            // przekierowanie na .com (final: hotels.com/Hotel-Search?pos=HCOM_EMEA&...&sort=PRICE_LOW_TO_HIGH).
             name: "Hotels.com",
-            url: "https://pl.hotels.com/Hotel-Search?destination={q}&startDate={in}&endDate={out}&adults={adults}&rooms={rooms}",
-            urlNoDates: "https://pl.hotels.com/Hotel-Search?destination={q}&adults={adults}&rooms={rooms}"
+            url: "https://pl.hotels.com/Hotel-Search?destination={q}&startDate={in}&endDate={out}&adults={adults}&rooms={rooms}&sort=PRICE_LOW_TO_HIGH",
+            urlNoDates: "https://pl.hotels.com/Hotel-Search?destination={q}&adults={adults}&rooms={rooms}&sort=PRICE_LOW_TO_HIGH"
         },
         {
+            // SORTOWANIA PO CENIE NIE MA I NIE SZUKAJ PARAMETRU: Airbnb jako jedyny z czwórki
+            // w ogóle nie udostępnia sortowania wyników - ani w adresie, ani w interfejsie.
             // Airbnb ma miejscowość w ŚCIEŻCE ({qslug}), a nie w parametrze: "Barcelona--Spain".
             // Podwójny myślnik rozdziela miasto od kraju, pojedynczy zastępuje spację.
             name: "Airbnb",

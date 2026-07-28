@@ -163,6 +163,21 @@ window.FLIGHT_SEARCH = {
     kayakBase:      "https://www.kayak.pl/flights/",
     kiwiBase:       "https://www.kiwi.com/deep?",
     googleBase:     "https://www.google.com/travel/flights?hl=pl&curr=PLN&q=",
+    // SORTOWANIE OD NAJTAŃSZEGO (życzenie usera 2026-07-28). Każdy serwis nazywa to inaczej,
+    // dlatego to trzy osobne pola, a nie jedna flaga. Pusta wartość = nie doklejaj nic.
+    //   kayakSort - token z własnej listy sortowań Kayaka (`price_a,bestflight_a,duration_a,...`,
+    //               odczytanej ze stanu ich strony). POTWIERDZONE, że parametr przeżywa w adresie.
+    //   kiwiSort  - POTWIERDZONE mocniej: /deep? przekierowuje na właściwe wyniki i `sortBy=price`
+    //               jest w adresie końcowym (…/warsaw-…/barcelona-…/?…&adults=2&sortBy=price).
+    //   skySort   - NIEPOTWIERDZONE. Skyscanner odpowiada botom CAPTCHĄ, więc dało się sprawdzić
+    //               tylko tyle, że parametr wchodzi do ich wewnętrznego adresu (jest w base64
+    //               w URL-u captchy). Jeśli po kliknięciu Skyscanner pokazuje zakładkę "Najlepsze"
+    //               zamiast "Najtańsze" - to jest to pole do poprawki, reszta jest niezależna.
+    // GOOGLE FLIGHTS NIE DOSTAJE NIC I NIE PRÓBUJ: sortowanie nie da się wyrazić w zapytaniu
+    // tekstowym `q=`, a siedzi w zakodowanym `tfs=`, którego nie budujemy.
+    kayakSort: "price_a",
+    kiwiSort:  "price",
+    skySort:   "price",
     // `key` to dosłowna wartość parametru cabinclass Skyscannera - NIE TŁUMACZ jej.
     // `kayak` to segment ścieżki Kayaka (economy = pusty, czyli brak segmentu).
     // `kiwi` to wartość parametru cabinClass Kiwi.com (WIELKIMI, z podkreślnikiem).

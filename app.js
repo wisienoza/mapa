@@ -3205,6 +3205,7 @@
             if (o.dep) { sky += ymdShort(o.dep) + "/"; if (o.ret) sky += ymdShort(o.ret) + "/"; }
             sky += "?adultsv2=" + o.adults + "&cabinclass=" + o.cabin.key
                  + "&rtn=" + (o.rtn ? 1 : 0) + "&preferdirects=" + (o.direct ? "true" : "false");
+            if (cfg.skySort) sky += "&sortby=" + cfg.skySort;
             out.push({ name: "Skyscanner", url: sky });
 
             // 2. KAYAK. Klasa jest SEGMENTEM SCIEZKI na koncu (economy = brak segmentu), a nie
