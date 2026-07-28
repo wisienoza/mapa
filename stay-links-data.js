@@ -30,7 +30,19 @@
 // PRZYCZYNA: oba przyjmują miejscowość wyłącznie przez swoje WEWNĘTRZNE ID lokalizacji
 // (Trivago w formie search=200-42099), a nie tekstem. Zbudowanie słownika takich ID dla 7991
 // miast bazy nie wchodzi w grę - i to jest powód wyrzucenia, nie zły format parametru.
-// Hotels.com wrócił do gry właśnie dlatego, że Trivago (które miało go pokrywać) wypadło.
+// SPRAWDZONE PONOWNIE 2026-07-28 przy okazji pytania "a może zebrać ID Trivago i Agody":
+//   * TRIVAGO - dalej NIE. Poprawny slug (/pl/odr/hotele-helsinki-finlandia) i całkowicie zmyślony
+//     (/pl/odr/hotele-zzzznotacity) zwracają TO SAMO: kod 200, ~325 kB i ZERO wystąpień nazwy
+//     miasta w kodzie. To goła skorupa JS, więc nie da się ani zrobić deep-linku, ani nawet
+//     SPRAWDZIĆ, czy wpis w słowniku byłby trafny. Zbieralibyśmy 8 tys. pozycji bez weryfikacji.
+//     Sitemapa pod standardowym adresem też nie istnieje.
+//   * AGODA - technicznie DAŁOBY SIĘ, ale odrzucone merytorycznie. Istnieje forma ze slugiem,
+//     inna niż odrzucone kiedyś /search?text=: agoda.com/pl-pl/city/{slug}-{ISO2}.html zwraca 200
+//     dla prawdziwych miast (jyvaskyla-fi, ponta-delgada-pt, new-york-us -> w treści "Nowy Jork")
+//     i TWARDE 404 dla zmyślonego slugu, więc crawl budujący białą listę byłby weryfikowalny.
+//     Nie weszła, bo jest SPRZEDAWCĄ jak Booking, a nie nową kategorią - i Kayak i tak zestawia
+//     jej oferty. Niepotwierdzone zostało też, czy stosuje checkIn/los/adults/sort (strona jest
+//     renderowana JS-em). Jeśli kiedyś wróci temat: przewagą Agody jest wyłącznie AZJA.
 //
 // >>> CO KTÓRY SERWIS PRZYJMUJE W ADRESIE - RÓŻNICE SĄ REALNE, NIE ZAPOMNIJ O NICH:
 //   Booking     daty + goście + pokoje   (POTWIERDZONE - ta sama forma co dawny przycisk BOOKING)
@@ -39,23 +51,21 @@
 //   Kayak       daty + goście            (format ŚCIEŻKOWY /hotels/{miejsce}/{in}/{out}/{N}adults;
 //                                        POTWIERDZONE 2026-07-28 - ale WYŁĄCZNIE z kompletem dat,
 //                                        patrz needsDates niżej)
-//   Hotels.com  daty + goście + pokoje   (destination= tekstem, konwencja Expedia Group)
-// STATUS: Booking, Airbnb i Kayak (z datami) są pewne. Hotels.com ma mocne podstawy
-// (destination= to standard Expedii), ale nie został jeszcze kliknięty. Jeśli ląduje
-// na stronie głównej zamiast na wynikach - popraw szablon TUTAJ, logika w app.js jest bez zmian.
+// STATUS: wszystkie trzy są pewne.
 window.STAY_SEARCH = {
-    // {q}      - "Miasto, Kraj" URL-encoded (Booking, Hotels.com)
+    // {q}      - "Miasto, Kraj" URL-encoded (dziś już tylko Booking)
     // {qslug}  - "Miasto--Kraj" do ŚCIEŻKI Airbnb (podwójny myślnik dzieli miasto od kraju,
     //            pojedynczy zastępuje spację: "New-York-City--United-States")
     // {qkayak} - "Miasto Kraj" przez SPACJĘ (bez przecinka!), do ŚCIEŻKI Kayaka - powód niżej
     // {in} / {out} - daty YYYY-MM-DD, {adults} - liczba gości, {rooms} - liczba pokoi.
     services: [
         {
-            // order=price - sortowanie od najtanszego (zyczenie usera 2026-07-28). To parametr,
-            // ktorego Booking uzywa we wlasnym przelaczniku sortowania. NIE UDALO SIE go potwierdzic
-            // z linii polecen: Booking odpowiada botom kodem 202 i pustym searchresults bez zadnego
-            // parametru, wiec test niczego nie dowodzi ANI w jedna, ANI w druga strone. Jesli po
-            // kliknieciu wyniki nie sa posortowane po cenie - to jest pierwsze miejsce do poprawki.
+            // order=price - sortowanie od najtanszego (zyczenie usera 2026-07-28). POTWIERDZONE,
+            // ale NIE narzedziem tylko OCZAMI USERA w przegladarce: z linii polecen sie nie da,
+            // bo Booking odpowiada botom kodem 202 i pustym searchresults bez zadnego parametru.
+            // Ta weryfikacja byla warunkiem wyrzucenia Hotels.com - po ciezciu Booking jest
+            // JEDYNYM oknem noclegowym z sortowaniem po cenie (Kayak nie przyjmuje, Airbnb nie ma),
+            // wiec gdyby ten parametr kiedys przestal dzialac, sortowanie znika z popupu calkiem.
             name: "Booking",
             url: "https://www.booking.com/searchresults.pl.html?ss={q}&checkin={in}&checkout={out}"
                + "&group_adults={adults}&group_children=0&no_rooms={rooms}&selected_currency=PLN&order=price",
@@ -122,14 +132,6 @@ window.STAY_SEARCH = {
             // na /stays. Koszt: kolejny slownik ~8 tys. wpisow do utrzymania.
             // Do tego czasu: na Kayaku user przelacza sortowanie jednym klikiem w wynikach.
             needsDates: true
-        },
-        {
-            // Hotels.com - konwencja Expedia Group: destination= tekstem, daty jako startDate/endDate.
-            // sort=PRICE_LOW_TO_HIGH - sortowanie od najtanszego. POTWIERDZONE, ze parametr PRZEZYWA
-            // przekierowanie na .com (final: hotels.com/Hotel-Search?pos=HCOM_EMEA&...&sort=PRICE_LOW_TO_HIGH).
-            name: "Hotels.com",
-            url: "https://pl.hotels.com/Hotel-Search?destination={q}&startDate={in}&endDate={out}&adults={adults}&rooms={rooms}&sort=PRICE_LOW_TO_HIGH",
-            urlNoDates: "https://pl.hotels.com/Hotel-Search?destination={q}&adults={adults}&rooms={rooms}&sort=PRICE_LOW_TO_HIGH"
         },
         {
             // SORTOWANIA PO CENIE NIE MA I NIE SZUKAJ PARAMETRU: Airbnb jako jedyny z czwórki
