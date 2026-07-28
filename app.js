@@ -3140,9 +3140,16 @@
             // Obszary metropolitalne IDA PIERWSZE i maja flage metro - przy remisie trafnosci
             // wygrywaja, bo "wszystkie lotniska Londynu" jest niemal zawsze lepsza odpowiedzia
             // na wpisane "London" niz konkretny port.
+            // POLSKA NAZWA DOKLEJANA DO `hay`, a NIE do etykiety: uzytkownik tej strony wpisuje
+            // "Warszawa"/"Londyn"/"Rzym", a baza trzyma nazwy angielskie - bez tego pole nie
+            // znajdowalo NICZEGO na polska nazwe (sprawdzone: "warszawa" i "londyn" = zero wynikow).
+            // Etykiety zostaja angielskie, jak reszta nazw w aplikacji.
+            var pl = window.PL_CITY_ALIAS || {};
+            var plOf = function(cityName){ var a = pl[cityName]; return a ? (" " + strip(a.toLowerCase())) : ""; };
             Object.keys(mo).sort().forEach(function(c){
+                var _mCity = mo[c].split(",")[0];
                 list.push({ code: c, label: c + " — " + mo[c] + " (wszystkie lotniska)", metro: true,
-                            hay: strip((c + " " + mo[c]).toLowerCase()) });
+                            hay: strip((c + " " + mo[c]).toLowerCase()) + plOf(_mCity) });
             });
             var codes = [];
             for (var code in db) { if (ok[db[code][6] || ovr[code] || ""]) codes.push(code); }
@@ -3150,7 +3157,7 @@
             codes.forEach(function(c){
                 var v = db[c];
                 list.push({ code: c, label: c + " — " + v[2] + " · " + v[3] + " (" + v[4] + ")", metro: false,
-                            hay: strip((c + " " + v[2] + " " + v[3]).toLowerCase()) });
+                            hay: strip((c + " " + v[2] + " " + v[3]).toLowerCase()) + plOf(v[2]) });
             });
             window._originIndex = list;
             return list;
