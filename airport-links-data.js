@@ -109,33 +109,113 @@ window.AIRPORT_TYPE_OVERRIDE = {
 };
 
 // ====================================================================
-// SZUKANIE LOTÓW Z DOMU (Skyscanner) - konfiguracja przycisku "✈️ LOTY Z WAW → XXX"
-// w panelu MIASTA (window.showCityIntel -> window.showFlightSearchModal w app.js).
+// SZUKANIE LOTÓW Z DOMU - konfiguracja przycisku "✈️ LOTY Z WAW → XXX" w panelu MIASTA
+// (window.showCityIntel -> window.showFlightSearchModal w app.js).
+// Jeden popup, TRZY wyszukiwarki otwierane naraz: Skyscanner, Kayak, Google Flights.
 // ====================================================================
-// BUDOWA ADRESU (potwierdzona forma Skyscannera, domena .pl = polski interfejs i PLN):
-//   .../transport/loty/{skad}/{dokad}/{wylot}/{powrot}/?adultsv2=1&cabinclass=economy&rtn=1
-// Kody IATA MAŁYMI literami, daty w formacie YYMMDD. Oba segmenty dat są OPCJONALNE:
-// adres bez nich otwiera wyszukiwarkę z pustym kalendarzem ("dowolny termin"), a nie błąd -
-// dlatego popup pozwala zostawić daty puste. Segmentu powrotu nie da się podać bez wylotu.
+// DLACZEGO TRZY, A NIE JEDNA: każda widzi inny wycinek rynku (Skyscanner ma OTA, których nie ma
+// Google; Google ma taryfy wprost od przewoźników; Kayak agreguje jeszcze inaczej), a porównanie
+// tej samej trasy w trzech miejscach zajmuje tyle samo kliknięć co w jednym.
+//
+// >>> BAGAŻ: ŻADEN Z TRZECH SERWISÓW NIE PRZYJMUJE GO W ADRESIE. Sprawdzone 2026-07-28 w
+// oficjalnej dokumentacji parametrów Skyscannera (developers.skyscanner.net/docs/referrals/
+// flights-parameters - pełna lista parametrów, bagażu tam NIE MA) oraz w opisach adresów Kayaka
+// i Google Flights. Wszystkie trzy mają filtr bagażu, ale WYŁĄCZNIE jako klikany filtr w wynikach.
+// Pole BAGAŻ w popupie idzie więc TYLKO do Google Flights, i to jako słowa w zapytaniu tekstowym
+// (jedyny z trzech, który cokolwiek takiego parsuje) - popup mówi to użytkownikowi wprost.
+// NIE DOPISUJ tu wymyślonych parametrów typu "&checkedbags=1": zostaną cicho zignorowane,
+// a użytkownik będzie przekonany, że filtruje.
 //
 // DOKĄD, czyli "najbliższy port": liczy window._nearestFlightAirport(lat, lon) w app.js,
 // skanując AIRPORT_DB po współrzędnych miasta. Dwa parametry rządzą tym, co wyjdzie:
 //   destClasses - klasy lotnisk brane pod uwagę (pole [6] z airport-db.json). Heliporty "H"
-//                 i bazy wodnosamolotów "W" są POMINIĘTE ŚWIADOMIE: Skyscanner nie sprzeda
-//                 rejsu do żadnej z tych 125 pozycji, więc przycisk prowadziłby w pustkę.
+//                 i bazy wodnosamolotów "W" są POMINIĘTE ŚWIADOMIE: nikt nie sprzeda rejsu
+//                 do żadnej z tych 125 pozycji, więc przycisk prowadziłby w pustkę.
 //   maxKm       - powyżej tego dystansu przycisk się NIE POKAZUJE. "Najbliższe lotnisko"
 //                 800 km od miasta nie jest podpowiedzią dojazdu, tylko szumem.
-window.SKYSCANNER = {
+window.FLIGHT_SEARCH = {
     origin: "WAW",
     originName: "Warszawa",
-    base: "https://www.skyscanner.pl/transport/loty/",
+    originCity: "Warsaw",       // do zapytania tekstowego Google Flights (angielskie, bez odmiany)
     destClasses: ["L", "M", "S"],
     maxKm: 500,
-    // Wartości `key` to dosłowne wartości parametru cabinclass w adresie - nie tłumacz ich.
+    // ADRESY. Skyscanner: kody IATA MAŁYMI literami, daty YYMMDD, oba segmenty dat OPCJONALNE
+    // (adres bez nich otwiera pusty kalendarz, nie błąd - na tym stoi opcja "dowolny termin").
+    // Segmentu powrotu nie da się podać bez segmentu wylotu.
+    // Kayak: daty YYYY-MM-DD, klasa jako SEGMENT ŚCIEŻKI na końcu (patrz `kayak` w cabins).
+    // Google Flights: zapytanie TEKSTOWE w ?q= - jako jedyny przyjmuje NAZWĘ MIASTA zamiast kodu.
+    skyscannerBase: "https://www.skyscanner.pl/transport/loty/",
+    kayakBase:      "https://www.kayak.pl/flights/",
+    googleBase:     "https://www.google.com/travel/flights?hl=pl&curr=PLN&q=",
+    // `key` to dosłowna wartość parametru cabinclass Skyscannera - NIE TŁUMACZ jej.
+    // `kayak` to segment ścieżki Kayaka (economy = pusty, czyli brak segmentu).
+    // `google` to słowa wchodzące w zapytanie tekstowe Google Flights.
     cabins: [
-        { key: "economy",        label: "Ekonomiczna" },
-        { key: "premiumeconomy", label: "Premium economy" },
-        { key: "business",       label: "Biznes" },
-        { key: "first",          label: "Pierwsza" }
+        { key: "economy",        label: "Ekonomiczna",    kayak: "",         google: "economy" },
+        { key: "premiumeconomy", label: "Premium economy", kayak: "premium",  google: "premium economy" },
+        { key: "business",       label: "Biznes",         kayak: "business", google: "business class" },
+        { key: "first",          label: "Pierwsza",       kayak: "first",    google: "first class" }
+    ],
+    // BAGAŻ - patrz ostrzeżenie wyżej. `google` to jedyne miejsce, gdzie ta wartość ma jakikolwiek
+    // wpływ; pusty string = nie dopisujemy nic do zapytania.
+    bags: [
+        { key: "any",     label: "Bez znaczenia",      google: "" },
+        { key: "cabin",   label: "Tylko podręczny",    google: "carry-on only" },
+        { key: "checked", label: "Z rejestrowanym",    google: "with checked bag" }
     ]
+};
+
+// ====================================================================
+// KODY OBSZARÓW METROPOLITALNYCH IATA - "loty do MIASTA", a nie "na jedno lotnisko"
+// ====================================================================
+// PO CO: "najbliższy port" to kryterium czysto geometryczne i w metropoliach z kilkoma lotniskami
+// wygrywa to najbliżej centrum, a nie to, na które realnie się leci - Paryż dostawał LBG (lotnisko
+// biznesowe bez rejsów rozkładowych!), Rzym CIA zamiast FCO, Nowy Jork LGA zamiast JFK/EWR.
+// Kod metropolitalny każe wyszukiwarce przeszukać WSZYSTKIE lotniska miasta naraz.
+//
+// KLUCZ TO "CC|Nazwa miasta", DOKŁADNIE TA NAZWA CO W CITIES_DB (angielska, bez diakrytyków) -
+// ta sama konwencja co URBANRAIL_LINKS i ATLAS_CITY_LINKS, więc zero normalizacji w locie.
+// KLUCZOWANIE PO MIEŚCIE, A NIE PO KODZIE LOTNISKA, JEST ISTOTNE I NIE UPRASZCZAJ TEGO:
+// słownik "BGY -> MIL" wysyłałby klikającego BERGAMO po loty do Mediolanu, a klikającego
+// BEAUVAIS po loty do Paryża. Miasto klika użytkownik, więc miasto decyduje.
+//
+// LISTA JEST CELOWO KRÓTKA (25 pozycji, nie 70). Wpisane są WYŁĄCZNIE metropolie, gdzie kod
+// obszaru NIE KOLIDUJE z kodem żadnego lotniska. Pominięte właśnie z powodu kolizji: Szanghaj
+// (SHA = też Hongqiao), Tajpej (TPE), Dubaj (DXB), Kuala Lumpur (KUL), Kopenhaga (CPH),
+// Oslo (OSL), Houston (HOU), Chengdu (CTU), Meksyk (MEX). Los Angeles i San Francisco Bay Area
+// nie mają oficjalnego kodu obszaru w ogóle. Przy tych miastach zostaje zwykły kod lotniska -
+// i w większości z nich i tak jest jeden dominujący port, więc strata jest znikoma.
+//
+// >>> NIEZWERYFIKOWANE: czy SKYSCANNER przyjmuje kod obszaru w swoim adresie. Jego oficjalna
+// dokumentacja parametrów mówi tylko o "IATA code" i kodów metropolitalnych NIE WYMIENIA.
+// Kayak obsługuje je od zawsze, a Google Flights dostaje i tak nazwę miasta tekstem, więc dla
+// dwóch z trzech serwisów to jest pewne. Gdyby się okazało, że Skyscanner ich nie łyka -
+// przestaw useMetroForSkyscanner na false, a on jeden wróci do kodu konkretnego lotniska.
+window.FLIGHT_SEARCH.useMetroForSkyscanner = true;
+window.METRO_IATA = {
+    "GB|London":         "LON",   // LHR, LGW, STN, LTN, LCY, SEN
+    "FR|Paris":          "PAR",   // CDG, ORY, LBG, BVA
+    "IT|Rome":           "ROM",   // FCO, CIA
+    "IT|Milan":          "MIL",   // MXP, LIN, BGY
+    "US|New York City":  "NYC",   // JFK, LGA, EWR
+    "US|Washington":     "WAS",   // DCA, IAD, BWI
+    "US|Chicago":        "CHI",   // ORD, MDW
+    "US|Detroit":        "DTT",   // DTW, YIP
+    "TH|Bangkok":        "BKK",   // BKK, DMK
+    "TR|Istanbul":       "IST",   // IST, SAW
+    "RU|Moscow":         "MOW",   // SVO, DME, VKO, ZIA
+    "JP|Tokyo":          "TYO",   // HND, NRT
+    "JP|Osaka":          "OSA",   // KIX, ITM, UKB
+    "JP|Sapporo":        "SPK",   // CTS, OKD
+    "KR|Seoul":          "SEL",   // ICN, GMP
+    "CN|Beijing":        "BJS",   // PEK, PKX, NAY
+    "SE|Stockholm":      "STO",   // ARN, BMA, NYO, VST
+    "AR|Buenos Aires":   "BUE",   // EZE, AEP
+    "BR|Sao Paulo":      "SAO",   // GRU, CGH, VCP
+    "BR|Rio de Janeiro": "RIO",   // GIG, SDU
+    "BR|Belo Horizonte": "BHZ",   // CNF, PLU
+    "CA|Toronto":        "YTO",   // YYZ, YTZ, YHM
+    "CA|Montreal":       "YMQ",   // YUL, YMX
+    "RO|Bucharest":      "BUH",   // OTP, BBU
+    "ID|Jakarta":        "JKT"    // CGK, HLP
 };

@@ -3024,9 +3024,56 @@
             if (best) best.km = Math.round(bestKm);
             return best;
         };
+        // --- BUDOWA ADRESOW TRZECH WYSZUKIWAREK LOTOW ---
+        // Zwraca [{name, url}] dla Skyscannera, Kayaka i Google Flights. Szablony i slowniki siedza
+        // w FLIGHT_SEARCH (airport-links-data.js) - tu jest wylacznie sklejanie.
+        // TRZY ROZNE FORMATY DAT, nie pomyl ich: Skyscanner YYMMDD w SCIEZCE, Kayak YYYY-MM-DD
+        // w sciezce, Google Flights YYYY-MM-DD wewnatrz zapytania tekstowego.
+        // GOOGLE FLIGHTS DOSTAJE NAZWE MIASTA, NIE KOD IATA - jako jedyny z trzech parsuje zwykly
+        // tekst, wiec problem metropolii wielolotniskowych go w ogole nie dotyczy i nie potrzebuje
+        // METRO_IATA. Dlatego to on jest tu siatka bezpieczenstwa: nawet gdyby kod obszaru zawiodl
+        // u pozostalych dwoch, jedno z trzech okien i tak pokaze loty do WLASCIWEGO miasta.
+        window._flightSearchUrls = function(o) {
+            var cfg = window.FLIGHT_SEARCH || {};
+            var org = cfg.origin || "WAW";
+            var out = [];
+            var ymdShort = function(s){ return s.slice(2, 4) + s.slice(5, 7) + s.slice(8, 10); };
+
+            // 1. SKYSCANNER. Segmentu powrotu NIE DA SIE podac bez segmentu wylotu, wiec przy pustym
+            // WYLOCIE lecimy bez ZADNEJ daty (rtn zostaje - to osobny parametr, nie segment).
+            var sky = (cfg.skyscannerBase || "https://www.skyscanner.pl/transport/loty/")
+                    + org.toLowerCase() + "/" + o.skyDest.toLowerCase() + "/";
+            if (o.dep) { sky += ymdShort(o.dep) + "/"; if (o.ret) sky += ymdShort(o.ret) + "/"; }
+            sky += "?adultsv2=" + o.adults + "&cabinclass=" + o.cabin.key
+                 + "&rtn=" + (o.rtn ? 1 : 0) + "&preferdirects=" + (o.direct ? "true" : "false");
+            out.push({ name: "Skyscanner", url: sky });
+
+            // 2. KAYAK. Klasa jest SEGMENTEM SCIEZKI na koncu (economy = brak segmentu), a nie
+            // parametrem. Bez daty adres nadal dziala - otwiera strone trasy z pustym kalendarzem.
+            var kay = (cfg.kayakBase || "https://www.kayak.pl/flights/")
+                    + org.toUpperCase() + "-" + o.metroDest.toUpperCase();
+            if (o.dep) { kay += "/" + o.dep; if (o.ret) kay += "/" + o.ret; }
+            if (o.cabin.kayak) kay += "/" + o.cabin.kayak;
+            kay += "?adults=" + o.adults;
+            out.push({ name: "Kayak", url: kay });
+
+            // 3. GOOGLE FLIGHTS - zapytanie tekstowe. Budujemy je PO ANGIELSKU mimo hl=pl w adresie:
+            // parser Google rozumie angielskie "from/to/through" niezawodnie, a jezyk interfejsu
+            // i waluta ida osobnymi parametrami, wiec strona i tak wyswietli sie po polsku w PLN.
+            // TU TEZ LADUJE BAGAZ - jedyne miejsce z calej trojki, gdzie ta wartosc cokolwiek robi.
+            var q = ["Flights from " + (cfg.originCity || "Warsaw") + " to " + o.googleDest];
+            if (o.dep) q.push(o.rtn && o.ret ? ("on " + o.dep + " through " + o.ret) : ("on " + o.dep));
+            q.push(o.adults + (o.adults > 1 ? " adults" : " adult"));
+            if (o.cabin.google) q.push(o.cabin.google);
+            if (o.direct) q.push("nonstop");
+            if (o.bag && o.bag.google) q.push(o.bag.google);
+            out.push({ name: "Google Flights", url: (cfg.googleBase || "https://www.google.com/travel/flights?hl=pl&curr=PLN&q=") + encodeURIComponent(q.join(", ")) });
+
+            return out;
+        };
         // --- POPUP "SZUKAJ LOTOW" (klik w przycisk lotow w panelu miasta) ---
-        // Skyscanner NIE otwiera sie od razu: najpierw pytamy o termin, liczbe pasazerow i klase,
-        // bo adres bez tych parametrow laduje na formularzu, ktory i tak trzeba wypelnic recznie.
+        // Wyszukiwarki NIE otwieraja sie od razu: najpierw pytamy o termin, liczbe pasazerow, klase
+        // i bagaz, bo adres bez tych parametrow laduje na formularzu, ktory i tak trzeba wypelnic.
         // Overlay jest JEDEN i recyklowany (jak #help-overlay), ale tresc przebudowujemy przy kazdym
         // otwarciu - naglowek zalezy od miasta, a pola maja wracac do stanu domyslnego.
         window.hideFlightSearch = function(){
