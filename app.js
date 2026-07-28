@@ -2034,6 +2034,19 @@
             // Dlatego scinamy wszystko przed pierwsza litera/cyfra. Pole `key` sie do tego NIE nadaje -
             // to identyfikator wpisu ("sleep", "sia"), ktory bywa inny niz widoczna etykieta.
             function _apSortKey(label){ return String(label || "").replace(/^[^\p{L}\p{N}]+/u, "").trim(); }
+            // AUTO (wynajem NA TYM LOTNISKU). Nie idzie przez AIRPORT_LINKS, bo tamten mechanizm
+            // produkuje zwykle <a>, a ten przycisk musi otworzyc popup z datami. Wchodzi do tej samej
+            // posortowanej listy (przez .concat nizej), zeby nie wyladowac poza porzadkiem alfabetycznym.
+            // Pokazuje sie tylko, gdy ktorykolwiek serwis ma to lotnisko - 2029 z naszych.
+            var _carApPair = null;
+            if (window._carSearchUrls) {
+                var _carApCC = (row && row[4]) ? String(row[4]) : "";
+                var _carApProbe = window._carSearchUrls({ mode: "airport", iata: iata, cc: _carApCC,
+                    city: "", cin: "", cout: "", tin: "10:00", tout: "10:00", age: 30 });
+                if (_carApProbe.length) {
+                    _carApPair = [_apSortKey("AUTO"), '<a href="' + _carApProbe[0].url + '" id="airport-car-btn" target="_blank" class="windy-btn" style="background:rgba(250,204,21,0.15); border:1px solid #facc15; color:#facc15;">🚗 AUTO</a>'];
+                }
+            }
             var btnsHtml = links.map(function(l){
                 // SLOWNIK POKRYCIA (pole "dict", np. AIRPORT_SMOKERS / AIRPORT_WATER z
                 // airport-coverage-data.js). Brak lotniska w slowniku = serwis go NIE opisuje,
@@ -2053,6 +2066,7 @@
                 // tak samo jak w panelu kraju i miasta (te same .windy-btn w tej samej siatce).
                 return [_apSortKey(l.label), '<a href="' + href + '" target="_blank" class="windy-btn" style="background:' + l.bg + '; border:1px solid ' + l.border + '; color:' + l.color + ';">' + l.label + '</a>'];
             }).filter(function(b){ return !!b[1]; })
+             .concat(_carApPair ? [_carApPair] : [])
              .sort(function(a, b){ return a[0].localeCompare(b[0], 'pl'); })
              .map(function(b){ return b[1]; })
              .join('');
@@ -3190,6 +3204,136 @@
             };
             el.style.display = "flex";
         };
+        // --- WYNAJEM SAMOCHODU: adresy dla obu wariantow (LOTNISKO / MIASTO) ---
+        // Szablony i slowniki: car-links-data.js. DWA WARIANTY, a nie jeden z progiem odleglosci:
+        // przycisk w panelu LOTNISKA kotwiczy w kodzie IATA, w panelu MIASTA w slugu miasta.
+        // Dzieki temu nie zgadujemy, czy user chce odebrac auto na lotnisku, czy w centrum -
+        // klika tam, gdzie chce. Podaz i konkurencja siedza na lotniskach, ale wypozyczalnia
+        // 300 km od miasta byla by bez sensu, a _nearestAirport ma limit az 500 km.
+        // SERWIS BEZ WPISU W SLOWNIKU JEST POMIJANY - sitemapy obu serwisow mowia dokladnie,
+        // ktore strony istnieja, wiec zamiast prowadzic na 404 po prostu nie otwieramy karty.
+        window._carSearchUrls = function(o) {
+            var cfg = window.CAR_SEARCH || {};
+            var out = [];
+            var isAp = (o.mode === "airport");
+            var iata = String(o.iata || "").toUpperCase();
+            var key = o.cc + "|" + o.city;
+            var rcAir = window.CAR_RC_AIRPORT || [];
+            var dcAir = window.CAR_DC_AIRPORT || {};
+            var rcCity = window.CAR_RC_CITY || {};
+            var dcCity = window.CAR_DC_CITY || {};
+            var dcCountry = window.CAR_DC_COUNTRY || {};
+            (cfg.services || []).forEach(function(s){
+                var tpl = isAp ? s.airport : s.city, dcPath = "", citySlug = "";
+                if (isAp) {
+                    if (s.name === "Rentalcars" && rcAir.indexOf(iata) < 0) return;
+                    if (s.name === "DiscoverCars") { dcPath = dcAir[iata]; if (!dcPath) return; }
+                } else {
+                    if (s.name === "Rentalcars") { citySlug = rcCity[key]; if (!citySlug) return; }
+                    if (s.name === "DiscoverCars") {
+                        var cs = dcCity[key], cn = dcCountry[o.cc];
+                        if (!cs || !cn) return;
+                        dcPath = cn + "/" + cs;
+                    }
+                    // KAYAK BEZ ID JEST POMIJANY, i to nie z ostroznosci tylko z koniecznosci:
+                    // forma /cars/Miasto,Kraj/ zwraca 200 i CICHO PODSTAWIA INNE MIASTO
+                    // ("Barcelona,Spain" -> Port-of-Spain na Trynidadzie). Patrz car-links-data.js.
+                    if (s.name === "Kayak" && !o.kayakId) return;
+                }
+                out.push({ name: s.name, url: tpl
+                    .replace(/\{cc\}/g, String(o.cc || "").toLowerCase())
+                    .replace(/\{iata\}/g, iata.toLowerCase()).replace(/\{IATA\}/g, iata)
+                    .replace(/\{dcPath\}/g, dcPath).replace(/\{citySlug\}/g, citySlug)
+                    .replace(/\{kayakSlug\}/g, o.kayakSlug || "").replace(/\{kayakId\}/g, o.kayakId || "")
+                    .replace(/\{in\}/g, o.cin).replace(/\{out\}/g, o.cout)
+                    .replace(/\{inT\}/g, o.tin).replace(/\{outT\}/g, o.tout)
+                    .replace(/\{age\}/g, o.age) });
+            });
+            return out;
+        };
+        window.hideCarSearch = function(){
+            var el = document.getElementById("car-search-overlay");
+            if (el) el.style.display = "none";
+        };
+        // JEDEN popup obsluguje OBA warianty - rozni je tylko naglowek i to, co siedzi w `o`.
+        // Osobny overlay od noclegowego i lotniczego, z tego samego powodu co tam: inne pola.
+        window.showCarSearchModal = function(o) {
+            var cfg = window.CAR_SEARCH || {};
+            var el = document.getElementById("car-search-overlay");
+            if (!el) {
+                el = document.createElement("div");
+                el.id = "car-search-overlay";
+                el.style.cssText = "display:none; position:fixed; inset:0; z-index:205; background:rgba(0,0,0,0.75); backdrop-filter:blur(4px); align-items:center; justify-content:center;";
+                document.body.appendChild(el);
+                el.addEventListener("click", function(e){ if (e.target === el) window.hideCarSearch(); });
+            }
+            function iso(d){ return new Date(d).toISOString().slice(0, 10); }
+            var _now = Date.now();
+            var inDef = iso(_now + 30 * 86400000), outDef = iso(_now + 37 * 86400000);
+            var lbl = "font-family:'JetBrains Mono',monospace; font-size:0.72rem; color:#8f9ba8; letter-spacing:1px;";
+            var inp = "background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.18); border-radius:4px; color:#e6edf3; font-family:'JetBrains Mono',monospace; font-size:0.8rem; padding:6px 8px; width:100%; box-sizing:border-box;";
+            el.innerHTML =
+                '<div style="background:rgba(8,8,10,0.96); border:1px solid rgba(250,204,21,0.45); border-radius:8px; padding:20px; width:min(430px,92vw); box-shadow:0 8px 40px rgba(0,0,0,0.6); font-family:\'Rajdhani\',sans-serif;">'
+              +   '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">'
+              +     '<h1 style="margin:0; border:none; padding:0; font-size:1.15rem; color:#facc15;">🚗 WYNAJEM AUTA</h1>'
+              +     '<span id="cs-close" style="cursor:pointer; font-size:1.4rem; color:#8f9ba8; line-height:1;">✕</span>'
+              +   '</div>'
+              +   '<div style="font-family:\'JetBrains Mono\',monospace; font-size:0.8rem; color:#facc15; font-weight:700;">ODBIÓR: '
+              +     '<span style="color:#e6edf3;">' + (o.label || "") + '</span></div>'
+              +   '<div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:14px;">'
+              +     '<div><div style="' + lbl + '">ODBIÓR</div><input type="date" id="cs-in" value="' + inDef + '" style="' + inp + '"></div>'
+              +     '<div><div style="' + lbl + '">GODZINA</div><input type="time" id="cs-int" value="10:00" style="' + inp + '"></div>'
+              +     '<div><div style="' + lbl + '">ZWROT</div><input type="date" id="cs-out" value="' + outDef + '" style="' + inp + '"></div>'
+              +     '<div><div style="' + lbl + '">GODZINA</div><input type="time" id="cs-outt" value="10:00" style="' + inp + '"></div>'
+              +     '<div><div style="' + lbl + '">WIEK KIEROWCY</div><select id="cs-age" style="' + inp + '">'
+              +       (cfg.ages || [30]).map(function(a){ return '<option value="' + a + '"' + (a === 30 ? ' selected' : '') + '>' + a + '</option>'; }).join('')
+              +     '</select></div>'
+              +   '</div>'
+              +   '<div style="font-family:\'JetBrains Mono\',monospace; font-size:0.64rem; color:#6b7885; margin-top:10px; line-height:1.5;">'
+              +     '<span style="color:#a1730f;">⚠</span> Wiek kierowcy zmienia cenę — poniżej 25 lat dochodzi dopłata „młody kierowca”.'
+              +   '</div>'
+              +   '<div id="cs-blocked" style="display:none; font-family:\'JetBrains Mono\',monospace; font-size:0.7rem; color:#facc15; margin-top:10px; line-height:1.7;"></div>'
+              +   '<div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:14px;">'
+              +     '<div id="cs-cancel" class="windy-btn" style="background:rgba(255,255,255,0.06); border:1px solid #56616e; color:#c6cfd9;">ANULUJ</div>'
+              +     '<div id="cs-go" class="windy-btn" style="background:rgba(250,204,21,0.18); border:1px solid #facc15; color:#facc15;">SZUKAJ ↗</div>'
+              +   '</div>'
+              + '</div>';
+            var inEl = document.getElementById("cs-in"), outEl = document.getElementById("cs-out");
+            var goEl = document.getElementById("cs-go");
+            function build(){
+                return window._carSearchUrls({
+                    mode: o.mode, iata: o.iata, cc: o.cc, city: o.city,
+                    kayakId: o.kayakId, kayakSlug: o.kayakSlug,
+                    cin: inEl.value, cout: outEl.value,
+                    tin: document.getElementById("cs-int").value,
+                    tout: document.getElementById("cs-outt").value,
+                    age: document.getElementById("cs-age").value
+                });
+            }
+            function sync(){ goEl.textContent = "SZUKAJ ↗ ×" + build().length; }
+            inEl.oninput = outEl.oninput = sync;
+            sync();
+            document.getElementById("cs-close").onclick = window.hideCarSearch;
+            document.getElementById("cs-cancel").onclick = window.hideCarSearch;
+            goEl.onclick = function(){
+                if (outEl.value <= inEl.value) { alert("Zwrot musi być późniejszy niż odbiór."); return; }
+                var urls = build();
+                if (!urls.length) { alert("Żaden z serwisów nie ma tego miejsca w bazie."); return; }
+                var blocked = [];
+                urls.forEach(function(u){
+                    var w = null;
+                    try { w = window.open(u.url, "_blank"); } catch (e) { w = null; }
+                    if (w) { try { w.opener = null; } catch (e) {} }
+                    else blocked.push(u);
+                });
+                if (!blocked.length) { window.hideCarSearch(); return; }
+                var bEl = document.getElementById("cs-blocked");
+                bEl.innerHTML = 'Przeglądarka zablokowała ' + blocked.length + ' z ' + urls.length + ' kart. Otwórz ręcznie:<br>'
+                    + blocked.map(function(u){ return '<a href="' + u.url + '" target="_blank" rel="noopener" style="color:#facc15;">→ ' + u.name + '</a>'; }).join('<br>');
+                bEl.style.display = "block";
+            };
+            el.style.display = "flex";
+        };
         // --- BUDOWA ADRESOW TRZECH WYSZUKIWAREK LOTOW ---
         // Zwraca [{name, url}] dla Skyscannera, Kayaka, Kiwi.com i Google Flights. Szablony
         // i slowniki siedza w FLIGHT_SEARCH (airport-links-data.js) - tu jest wylacznie sklejanie.
@@ -3591,6 +3735,18 @@
             // Pomijamy, gdy miasto to praktycznie sama Warszawa (dist < 1 km) - trasa Warsaw->Warsaw jest bez sensu.
             // Booking: wyszukiwarka noclegow w tym miescie - zawsze. stripDiacritics zywe z intel.js (guard na wszelki wypadek).
             var _r2rUrl = null, _bkgUrl = null, _tripUrl = null, _gygUrl = null;
+            // AUTO (wynajem z centrum). Href jest tylko FALLBACKIEM dla srodkowego klikniecia -
+            // wlasciwy komplet adresow buduje popup. Bierzemy pierwszy serwis, ktory ma to miasto;
+            // gdy zaden nie ma, zmienna zostaje null i przycisk w ogole sie nie pojawia.
+            var _carCity = null;
+            if (dc.cc && dc.cname && window._carSearchUrls) {
+                var _carProbe = window._carSearchUrls({
+                    mode: "city", cc: dc.cc, city: dc.cname,
+                    kayakId: (window.KAYAK_CITY_ID || {})[dc.cc + "|" + dc.cname],
+                    kayakSlug: "", cin: "", cout: "", tin: "10:00", tout: "10:00", age: 30
+                });
+                if (_carProbe.length) _carCity = _carProbe[0].url;
+            }
             // URBANRAIL (mapa metra/kolei miejskiej). Klucz "CC|Nazwa" - dokladnie ta nazwa,
             // ktora siedzi w CITIES_DB, wiec zero normalizacji w locie. Brak wpisu = brak
             // przycisku (wiekszosc miast nie ma kolei miejskiej) - btn() sam zwraca '' dla null.
@@ -3705,6 +3861,11 @@
                 // Adres w href zostaje BOOKINGOWY mimo popupu: srodkowy klik i "otworz w nowej
                 // karcie" maja dac cokolwiek sensownego, a nie pusty #.
                 ["NOCLEGI",       (_bkgUrl ? '<a href="' + _bkgUrl + '" id="city-stay-btn" class="windy-btn" style="background:rgba(0,159,235,0.15); border:1px solid rgb(0,159,235); color:rgb(0,159,235);">🏨 NOCLEGI</a>' : '')],
+                // AUTO: wynajem Z CENTRUM tego miasta (lotniskowy siedzi w panelu LOTNISKA - to dwa
+                // rozne miejsca odbioru, wiec dwa osobne przyciski, a nie jeden zgadujacy).
+                // POKAZUJE SIE TYLKO, GDY ktorykolwiek serwis ma to miasto w sitemapie (2682 z 7991).
+                // Bez tego warunku klik prowadzilby na 404 - ta sama zasada co przy METRO i ATLASIE.
+                ["AUTO",          (_carCity ? '<a href="' + _carCity + '" id="city-car-btn" class="windy-btn" style="background:rgba(250,204,21,0.15); border:1px solid #facc15; color:#facc15;">🚗 AUTO</a>' : '')],
                 // GETYOURGUIDE nie dostaje korala marki (#ff5533): w posortowanej siatce siedzi
                 // dokladnie NAD przyciskiem METRO (#ef4444) i te dwie czerwienie bylyby nie do
                 // odroznienia. Fiolet nie koliduje z niczym w sasiedztwie (BOOKING nad nim jest
@@ -3761,6 +3922,21 @@
             // przy budowie przycisku) - dzieki temu srodkowy klik dalej otwiera Booking w nowej karcie.
             var _stayEl = document.getElementById("city-stay-btn");
             if (_stayEl) _stayEl.onclick = function(ev){ ev.preventDefault(); window.showStaySearchModal(dc.cname, dc.cc); };
+            // AUTO: ten sam wzorzec co NOCLEGI - klik przechwycony na popup, href zostaje jako
+            // sensowny cel dla srodkowego klikniecia. Slug do Kayaka budujemy tak samo jak przy
+            // hotelach (nazwa wyszukiwarkowa + kraj, spacje na myslniki).
+            var _carEl = document.getElementById("city-car-btn");
+            if (_carEl) _carEl.onclick = function(ev){
+                ev.preventDefault();
+                var _cnCar = window._extCountryName ? (window._extCountryName(dc.cc) || "") : "";
+                var _snCar = window._searchCityName ? window._searchCityName(dc.cc, dc.cname) : dc.cname;
+                window.showCarSearchModal({
+                    mode: "city", cc: dc.cc, city: dc.cname,
+                    label: dc.cname + (_cnCar ? " · centrum" : " · centrum"),
+                    kayakId: (window.KAYAK_CITY_ID || {})[dc.cc + "|" + dc.cname],
+                    kayakSlug: encodeURIComponent(String(_snCar + (_cnCar ? " " + _cnCar : "")).replace(/\s+/g, "-"))
+                });
+            };
             var _flyEl = document.getElementById("city-fly-btn");
             if (_flyEl && window.ensureAirportDB && window._nearestFlightAirport) {
                 var _flyTok = window._cityIntelToken;
