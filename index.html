@@ -28,8 +28,12 @@
 	<script src="stay-links-data.js?v=20260728h"></script>
 	<script src="city-search-names-data.js?v=20260728a"></script>
 	<script defer src="kayak-city-id-data.js?v=20260728a"></script>
-	<script defer src="car-links-data.js?v=20260728b"></script>
+	<script defer src="car-links-data.js?v=20260728f"></script>
 	<script src="airport-coverage-data.js?v=20260727d"></script>
+	<!-- TILE_SOURCES: katalog zrodel kafli dla trybu satelitarnego (przycisk SAT).
+	     BEZ defer - app.js czyta ten slownik przy budowie mapy, zeby wiedziec, ile jest
+	     warstw podkladu i jak sie nazywaja. -->
+	<script src="tile-sources-data.js?v=20260729j"></script>
 	<!-- AIRPORT_WV: lotniska z wlasnym artykulem na Wikivoyage (106). Slownik pokrycia dla wpisu
 	     "wikivoyage" w AIRPORT_LINKS - dziala tym samym mechanizmem `dict` co SMOKERS i WATER. -->
 	<script src="airport-wikivoyage-data.js?v=20260727a"></script>
@@ -358,7 +362,19 @@
         .reset-btn .rb-icon { display: inline-block; width: 18px; flex: 0 0 18px; text-align: center; }
         .reset-btn .rb-label { text-align: left; flex: 1 1 auto; }
         #toggle-stack .reset-btn { justify-content: flex-start; }
-        
+        /* --- PRZELACZNIKI SEGMENTOWE (LAYER, DETAIL) - dwa dolne wiersze stosu HUD ---
+           Oba maja byc IDENTYCZNE: segmenty startujace w tym samym miejscu i wiersz wypelniony
+           do prawej krawedzi. Domyslne .rb-label ma flex:1 1 auto, wiec etykieta POCHLANIA cala
+           wolna przestrzen wiersza - a ze LAYER ma 4 segmenty, a DETAIL 3, wolnego bylo rozne tyle
+           i etykiety wychodzily 43 px vs 92 px, przez co segmenty zaczynaly sie w innym miejscu.
+           Stad flex:0 0 52px - stala szerokosc obu etykiet, niezalezna od liczby segmentow.
+           Segmenty dostaja flex:1 1 auto, wiec ROSNA od swojej naturalnej szerokosci i dociagaja
+           wiersz do prawej krawedzi; w LAYER wolnego prawie nie ma (rosna o zero), w DETAIL
+           rozkladaja je miedzy siebie. Padding 2px 4px (zamiast 6-7) jest tu konieczny: przy
+           wiekszym czteroelementowy LAYER ze slowem STREET nie miescil sie w dwoch kolumnach. */
+        #sat-toggle .rb-label, #detail-switch .rb-label { flex: 0 0 52px; }
+        #sat-toggle .sat-opt, #detail-switch .ds-opt { flex: 1 1 auto; text-align: center; padding: 2px 4px; }
+
         /* --- LOOT BAR / MARQUEE FIX --- */
         /* cursor:grab + touch-action:none -> pasek da sie przeciagac myszka i palcem (obsluga w app.js,
            window._initLootBarDrag). touch-action MUSI byc none, inaczej przegladarka na dotyku probuje
@@ -639,7 +655,13 @@
             <div class="reset-btn" id="tz-toggle" style="position:static; width:148px; box-sizing:border-box; display:flex; align-items:center; padding:8px 12px; border-color:#38d6c0; color:#38d6c0; opacity:0.4; white-space:nowrap;" title="Strefy czasowe wl/wyl"><span class="rb-icon">🕐</span><span class="rb-label">ZONES: OFF</span></div>
             <div class="reset-btn" id="night-toggle" style="position:static; width:148px; box-sizing:border-box; display:flex; align-items:center; padding:8px 12px; border-color:#ffb066; color:#ffb066; opacity:0.4; white-space:nowrap;" title="Terminator dzien/noc wl/wyl"><span class="rb-icon">☾</span><span class="rb-label">NIGHT: OFF</span></div>
             <div class="reset-btn" id="climate-toggle" style="position:static; width:148px; box-sizing:border-box; display:flex; align-items:center; padding:8px 12px; border-color:#f0883e; color:#f0883e; opacity:0.4; white-space:nowrap;" title="Komfort klimatyczny wg miesiaca wl/wyl"><span class="rb-icon">🌡</span><span class="rb-label">CLIMATE: OFF</span></div>
-            <div class="reset-btn" id="detail-switch" style="grid-column:span 2; position:static; box-sizing:border-box; display:flex; align-items:center; gap:6px; padding:6px 10px; border-color:#9ca3af; color:#9ca3af; white-space:nowrap;" title="Szczegolowosc geometrii globu — LOW/HIGH/ULTRA (przeladowuje strone)"><span class="rb-icon">🌐</span><span class="rb-label">DETAIL</span><span class="ds-opt" data-lvl="low" style="cursor:pointer; padding:2px 7px; border:1px solid currentColor; border-radius:4px; opacity:0.4;">LOW</span><span class="ds-opt" data-lvl="high" style="cursor:pointer; padding:2px 7px; border:1px solid currentColor; border-radius:4px; opacity:0.4;">HIGH</span><span class="ds-opt" data-lvl="ultra" style="cursor:pointer; padding:2px 7px; border:1px solid currentColor; border-radius:4px; opacity:0.4;">ULTRA</span></div>
+            <!-- SAT: podklad ze zdjec/map rastrowych nalozony na kule. PRZELACZNIK SEGMENTOWY, taki
+                 sam jak DETAIL nizej (feedback 2026-07-29) - wczesniej byl to jeden przycisk CYKLUJACY
+                 OFF -> SAT -> STREET -> TOPO -> OFF, co wymagalo klikania na slepo, zeby dojsc do
+                 wybranej warstwy. Teraz kazda warstwa ma wlasny segment, a stan widac bez klikania.
+                 Segmenty obsluguje app.js (window.satSetSource); .sat-opt/data-src jak .ds-opt/data-lvl. -->
+            <div class="reset-btn" id="sat-toggle" style="grid-column:span 2; position:static; box-sizing:border-box; display:flex; align-items:center; gap:6px; padding:6px 10px; border-color:#7dd3fc; color:#7dd3fc; white-space:nowrap;" title="Podklad na globie: OFF / zdjecia satelitarne / mapa drogowa z ulicami / topografia z reliefem"><span class="rb-icon">🛰</span><span class="rb-label">LAYER</span><span class="sat-opt" data-src="off" style="cursor:pointer; border:1px solid currentColor; border-radius:4px; opacity:0.4;">OFF</span><span class="sat-opt" data-src="sat" style="cursor:pointer; border:1px solid currentColor; border-radius:4px; opacity:0.4;">SAT</span><span class="sat-opt" data-src="street" style="cursor:pointer; border:1px solid currentColor; border-radius:4px; opacity:0.4;">STREET</span><span class="sat-opt" data-src="topo" style="cursor:pointer; border:1px solid currentColor; border-radius:4px; opacity:0.4;">TOPO</span></div>
+            <div class="reset-btn" id="detail-switch" style="grid-column:span 2; position:static; box-sizing:border-box; display:flex; align-items:center; gap:6px; padding:6px 10px; border-color:#9ca3af; color:#9ca3af; white-space:nowrap;" title="Szczegolowosc geometrii globu — LOW/HIGH/ULTRA (przeladowuje strone)"><span class="rb-icon">🌐</span><span class="rb-label">DETAIL</span><span class="ds-opt" data-lvl="low" style="cursor:pointer; border:1px solid currentColor; border-radius:4px; opacity:0.4;">LOW</span><span class="ds-opt" data-lvl="high" style="cursor:pointer; border:1px solid currentColor; border-radius:4px; opacity:0.4;">HIGH</span><span class="ds-opt" data-lvl="ultra" style="cursor:pointer; border:1px solid currentColor; border-radius:4px; opacity:0.4;">ULTRA</span></div>
         </div>
         <div class="sys-log-container" style="position:static;">
             <div class="sys-log-header">/// SYSTEM_LOG_V5.6 [HARD_LOCK]</div>
@@ -654,6 +676,12 @@
         <div class="amb-sun-core"></div>
         <div class="amb-atmo"></div>
     </div>
+    <!-- PODKLAD TRYBU SATELITARNEGO. Musi lezec MIEDZY ozdoba tla (#space-ambiance, z-index 5)
+         a canvasem amCharts (#chartdiv, z-index 10): kafle maja zaslonic mglawice, ale kontury
+         panstw, terminator i punkty rysowane przez amCharts maja zostac NA WIERZCHU kafli.
+         Domyslnie display:none - canvas budzi sie dopiero przy wlaczeniu trybu (app.js,
+         window.setSatellite), wiec przy wylaczonym trybie nie kosztuje nic. -->
+    <canvas id="globe-tiles" aria-hidden="true" style="position:fixed; left:0; top:0; z-index:6; pointer-events:none; display:none;"></canvas>
     <div id="chartdiv"></div>
     <div class="loot-bar-wrapper" id="loot-wrapper"><div class="loot-track" id="loot-track"></div></div>
 
@@ -678,7 +706,7 @@
          tego pliku trzeba bumpnac TAMTEN numer osobno.
          Celowo TYLKO te pliki: ciezkie bazy (flags 2 MB, climate 2.3 MB) maja sie cache'owac,
          bo zmieniaja sie raz na ruski rok, a publiczna kopia na GitHub Pages sciagalaby je od nowa. -->
-    <script src="help.js?v=20260728m"></script>
-    <script src="app.js?v=20260728n"></script>
+    <script src="help.js?v=20260729j"></script>
+    <script src="app.js?v=20260729j"></script>
 </body>
 </html>

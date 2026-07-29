@@ -2,12 +2,33 @@
         // --- RYSOWANIE TRASY MISJI (nowe) ---
         window.displayMissionRoute = function(missionName) {
             if (typeof stopRot === 'function') stopRot();
-            if (window._exitActiveOverlayMode) window._exitActiveOverlayMode();   // klik w TARGET misji gasi VISA/CLIMATE/ZONES (patrz focusContinent)
+            // Gasi VISA/CLIMATE/ZONES/NIGHT (patrz focusContinent), ale ZOSTAWIA podklad SAT/STREET/TOPO:
+            // trasa wyprawy na zdjeciu satelitarnym czyta sie lepiej niz na plaskim tle, a podklad niczego
+            // tu nie zaslania (feedback 2026-07-29). Patrz komentarz przy _exitActiveOverlayMode.
+            if (window._exitActiveOverlayMode) window._exitActiveOverlayMode(true);
             const mission = MISSIONS_DB.find(m => m.name === missionName);
             if (!mission || !mission.route) { console.log("Brak danych trasy dla misji: " + missionName); return; }
             lineSeries.data.clear();
             pointSeries.data.clear();
-            pointSeries.data.setAll(mission.route.map(p => ({ geometry: { type: "Point", coordinates: [p.lon, p.lat] }, title: p.city })));
+            // note = OPCJONALNY dopisek pod nazwa miasta w zielonej ramce znacznika (np. "3 noce",
+            // "przesiadka 40 min"). Brak pola w danych = ramka wyglada jak dotad, sama nazwa.
+            // DEDUP: punkty powtarzajace sie w trasie (podroz w dwie strony - Warszawa na starcie i na
+            // koncu, Doha w obie przesiadki) leza na IDENTYCZNYCH wspolrzednych, wiec ich ramki rysowaly
+            // sie jedna NA DRUGIEJ - nieczytelna kasza z nalozonych napisow. Sklejamy je w JEDEN znacznik,
+            // a dopiski laczymy w kolejnosci odwiedzin ("23.10 wylot" + "14.11 powrot" w tej samej ramce).
+            // lineSeries NIE jest dedupowane nizej - geometria trasy musi zachowac odcinki powrotne.
+            var _seenPt = {}, _routePts = [];
+            mission.route.forEach(function(p){
+                var k = p.lat.toFixed(3) + "," + p.lon.toFixed(3);
+                if (_seenPt[k] !== undefined) {
+                    var prev = _routePts[_seenPt[k]];
+                    if (p.note) prev.note = prev.note ? (prev.note + "\n" + p.note) : p.note;
+                    return;
+                }
+                _seenPt[k] = _routePts.length;
+                _routePts.push({ geometry: { type: "Point", coordinates: [p.lon, p.lat] }, title: p.city, note: p.note });
+            });
+            pointSeries.data.setAll(_routePts);
             const coordinates = mission.route.map(p => [p.lon, p.lat]);
             lineSeries.pushDataItem({ geometry: { type: "LineString", coordinates: coordinates } });
             var _lats = mission.route.map(function(p){ return p.lat; }), _lons = mission.route.map(function(p){ return p.lon; });
@@ -2042,6 +2063,8 @@
             if (window._carSearchUrls) {
                 var _carApCC = (row && row[4]) ? String(row[4]) : "";
                 var _carApProbe = window._carSearchUrls({ mode: "airport", iata: iata, cc: _carApCC,
+                    lat: (row ? row[0] : null), lon: (row ? row[1] : null),
+                    locName: (row && row[3]) ? row[3] : iata,
                     city: "", cin: "", cout: "", tin: "10:00", tout: "10:00", age: 30 });
                 if (_carApProbe.length) {
                     _carApPair = [_apSortKey("AUTO"), '<a href="' + _carApProbe[0].url + '" id="airport-car-btn" target="_blank" class="windy-btn" style="background:rgba(250,204,21,0.15); border:1px solid #facc15; color:#facc15;">🚗 AUTO</a>'];
@@ -2107,6 +2130,8 @@
                 ev.preventDefault();
                 window.showCarSearchModal({
                     mode: "airport", iata: iata, cc: (row && row[4]) ? String(row[4]) : "", city: "",
+                    lat: (row ? row[0] : null), lon: (row ? row[1] : null),
+                    locName: (row && row[3]) ? row[3] : iata,
                     label: iata + (row && row[3] ? (" · " + row[3]) : "")
                 });
             };
@@ -3236,11 +3261,16 @@
             var dcCountry = window.CAR_DC_COUNTRY || {};
             (cfg.services || []).forEach(function(s){
                 var tpl = isAp ? s.airport : s.city, dcPath = "", citySlug = "";
+                // RENTALCARS IDZIE NA WSPOLRZEDNE, nie na slug - wiec dziala dla KAZDEGO miasta
+                // i lotniska i nie ma zadnego slownika pokrycia. Jedyny warunek to znane lat/lon.
+                if (s.name === "Rentalcars" && (o.lat == null || o.lon == null)) return;
+                // DISCOVERCARS WYRZUCONY 2026-07-28 - te dwie galezie zostaja jako obsluga slownikow,
+                // ktore sa dzis puste. Gdyby wrocil serwis sterowany gotowa sciezka, wystarczy
+                // dopisac go do CAR_SEARCH.services i wypelnic CAR_DC_*. Powod wyrzucenia:
+                // nie przyjmowal dat z adresu, a bez dat to strona docelowa, nie wyszukiwarka.
                 if (isAp) {
-                    if (s.name === "Rentalcars" && rcAir.indexOf(iata) < 0) return;
                     if (s.name === "DiscoverCars") { dcPath = dcAir[iata]; if (!dcPath) return; }
                 } else {
-                    if (s.name === "Rentalcars") { citySlug = rcCity[key]; if (!citySlug) return; }
                     if (s.name === "DiscoverCars") {
                         var cs = dcCity[key], cn = dcCountry[o.cc];
                         if (!cs || !cn) return;
@@ -3251,7 +3281,17 @@
                     // ("Barcelona,Spain" -> Port-of-Spain na Trynidadzie). Patrz car-links-data.js.
                     if (s.name === "Kayak" && !o.kayakId) return;
                 }
+                // Rentalcars chce daty ROZBITEJ NA CZLONY, a nie ISO - i miesiac liczy OD 1.
+                var _p = function(s2, i){ return String(s2 || "").split("-")[i] || ""; };
+                var _t = function(s2, i){ return String(s2 || "").split(":")[i] || "0"; };
+                var _nz = function(v){ return String(parseInt(v, 10) || 0); };
                 out.push({ name: s.name, url: tpl
+                    .replace(/\{locName\}/g, encodeURIComponent(o.locName || ""))
+                    .replace(/\{lat\}/g, o.lat).replace(/\{lon\}/g, o.lon)
+                    .replace(/\{inD\}/g, _nz(_p(o.cin, 2))).replace(/\{inM\}/g, _nz(_p(o.cin, 1))).replace(/\{inY\}/g, _p(o.cin, 0))
+                    .replace(/\{outD\}/g, _nz(_p(o.cout, 2))).replace(/\{outM\}/g, _nz(_p(o.cout, 1))).replace(/\{outY\}/g, _p(o.cout, 0))
+                    .replace(/\{inH\}/g, _nz(_t(o.tin, 0))).replace(/\{inMin\}/g, _nz(_t(o.tin, 1)))
+                    .replace(/\{outH\}/g, _nz(_t(o.tout, 0))).replace(/\{outMin\}/g, _nz(_t(o.tout, 1)))
                     .replace(/\{cc\}/g, String(o.cc || "").toLowerCase())
                     .replace(/\{iata\}/g, iata.toLowerCase()).replace(/\{IATA\}/g, iata)
                     .replace(/\{dcPath\}/g, dcPath).replace(/\{citySlug\}/g, citySlug)
@@ -3296,12 +3336,14 @@
               +     '<div><div style="' + lbl + '">GODZINA</div><input type="time" id="cs-int" value="10:00" style="' + inp + '"></div>'
               +     '<div><div style="' + lbl + '">ZWROT</div><input type="date" id="cs-out" value="' + outDef + '" style="' + inp + '"></div>'
               +     '<div><div style="' + lbl + '">GODZINA</div><input type="time" id="cs-outt" value="10:00" style="' + inp + '"></div>'
-              +     '<div><div style="' + lbl + '">WIEK KIEROWCY</div><select id="cs-age" style="' + inp + '">'
-              +       (cfg.ages || [30]).map(function(a){ return '<option value="' + a + '"' + (a === 30 ? ' selected' : '') + '>' + a + '</option>'; }).join('')
-              +     '</select></div>'
+              // WIEK KIEROWCY ZOSTAJE, bo Rentalcars realnie go przyjmuje (driversAge). Gdyby kiedys
+              // zostal tylko DiscoverCars i Kayak - wyrzuc to pole, bo u nich nie robi nic.
+              // POLA WIEKU KIEROWCY TU NIE MA - wartosc jest na sztywno w CAR_SEARCH.driverAge.
+              // Byla lista progow, potem pole liczbowe, ostatecznie wylecialo: powyzej 25 lat cena
+              // sie nie zmienia, wiec pole kazalo uzytkownikowi wypelniac cos, co na nic nie wplywa.
               +   '</div>'
               +   '<div style="font-family:\'JetBrains Mono\',monospace; font-size:0.64rem; color:#6b7885; margin-top:10px; line-height:1.5;">'
-              +     '<span style="color:#a1730f;">⚠</span> Wiek kierowcy zmienia cenę — poniżej 25 lat dochodzi dopłata „młody kierowca”.'
+              +     '<span style="color:#a1730f;">⚠</span> Oba serwisy otwierają się z Twoim terminem i posortowane od najtańszego. Ceny są dla kierowcy powyżej 25 lat — poniżej tego progu wypożyczalnie doliczają „młodego kierowcę”, więc trzeba je wtedy sprawdzić na miejscu.'
               +   '</div>'
               +   '<div id="cs-blocked" style="display:none; font-family:\'JetBrains Mono\',monospace; font-size:0.7rem; color:#facc15; margin-top:10px; line-height:1.7;"></div>'
               +   '<div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:14px;">'
@@ -3312,13 +3354,16 @@
             var inEl = document.getElementById("cs-in"), outEl = document.getElementById("cs-out");
             var goEl = document.getElementById("cs-go");
             function build(){
+                // lat/lon/locName MUSZA tu byc przekazane dalej - bez nich Rentalcars odpada
+                // na wlasnym warunku i popup pokazuje o jeden serwis mniej, cicho.
                 return window._carSearchUrls({
                     mode: o.mode, iata: o.iata, cc: o.cc, city: o.city,
+                    lat: o.lat, lon: o.lon, locName: o.locName,
                     kayakId: o.kayakId, kayakSlug: o.kayakSlug,
                     cin: inEl.value, cout: outEl.value,
                     tin: document.getElementById("cs-int").value,
                     tout: document.getElementById("cs-outt").value,
-                    age: document.getElementById("cs-age").value
+                    age: (cfg.driverAge || 30)
                 });
             }
             function sync(){ goEl.textContent = "SZUKAJ ↗ ×" + build().length; }
@@ -3753,6 +3798,7 @@
             if (dc.cc && dc.cname && window._carSearchUrls) {
                 var _carProbe = window._carSearchUrls({
                     mode: "city", cc: dc.cc, city: dc.cname,
+                    lat: dc.lat, lon: dc.lng, locName: dc.cname,
                     kayakId: (window.KAYAK_CITY_ID || {})[dc.cc + "|" + dc.cname],
                     kayakSlug: "", cin: "", cout: "", tin: "10:00", tout: "10:00", age: 30
                 });
@@ -3943,7 +3989,8 @@
                 var _snCar = window._searchCityName ? window._searchCityName(dc.cc, dc.cname) : dc.cname;
                 window.showCarSearchModal({
                     mode: "city", cc: dc.cc, city: dc.cname,
-                    label: dc.cname + (_cnCar ? " · centrum" : " · centrum"),
+                    lat: dc.lat, lon: dc.lng, locName: dc.cname + (_cnCar ? ", " + _cnCar : ""),
+                    label: dc.cname + " · centrum",
                     kayakId: (window.KAYAK_CITY_ID || {})[dc.cc + "|" + dc.cname],
                     kayakSlug: encodeURIComponent(String(_snCar + (_cnCar ? " " + _cnCar : "")).replace(/\s+/g, "-"))
                 });
@@ -6392,18 +6439,45 @@
 					chart.set("paddingTop", extra/2); chart.set("paddingBottom", extra/2);
 				})();
 				// ZOOM kolkiem - zawsze wycentrowany na punkcie na srodku globu (nie ucieka "za planete")
+				// GORNA GRANICA NIE JEST TU STALA. Czytamy ja z wykresu, bo tryb SAT podnosi maxZoomLevel
+				// z 40 do SAT_MAX_ZOOM (kafle maja realny detal az do poziomu ulic - patrz setSatellite).
+				// Dla samej mapy wektorowej 40 zostaje: worldLow nie ma wiecej szczegolu, glebiej byloby
+				// tylko powiekszanie tych samych uproszczonych konturow.
+				// KROK rosnie powyzej klasycznego zakresu. Ponizej zoomu 40 zostaje 1.2x, zeby zwykly zoom
+				// czul sie jak dotad; powyzej 1.6x. ZMIERZONE: droga 1 -> 100 000 to przy tym schemacie
+				// 38 klikniec kolka, samym 1.2x byloby 63.
 				(function(){
 					var cd = document.getElementById("chartdiv");
 					if (!cd) return;
 					cd.addEventListener("wheel", function(e){
 						e.preventDefault();
-						var z = chart.get("zoomLevel") || 1;
-						z = (e.deltaY < 0) ? z * 1.2 : z / 1.2;
-						z = Math.max(1, Math.min(40, z));
+						var zmax = chart.get("maxZoomLevel") || 40;
+						var z0 = chart.get("zoomLevel") || 1;
+						var f = (z0 >= 40) ? 1.6 : 1.2;
+						var z = (e.deltaY < 0) ? z0 * f : z0 / f;
+						z = Math.max(1, Math.min(zmax, z));
+						// Podklad SAT wystawia _satZoomCap, gdy w tym rejonie skonczyly sie zdjecia
+						// i dalszy zoom tylko powiekszalby ostatni poziom kafli. Nie cofamy widoku -
+						// bierzemy max z obecnym zoomem, zeby sciana tylko ZATRZYMYWALA przyblizanie,
+						// a oddalanie dzialalo zawsze.
+						var zcap = window._satZoomCap;
+						if (window._satOn && zcap > 0 && z > zcap) z = Math.max(z0, zcap);
+						if (z === z0) return;
 						var center = { longitude: -chart.get("rotationX"), latitude: -chart.get("rotationY") };
 						chart.zoomToGeoPoint(center, z, true, 250);
 					}, { passive: false });
 				})();
+				// CZULOSC PRZECIAGANIA PRZY DUZYM ZOOMIE - SPRAWDZONE, NIE TRZEBA NIC ROBIC (2026-07-29).
+				// Kuszace jest zalozenie, ze przeciaganie bedzie przy zoomie 10 tys. nieuzywalne: amCharts
+				// liczy "ile stopni na piksel" RAZ, przy wcisnieciu myszy (prywatne _pLon/_pLat, z
+				// projection.invert dwoch sasiednich pikseli), i trzyma to przez cale przeciagniecie.
+				// Bylby to blad, GDYBY zoom siedzial w transformacie seriesContainer - wtedy invert
+				// liczylby na skali sprzed zoomu. ZMIERZONE: jest odwrotnie, amCharts skaluje SAMA
+				// PROJEKCJE (proj.scale() = baza * zoomLevel, seriesContainer zostaje przy skali 1), wiec
+				// invert widzi juz skale zoomowana i wspolczynnik wychodzi poprawny sam z siebie:
+				//   zoom 1 -> 0.2798 st./px,  zoom 10 -> 0.02910,  zoom 1000 -> 0.0002923.
+				// Dzielenie tego jeszcze raz przez zoomLevel (probowane i wycofane) zabija przeciaganie
+				// calkowicie. Zostawiamy amCharts w spokoju.
                 var autoRot; var resetBtn = document.getElementById("reset-btn");
                 // keepZoom = true tylko dla sciezek, ktore SAME ustawiaja zoom zaraz po obrocie
                 // (np. skok do miasta z wyszukiwarki: zoomLevel -> 6). Wszystkie pozostale nawigacje
@@ -6716,6 +6790,557 @@
                     window._cliBandOf = function(t){ var b=_cliBand(t); return { band:b, label:_cliBandLbl[b], color:"#"+("00000"+_cliBandCols[b].toString(16)).slice(-6) }; };
                     window._cliMonthUI = { abbr: _cliMonAbbr, names: _cliMonthNames };
                 } catch(_cle) { console.warn("Climate mode init failed:", _cle); }
+
+                // ============================================================================
+                // --- TRYB SATELITARNY: kafle rastrowe REPROJEKTOWANE na kule ---
+                // ============================================================================
+                // PROBLEM. Kafle map (Esri/OSM) sa w Web Mercatorze - plaskiej siatce. Nasz glob
+                // to projekcja ORTOGRAFICZNA. Nie da sie kafla "nalozyc" na kule zwyklym
+                // drawImage: kazdy piksel ladowalby w innym miejscu niz powinien, a blad rosnie
+                // do setek pikseli przy brzegu tarczy. Nie da sie tez uzyc Google Earth - nie ma
+                // API do osadzania, a kafle Google wolno wyswietlac WYLACZNIE przez Google Maps
+                // API, ktore nie zna projekcji ortograficznej.
+                //
+                // ROZWIAZANIE. Odwrotna reprojekcja per-piksel na WLASNYM canvasie (#globe-tiles),
+                // ktory lezy POD canvasem amCharts (z-index 5 vs 10). Dla kazdego piksela ekranu:
+                //   piksel -> (odwrotna ortograficzna) -> lon/lat -> (Mercator) -> piksel kafla.
+                // amCharts rysuje na wierzchu kontury panstw, terminator, punkty i linie - wiec
+                // caly HUD i cala reszta logiki dziala DALEJ, bez zmian. Zdjecie jest tylko tlem.
+                //
+                // DLACZEGO NIE proj.invert() Z d3. Bylo by o wiele krocej, ale to wywolanie
+                // funkcji + alokacja tablicy NA KAZDY PIKSEL - przy ~400 tys. pikseli kuli to
+                // setki tysiecy smieci na klatke i zauwazalne szarpanie przy obrocie. Ponizsza
+                // matematyka robi to samo w liczbach skalarnych, bez alokacji.
+                //
+                // GEOMETRIA (zgodna z d3-geo, bo am5map.geoOrthographic() TO d3.geoOrthographic):
+                //   d3 rysuje jako [tx + k*x, ty - k*y] (stad odwrocone Y przy odczycie),
+                //   a rotacje sklada jako Ry(dp) . Rz(dl), gdzie dl=rotationX, dp=rotationY [rad].
+                //   Widoczna polkula to dokladnie te piksele, dla ktorych X^2+Y^2 <= 1 (X,Y w
+                //   jednostkach promienia), a trzecia skladowa Z = sqrt(1-X^2-Y^2) jest "do nas".
+                //   Wektor na sferze w ukladzie OBROCONYM to wprost (Z, X, Y) - zero trygonometrii.
+                //   Cofniecie obrotu = Ry(-dp), potem odjecie dl od dlugosci.
+                //
+                // ZOOM I POZIOM KAFLI. Promien kuli w px czytamy jako proj.scale() * skala kontenera
+                // (seriesContainer.toGlobal), i dopiero z niego wynika poziom kafli z. Mnozenie OBU
+                // jest celowe - amCharts moze wlozyc zoom w kazda z tych dwoch rzeczy, a przy tej
+                // projekcji wklada go (zmierzone 2026-07-29) w proj.scale(), zostawiajac kontener przy 1.
+                // Efekt uboczny jest pozadany: im glebszy zoom, tym wyzszy z (ostrzejsze kafle),
+                // ale widoczny obszar maleje - liczba kafli do pobrania zostaje mniej wiecej stala.
+                // ============================================================================
+                try {
+                    var _satHost = document.getElementById("chartdiv");
+                    var _satCv   = document.getElementById("globe-tiles");
+                    var _satCtx  = _satCv ? _satCv.getContext("2d") : null;
+                    var _satSrcKeys = (typeof TILE_SOURCES !== "undefined") ? Object.keys(TILE_SOURCES) : [];
+                    if (!_satCv || !_satCtx || !_satSrcKeys.length) throw new Error("brak #globe-tiles albo TILE_SOURCES");
+
+                    var _satSrcIdx = 0;                  // indeks w _satSrcKeys = aktywne zrodlo
+                    var _satTiles  = new Map();          // "src|z/x/y" -> { img, ok } (cache kafli, LRU)
+                    var _satGen    = 0;                  // rosnie z kazdym doladowanym kaflem -> uniewaznia mozaike
+                    var _satAsm    = null;               // zlozona mozaika: { z, ox, oy, w, h, px (Uint8ClampedArray), gen }
+                    var _satBufs   = {};                 // bufory robocze per krok (1 = pelna rozdzielczosc, 2 = szybka)
+                    var _satRAF = 0, _satIdle = 0, _satWantQuick = false;
+                    var _satOrig = null;                 // zapamietany wyglad warstw amCharts (do przywrocenia)
+                    var _satAttr = null;                 // element z licencja zrodla
+                    window._satOn = false;
+                    window._satLbl = "SAT";
+                    window._satSrcKey = _satSrcKeys[0];   // klucz aktywnej warstwy - czyta go segmentowy HUD
+
+                    var _S_TWOPI = Math.PI * 2, _S_INV2PI = 1 / _S_TWOPI, _S_INV4PI = 1 / (Math.PI * 4);
+                    var _S_MAXSIN = 0.99627207622;       // sin(85.0511 st.) - granica Web Mercatora
+                    // Gorny limit kafli na widok (patrz _satPlan). KOSZTUJE OSTROSC, ale tylko miejscami -
+                    // zmierzone 2026-07-29 na 35 kombinacjach (7 lokalizacji x 5 poziomow zoomu, 1280x720):
+                    //   rownik (0 st., 15 st.)     - nigdy nie schodzi ponizej poziomu z wzoru
+                    //   52-40 st. (Warszawa, NY)   - jeden poziom nizej przy zoomie 500 i 50 000
+                    //   64 st. (Laponia)           - jeden poziom nizej, przy zoomie 50 000 dwa
+                    //   zoom 100 000 (maksimum)    - wszedzie natywne z19, bez straty
+                    // Winowajca to Mercator: przy szerokosci fi rozciaga pion o sec(fi), wiec ten sam
+                    // kadr potrzebuje na polnocy 1.6-2.3x wiecej kafli w pionie niz na rowniku.
+                    // Podniesienie stalej do ~100 usuneloby te straty, ale prog przesuwa sie wtedy na
+                    // WSZYSTKICH poziomach zoomu: wiecej ruchu sieciowego (przy OSM to cudza
+                    // infrastruktura charytatywna) i wieksza mozaika - 10x10 kafli to bufor 2560x2560 px,
+                    // czyli ~26 MB pikseli plus drugie tyle na canvas zrodlowy. Swiadomie zostaje 72:
+                    // strata dotyczy pasm posrednich, a nie tego, co widac na koncu dojazdu.
+                    var _S_MAXTILES = 72;
+
+                    // --- ZASIEG ZOOMU W TYM TRYBIE --------------------------------------------
+                    // Poziom kafla wynika z promienia kuli w px: z = round(log2(2*PI*R/256)), gdzie
+                    // R = proj.scale() * zoomLevel (~249.5 * zoom przy 1280x720). Dlatego dotychczasowe
+                    // maksimum wykresu (zoom 40) dawalo dopiero z8, czyli ~600 m/px - wciaz widok
+                    // "z kosmosu", mimo ze zrodla maja kafle do z19 (~0.3 m/px). Poziom pojedynczych
+                    // ulic (z17) zaczyna sie przy zoomie ~15 000, a maksimum zrodel (z19) przy ~64 000.
+                    // 100 000 daje zapas takze na wezszym ekranie (mniejsze proj.scale() = trzeba
+                    // wiekszego zoomu do tego samego R). Poza trybem wracamy do 40 - wektorowy
+                    // worldLow nie ma wiecej szczegolu, glebiej byloby tylko rozciaganie tych samych linii.
+                    var _S_MAXZOOM  = 100000;
+                    var _S_ZOOM_STD = 40;
+                    // Ile razy wolno POWIEKSZYC ostatni dostepny poziom kafli, zanim kolko stanie.
+                    // 8x to granica, przy ktorej widac juz same kwadraty pikseli - dalej nie ma czego
+                    // ogladac. Patrz _satZoomCap w _satRender i hamulec w handlerze kolka.
+                    var _S_MAXMAG = 8;
+
+                    // Prog chowania konturow panstw. worldLow jest uproszczony z dokladnoscia rzedu
+                    // kilometrow; przy zoomie, gdzie caly ekran to kilkaset metrow, taka linia nie jest
+                    // juz przyblizeniem granicy tylko linia narysowana kilometr obok tego, gdzie granica
+                    // faktycznie biegnie. Zoom 400 to okolice z11-z12 (widok kilkunastu km) - tam jeszcze
+                    // pomaga, glebiej juz tylko klamie. Przy okazji zdejmuje z przegladarki jeden
+                    // gigantyczny path skalowany kilka tysiecy razy.
+                    var _S_BORDER_MAX = 400;
+                    var _satPolyHid = false;
+                    function _satBorders(zoom){
+                        var hide = (zoom > _S_BORDER_MAX);
+                        if (hide === _satPolyHid) return;
+                        _satPolyHid = hide;
+                        poly.set("visible", !hide);
+                    }
+
+                    function _satSrc(){ return TILE_SOURCES[_satSrcKeys[_satSrcIdx]]; }
+
+                    // --- GEOMETRIA KULI NA EKRANIE ---------------------------------------------
+                    // Zwraca srodek i promien tarczy W PIKSELACH CANVASA oraz katy obrotu w radianach.
+                    // proj.scale()/translate() opisuja uklad BEZ zoomu; zoom i pan siedza w
+                    // transformacie seriesContainer, wiec skladamy jedno z drugim. Skale kontenera
+                    // mierzymy dwoma probkami (transformata jest jednorodna: skala + przesuniecie).
+                    function _satGeom(){
+                        var gc = window.__globeChart; if (!gc) return null;
+                        var proj = gc.get("projection");
+                        if (!proj || typeof proj.scale !== "function" || typeof proj.translate !== "function") return null;
+                        var k0 = proj.scale(), t0 = proj.translate();
+                        if (!k0 || !t0 || !isFinite(k0) || !isFinite(t0[0])) return null;
+                        var sc = gc.seriesContainer; if (!sc || !sc.toGlobal) return null;
+                        var o = sc.toGlobal({ x: 0, y: 0 }), e = sc.toGlobal({ x: 1000, y: 0 });
+                        var kz = (e.x - o.x) / 1000;
+                        if (!isFinite(kz) || kz <= 0 || !isFinite(o.x) || !isFinite(o.y)) return null;
+                        var rot = (typeof proj.rotate === "function") ? proj.rotate() : [0, 0, 0];
+                        return {
+                            cx: o.x + kz * t0[0],
+                            cy: o.y + kz * t0[1],
+                            R:  kz * k0,
+                            dl: (rot[0] || 0) * Math.PI / 180,
+                            dp: (rot[1] || 0) * Math.PI / 180
+                        };
+                    }
+
+                    // --- WYKRYWANIE ZASLEPKI "Map data not yet available" ----------------------
+                    // maxZoom w TILE_SOURCES mowi, jaki poziom serwer OBSLUGUJE, a nie gdzie realnie MA
+                    // zdjecia. Esri na poziomie ponad swoje pokrycie NIE oddaje 404 - oddaje poprawny
+                    // kafel 200 z szara plansza "Map data not yet available", wiec img.onerror milczy
+                    // i uzytkownik dostaje pelny ekran szarosci. ZMIERZONE 2026-07-29, ostatni poziom
+                    // z prawdziwym obrazem: Warszawa i Tokio z19, ale Kamerun, Sahara, Syberia i
+                    // Amazonia juz z17, a otwarty ocean z13. Zadna stala globalna tego nie zalatwi -
+                    // albo obcieloby miasta, albo dalej swiecilo szarym nad Afryka.
+                    // Zaslepka ma za to IDENTYCZNY podpis wszedzie: srednia RGB (205,205,205),
+                    // odchylenie standardowe jasnosci 4.8 przy probce 64x64 (ciemny napis na plaskim
+                    // szarym tle). Progi ponizej sa dobrane z zapasem wokol tych wartosci.
+                    // Falszywy alarm (jednolicie szare zdjecie - snieg, gruba chmura) kosztuje tylko
+                    // jeden poziom ostrosci w tym rejonie, wiec swiadomie wolimy go od szarej plachty.
+                    var _satBlankCv = null, _satBlankCtx = null;
+                    function _satIsBlank(img){
+                        if (!_satBlankCv) {
+                            _satBlankCv = document.createElement("canvas");
+                            _satBlankCv.width = _satBlankCv.height = 16;
+                            _satBlankCtx = _satBlankCv.getContext("2d", { willReadFrequently: true });
+                        }
+                        try {
+                            _satBlankCtx.drawImage(img, 0, 0, 16, 16);
+                            var d = _satBlankCtx.getImageData(0, 0, 16, 16).data, n = 256, s = 0, s2 = 0, col = 0;
+                            for (var i = 0; i < d.length; i += 4) {
+                                // Zaslepka jest szara, ale NIE co do piksela: skalowanie 256->16 miesza
+                                // antyaliasing napisu i zostawia pojedyncze piksele z odcieniem. Zmierzone
+                                // na prawdziwej zaslepce: 1 taki piksel na 256. Dlatego liczymy je, zamiast
+                                // odrzucac na pierwszym - odrzucanie na pierwszym NIE WYKRYWALO NICZEGO.
+                                if (Math.abs(d[i] - d[i + 1]) > 8 || Math.abs(d[i + 1] - d[i + 2]) > 8) col++;
+                                s += d[i]; s2 += d[i] * d[i];
+                            }
+                            if (col > 16) return false;                  // >6% kolorowych = to zdjecie, nie plansza
+                            var m = s / n;
+                            if (m < 193 || m > 217) return false;
+                            return Math.sqrt(Math.max(0, s2 / n - m * m)) < 14;
+                        } catch(_be) { return false; }
+                    }
+
+                    // --- POBIERANIE KAFLA ------------------------------------------------------
+                    // Zwraca REKORD gotowego kafla ({ img, ok, blank }) albo null (jeszcze leci / padl).
+                    // Wolajacy potrzebuje nie tylko obrazka, ale i flagi blank - patrz _satAssemble.
+                    // Brakujace kafle po prostu zostaja przezroczyste - mozaika doszywa sie sama, gdy
+                    // doleca (onload -> _satGen). crossOrigin="anonymous" jest KRYTYCZNE: bez niego
+                    // canvas staje sie "tainted" i getImageData rzuca SecurityError zamiast oddac piksele.
+                    function _satTile(z, x, y){
+                        var n = 1 << z;
+                        if (y < 0 || y >= n) return null;                 // poza biegunami kafli nie ma
+                        var xx = ((x % n) + n) % n;                       // dlugosc owija sie dookola
+                        var sk  = _satSrcKeys[_satSrcIdx];
+                        var key = sk + "|" + z + "/" + xx + "/" + y;
+                        var rec = _satTiles.get(key);
+                        if (rec) return rec.ok ? rec : null;
+                        var img = new Image();
+                        rec = { img: img, ok: false, blank: false };
+                        _satTiles.set(key, rec);
+                        if (_satTiles.size > 600) {                       // LRU: Map trzyma kolejnosc wstawiania
+                            var it = _satTiles.keys();
+                            for (var d = 0; d < 150; d++) { var kk = it.next(); if (kk.done) break; _satTiles.delete(kk.value); }
+                        }
+                        img.crossOrigin = "anonymous";
+                        img.onload  = function(){ rec.ok = true; rec.blank = _satIsBlank(img); _satGen++; _satSchedule(false); };
+                        img.onerror = function(){ rec.dead = true; };
+                        img.src = TILE_SOURCES[sk].url.replace("{z}", z).replace("{x}", xx).replace("{y}", y);
+                        return null;
+                    }
+
+                    // --- SUFIT POZIOMU NA REJON ------------------------------------------------
+                    // Gdy mozaika okaze sie w wiekszosci zaslepkami, zapamietujemy dla TEGO REJONU
+                    // najwyzszy poziom z prawdziwym obrazem. Kluczem jest kafel poziomu 10 (~40 km)
+                    // pod srodkiem widoku - na tej skali pokrycie zrodla jest jednorodne, a Mapa nie
+                    // rosnie w nieskonczonosc. Dzieki temu Warszawa dalej dostaje z19, a Kamerun
+                    // zatrzymuje sie na z17 i zamiast szarosci po prostu powieksza ostatni realny obraz.
+                    var _satCaps = new Map();          // "src|x/y" (kafel z10) -> najwyzszy uzyteczny z
+                    function _satCapKey(g){
+                        var lo = -g.dl * 180 / Math.PI, la = -g.dp * 180 / Math.PI;
+                        var n = 1 << 10;
+                        var x = Math.floor(((((lo % 360) + 540) % 360)) / 360 * n) % n;
+                        var s = Math.sin(la * Math.PI / 180);
+                        if (s > _S_MAXSIN) s = _S_MAXSIN; else if (s < -_S_MAXSIN) s = -_S_MAXSIN;
+                        var y = Math.floor((0.5 - Math.log((1 + s) / (1 - s)) * _S_INV4PI) * n);
+                        return _satSrcKeys[_satSrcIdx] + "|" + x + "/" + y;
+                    }
+
+                    // --- CO POBRAC: poziom z + prostokat kafli ---------------------------------
+                    // Widoczny obszar wyznaczamy probkujac siatke pikseli po tarczy i odwracajac
+                    // projekcje. Dlugosci NIE porownujemy bezwzglednie (przy antypoludniku -179 i
+                    // +179 sasiaduja), tylko jako ODCHYLENIE od srodka widocznej polkuli - to
+                    // automatycznie zalatwia owijanie. Gdy w kadrze jest biegun, dlugosc traci sens
+                    // i bierzemy pelny zakres.
+                    function _satPlan(g, W, H){
+                        var src = _satSrc();
+                        // Ortograficzna daje R px na radian w srodku tarczy; Mercator na poziomie z
+                        // daje (256*2^z)/(2*PI) px na radian. Zrownanie obu: 2^z = 2*PI*R/256.
+                        var z = Math.round(Math.log(_S_TWOPI * g.R / 256) / Math.LN2);
+                        if (!isFinite(z)) return null;
+                        z = Math.max(0, Math.min(src.maxZoom, z));
+                        // Sufit wykryty dla tego rejonu (patrz _satCaps): dalej zrodlo ma juz tylko
+                        // zaslepki, wiec zostajemy na ostatnim realnym poziomie i go powiekszamy.
+                        var capKey = _satCapKey(g), cap = _satCaps.get(capKey);
+                        if (cap !== undefined && z > cap) z = cap;
+
+                        var cdp = Math.cos(g.dp), sdp = Math.sin(g.dp);
+                        var x0 = Math.max(0, Math.floor(g.cx - g.R)), x1 = Math.min(W, Math.ceil(g.cx + g.R));
+                        var y0 = Math.max(0, Math.floor(g.cy - g.R)), y1 = Math.min(H, Math.ceil(g.cy + g.R));
+                        if (x1 <= x0 || y1 <= y0) return null;
+
+                        // Biegun jest widoczny, gdy jego skladowa "do nas" (x2) wychodzi dodatnia.
+                        // Dla bieguna N: x2 = -sin(dp); dla S: x2 = +sin(dp). Oba leza na osi pionowej
+                        // tarczy (X=0), wiec wystarczy sprawdzic, czy trafiaja w kadr.
+                        var poleHit = false, pn = g.cy - g.R * cdp, ps = g.cy + g.R * cdp;
+                        if (-sdp > 0 && g.cx >= x0 && g.cx <= x1 && pn >= y0 && pn <= y1) poleHit = true;
+                        if ( sdp > 0 && g.cx >= x0 && g.cx <= x1 && ps >= y0 && ps <= y1) poleHit = true;
+
+                        // Dlugosc srodka widocznej polkuli - punkt odniesienia dla dd nizej.
+                        var lonC = -g.dl * 180 / Math.PI;
+
+                        var N = 26, dmin = 1e9, dmax = -1e9, latMin = 90, latMax = -90, any = false;
+                        for (var i = 0; i <= N; i++) {
+                            var py = y0 + (y1 - y0) * i / N, Yv = (g.cy - py) / g.R;
+                            for (var j = 0; j <= N; j++) {
+                                var px = x0 + (x1 - x0) * j / N, Xv = (px - g.cx) / g.R;
+                                var s = Xv * Xv + Yv * Yv; if (s > 1) continue;
+                                var Zv = Math.sqrt(1 - s);
+                                var c = Yv * cdp - Zv * sdp; if (c > 1) c = 1; else if (c < -1) c = -1;
+                                var la = Math.asin(c) * 180 / Math.PI;
+                                var lo = (Math.atan2(Xv, Zv * cdp + Yv * sdp) - g.dl) * 180 / Math.PI;
+                                // ODCHYLENIE od srodka polkuli, nie dlugosc bezwzgledna. Odjecie lonC
+                                // MUSI byc tutaj, przed owinieciem: nizej ax0/ax1 licza sie z lonC + dd,
+                                // wiec bez tego dlugosc wchodzi do wzoru DWA RAZY i mozaika ladu je na
+                                // 2x dalszym poludniku. Do zoomu 40 bylo to niewidoczne, bo przy tak
+                                // szerokim kadrze nx >= n i ponizszy warunek i tak bral caly swiat wszerz.
+                                var dd = (((lo - lonC) % 360) + 540) % 360 - 180;
+                                if (dd < dmin) dmin = dd;
+                                if (dd > dmax) dmax = dd;
+                                if (la < latMin) latMin = la;
+                                if (la > latMax) latMax = la;
+                                any = true;
+                            }
+                        }
+                        if (!any) return null;
+                        if (poleHit) { dmin = -180; dmax = 180; if (-sdp > 0) latMax = 90; else latMin = -90; }
+
+                        // Zapas 1 kafla z kazdej strony: dzieki niemu drobny obrot NIE wymusza od razu
+                        // przebudowy mozaiki (najdrozsza operacja: getImageData z duzego canvasa).
+                        var plan = null;
+                        for (var guard = 0; guard < 8; guard++) {
+                            var n = 1 << z, Wpx = 256 * n;
+                            var ax0 = Math.floor(((lonC + dmin + 180) / 360) * Wpx / 256) - 1;
+                            var ax1 = Math.ceil (((lonC + dmax + 180) / 360) * Wpx / 256) + 1;
+                            var ay0 = Math.floor(_satMercY(latMax, Wpx) / 256) - 1;
+                            var ay1 = Math.ceil (_satMercY(latMin, Wpx) / 256) + 1;
+                            if (ay0 < 0) ay0 = 0; if (ay1 > n) ay1 = n;
+                            var nx = ax1 - ax0, ny = ay1 - ay0;
+                            if (nx >= n) { ax0 = 0; nx = n; }              // caly swiat wszerz - bez owijania
+                            if (ny < 1) ny = 1;
+                            // Limit kafli: chroni i lacze, i pamiec (mozaika 9x8 kafli to juz 2304x2048 px
+                            // = ~19 MB bufora pikseli). Za duzo -> schodzimy poziom nizej.
+                            if (nx * ny <= _S_MAXTILES || z <= 1) {
+                                // atCeiling = z NIE urosnie juz od dalszego zoomu, bo doszlismy do
+                                // maxZoom zrodla albo do sufitu wykrytego dla rejonu. Tylko wtedy ma
+                                // sens hamowanie kolka (patrz _satZoomCap) - gdy z jest przycieciete
+                                // limitem kafli, glebszy zoom nadal poprawia obraz.
+                                var ceil = Math.min(src.maxZoom, (cap === undefined) ? 99 : cap);
+                                plan = { z: z, tx: ax0, ty: ay0, nx: nx, ny: ny, capKey: capKey, atCeiling: (z >= ceil) };
+                                break;
+                            }
+                            z--;
+                        }
+                        return plan;
+                    }
+
+                    // Mercator: szerokosc -> pozycja Y w pikselach swiata. Poza +/-85.05 st. kafli nie
+                    // ma, wiec przycinamy - ostatni rzad pikseli sie rozciaga (lepsze niz dziura).
+                    function _satMercY(latDeg, Wpx){
+                        var s = Math.sin(latDeg * Math.PI / 180);
+                        if (s > _S_MAXSIN) s = _S_MAXSIN; else if (s < -_S_MAXSIN) s = -_S_MAXSIN;
+                        return (0.5 - Math.log((1 + s) / (1 - s)) * _S_INV4PI) * Wpx;
+                    }
+
+                    // --- MOZAIKA: kafle -> jedna tablica pikseli --------------------------------
+                    // Skladamy raz i trzymamy. Sam obrot kuli mozaiki NIE zmienia - przebudowa jest
+                    // potrzebna dopiero, gdy zmieni sie poziom/zakres kafli albo cos doleci z sieci.
+                    function _satAssemble(p){
+                        if (_satAsm && _satAsm.z === p.z && _satAsm.tx === p.tx && _satAsm.ty === p.ty
+                            && _satAsm.nx === p.nx && _satAsm.ny === p.ny && _satAsm.gen === _satGen) return _satAsm;
+                        var w = p.nx * 256, h = p.ny * 256;
+                        var cv = document.createElement("canvas"); cv.width = w; cv.height = h;
+                        var cx = cv.getContext("2d");
+                        var drawn = 0, blanks = 0;
+                        for (var j = 0; j < p.ny; j++) {
+                            for (var i = 0; i < p.nx; i++) {
+                                var rec = _satTile(p.z, p.tx + i, p.ty + j);
+                                if (rec) {
+                                    drawn++; if (rec.blank) blanks++;
+                                    try { cx.drawImage(rec.img, i * 256, j * 256, 256, 256); } catch(_e){}
+                                }
+                            }
+                        }
+                        // HAMULEC GLEBOKOSCI. Jesli wiekszosc tego, co dolecialo, to zaslepki "Map data
+                        // not yet available", to znaczy ze zrodlo nie ma tu juz zdjec na tym poziomie.
+                        // Zapamietujemy sufit dla rejonu i przerysowujemy poziom nizej. Warunek drawn>=4
+                        // chroni przed werdyktem z jednego kafla, ktory akurat przypadl na pustynie.
+                        // Ponizej z4 nie schodzimy - tam kazde zrodlo ma pelny swiat, wiec taki werdykt
+                        // znaczylby tylko tyle, ze wykrywacz sie myli, a petla musi sie konczyc.
+                        if (drawn >= 4 && blanks * 2 > drawn && p.z > 4 && p.capKey) {
+                            _satCaps.set(p.capKey, p.z - 1);
+                            _satAsm = null;
+                            _satSchedule(false);
+                            return null;                 // stara mozaika zostaje na ekranie do czasu nowej
+                        }
+                        var id;
+                        try { id = cx.getImageData(0, 0, w, h); }
+                        catch(_sec){ console.warn("SAT: canvas zatruty (brak CORS na kaflach)", _sec); return null; }
+                        _satAsm = { z: p.z, tx: p.tx, ty: p.ty, nx: p.nx, ny: p.ny, w: w, h: h, px: id.data, gen: _satGen };
+                        return _satAsm;
+                    }
+
+                    function _satBuf(step, w, h){
+                        var b = _satBufs[step];
+                        if (!b) { b = _satBufs[step] = { cv: document.createElement("canvas") }; b.ctx = b.cv.getContext("2d"); }
+                        if (b.cv.width !== w || b.cv.height !== h || !b.id) {
+                            b.cv.width = w; b.cv.height = h;
+                            b.id = b.ctx.createImageData(w, h);
+                            b.data = b.id.data;
+                        }
+                        return b;
+                    }
+
+                    // --- RENDER ----------------------------------------------------------------
+                    // step=1 pelna ostrosc (po zatrzymaniu), step=2 co drugi piksel (w trakcie
+                    // obrotu/zoomu) - to 4x mniej odwrotnych projekcji, a upscale robi natywnie
+                    // drawImage. Rysujemy w CSS-owych pikselach (bez devicePixelRatio): kafle i tak
+                    // maja skonczona rozdzielczosc, a 4x mniej pracy na ekranie HiDPI jest tu warte
+                    // wiecej niz teoretyczna ostrosc.
+                    function _satRender(step){
+                        if (!window._satOn) return;
+                        _satBorders(chart.get("zoomLevel") || 1);
+                        var g = _satGeom(); if (!g) return;
+                        var r = _satHost.getBoundingClientRect();
+                        var W = Math.max(1, Math.round(r.width)), H = Math.max(1, Math.round(r.height));
+                        if (_satCv.width !== W || _satCv.height !== H) {
+                            _satCv.width = W; _satCv.height = H;
+                            _satCv.style.left = r.left + "px"; _satCv.style.top = r.top + "px";
+                            _satCv.style.width = W + "px";     _satCv.style.height = H + "px";
+                        }
+                        var p = _satPlan(g, W, H); if (!p) return;
+
+                        // BLOKADA GLEBOKOSCI ZOOMU. Gdy poziom kafli nie moze juz urosnac (koniec
+                        // zdjec w tym rejonie), dalsze przyblizanie tylko POWIEKSZA ten sam obraz.
+                        // Pozwalamy na _S_MAXMAG-krotne powiekszenie i tam stawiamy sciane - handler
+                        // kolka czyta to jako gorna granice. Powiekszenie liczymy jako stosunek
+                        // gestosci ekranu do gestosci kafli: mag = 2*PI*R / (256 * 2^z).
+                        // Poza sufitem cap jest zerowany, bo tam glebszy zoom NAPRAWDE dociaga
+                        // ostrzejsze kafle i blokowanie go byloby bledem.
+                        if (p.atCeiling) {
+                            var mag = _S_TWOPI * g.R / (256 * (1 << p.z));
+                            window._satZoomCap = (mag > 0) ? (chart.get("zoomLevel") || 1) * _S_MAXMAG / mag : 0;
+                        } else {
+                            window._satZoomCap = 0;
+                        }
+
+                        var asm = _satAssemble(p); if (!asm) return;
+
+                        var bw = Math.ceil(W / step), bh = Math.ceil(H / step);
+                        var buf = _satBuf(step, bw, bh), out = buf.data, A = asm.px;
+                        var Wpx = 256 * (1 << asm.z), ox = asm.tx * 256, oy = asm.ty * 256;
+                        var aw = asm.w, ah = asm.h;
+                        var cdp = Math.cos(g.dp), sdp = Math.sin(g.dp);
+                        var cx = g.cx, cy = g.cy, R = g.R, dl = g.dl;
+
+                        for (var by = 0; by < bh; by++) {
+                            var Yv = (cy - (by * step + step * 0.5)) / R;
+                            var row = by * bw * 4;
+                            for (var bx = 0; bx < bw; bx++) {
+                                var o = row + bx * 4;
+                                var Xv = ((bx * step + step * 0.5) - cx) / R;
+                                var s = Xv * Xv + Yv * Yv;
+                                if (s > 1) { out[o + 3] = 0; continue; }          // poza tarcza kuli
+                                var Zv = Math.sqrt(1 - s);
+                                var c = Yv * cdp - Zv * sdp;                     // skladowa Z po cofnieciu Ry
+                                if (c > 1) c = 1; else if (c < -1) c = -1;
+                                var lon = Math.atan2(Xv, Zv * cdp + Yv * sdp) - dl;
+                                lon -= _S_TWOPI * Math.floor((lon + Math.PI) * _S_INV2PI);   // -> [-PI, PI)
+                                var mx = (lon * _S_INV2PI + 0.5) * Wpx;
+                                if (c > _S_MAXSIN) c = _S_MAXSIN; else if (c < -_S_MAXSIN) c = -_S_MAXSIN;
+                                var my = (0.5 - Math.log((1 + c) / (1 - c)) * _S_INV4PI) * Wpx;
+                                var axp = mx - ox;
+                                if (axp < 0) axp += Wpx; else if (axp >= aw) axp -= Wpx;
+                                var ayp = my - oy;
+                                if (axp < 0 || axp >= aw || ayp < 0 || ayp >= ah) { out[o + 3] = 0; continue; }
+                                var ai = (((ayp | 0) * aw) + (axp | 0)) * 4;
+                                out[o] = A[ai]; out[o + 1] = A[ai + 1]; out[o + 2] = A[ai + 2]; out[o + 3] = A[ai + 3];
+                            }
+                        }
+                        buf.ctx.putImageData(buf.id, 0, 0);
+                        _satCtx.clearRect(0, 0, W, H);
+                        _satCtx.drawImage(buf.cv, 0, 0, bw, bh, 0, 0, bw * step, bh * step);
+                    }
+
+                    // Obrot/zoom sypia zdarzeniami gesto - sklejamy je do jednej klatki (rAF),
+                    // a pelna ostrosc dorysowujemy dopiero, gdy ruch ucichnie.
+                    function _satSchedule(quick){
+                        if (!window._satOn) return;
+                        if (quick) _satWantQuick = true;
+                        if (_satRAF) return;
+                        _satRAF = requestAnimationFrame(function(){
+                            _satRAF = 0;
+                            var q = _satWantQuick; _satWantQuick = false;
+                            _satRender(q ? 2 : 1);
+                            if (q) { clearTimeout(_satIdle); _satIdle = setTimeout(function(){ _satRender(1); }, 170); }
+                        });
+                    }
+                    window._satSchedule = _satSchedule;
+
+                    ["rotationX", "rotationY", "zoomLevel", "translateX", "translateY"].forEach(function(k){
+                        chart.on(k, function(){ _satSchedule(true); });
+                    });
+                    window.addEventListener("resize", function(){ if (window._satOn) { _satAsm = null; _satSchedule(true); } });
+                    // W UKRYTEJ KARCIE przegladarka NIE odpala requestAnimationFrame. Jesli akurat
+                    // wtedy dolecial kafel, _satRAF zostaje z niezerowym id i strażnik "if (_satRAF)
+                    // return" blokuje KAZDY kolejny render - podklad zamarza na tym, co bylo.
+                    // Zwykle leczy sie samo (zaleglej klatce pozwala dobiec powrot na karte), ale gdy
+                    // przegladarka porzuci callback, zostaje trwale zakleszczenie. Przy powrocie na
+                    // karte czyscimy wiec licznik i przerysowujemy bezwarunkowo.
+                    document.addEventListener("visibilitychange", function(){
+                        if (document.visibilityState === "visible" && window._satOn) { _satRAF = 0; _satSchedule(false); }
+                    });
+
+                    // --- LICENCJA ZRODLA -------------------------------------------------------
+                    // Esri i OSM WYMAGAJA widocznej atrybucji przy wyswietlaniu kafli. Element
+                    // tworzymy z JS, zeby cala funkcja byla w jednym miejscu.
+                    function _satAttrib(on){
+                        if (!_satAttr) {
+                            _satAttr = document.createElement("div");
+                            _satAttr.id = "sat-attrib";
+                            _satAttr.style.cssText = "position:fixed; left:12px; bottom:6px; z-index:120; font:400 10px/1.4 'Rajdhani',sans-serif;"
+                                + " letter-spacing:0.5px; color:rgba(255,255,255,0.55); text-shadow:0 1px 3px #000; pointer-events:none; display:none;";
+                            document.body.appendChild(_satAttr);
+                        }
+                        _satAttr.textContent = on ? _satSrc().attribution : "";
+                        _satAttr.style.display = on ? "block" : "none";
+                    }
+
+                    // --- WLACZANIE / WYLACZANIE TRYBU ------------------------------------------
+                    // Kafle sa POD amCharts, wiec zeby je bylo widac, trzeba zdjac nieprzezroczyste
+                    // tlo oceanu (bg) i wypelnienia panstw (poly). Kontury ZOSTAJA - to one daja
+                    // czytelnosc "gdzie jestem" na zdjeciu satelitarnym. Oryginalne ustawienia
+                    // zapamietujemy przy pierwszym wejsciu i wiernie przywracamy przy wyjsciu.
+                    window.setSatellite = function(on){
+                        window._satOn = !!on;
+                        var tpl = poly.mapPolygons.template;
+                        if (on) {
+                            if (window.stopRot) window.stopRot();   // auto-rotacja = reprojekcja co klatke, za drogo
+                            if (!_satOrig) {
+                                _satOrig = {
+                                    fill: tpl.get("fill"), fillOpacity: tpl.get("fillOpacity"),
+                                    stroke: tpl.get("stroke"), strokeWidth: tpl.get("strokeWidth"),
+                                    strokeOpacity: tpl.get("strokeOpacity")
+                                };
+                            }
+                            var dark = !!_satSrc().dark;
+                            chart.set("maxZoomLevel", _S_MAXZOOM);   // dopiero teraz da sie dojechac do kafli z17-z19
+                            bg.set("visible", false);
+                            tpl.setAll({
+                                fillOpacity: 0.001,                                     // praktycznie przezroczyste, ale nadal klikalne
+                                stroke: am5.color(dark ? 0xffffff : 0x101418),
+                                strokeOpacity: dark ? 0.55 : 0.75,
+                                strokeWidth: 1
+                            });
+                            _satCv.style.display = "block";
+                            _satAttrib(true);
+                            _satAsm = null;
+                            _satRender(1);
+                        } else {
+                            // Zoom scinamy PRZED obnizeniem maxZoomLevel: przy wyjsciu z przyblizenia
+                            // rzedu 10 tys. wektorowy glob musi wrocic do swojego zakresu, inaczej
+                            // zostalby rozciagniety poza wszelka czytelnosc. Bez animacji - i tak
+                            // wlasnie gasnie caly podklad, a animowanie 40000 -> 40 nic nie wnosi.
+                            if ((chart.get("zoomLevel") || 1) > _S_ZOOM_STD) chart.set("zoomLevel", _S_ZOOM_STD);
+                            chart.set("maxZoomLevel", _S_ZOOM_STD);
+                            _satBorders(1);                          // kontury panstw z powrotem na wierzch
+                            bg.set("visible", true);
+                            if (_satOrig) tpl.setAll(_satOrig);
+                            _satCv.style.display = "none";
+                            if (_satCtx) _satCtx.clearRect(0, 0, _satCv.width, _satCv.height);
+                            _satAttrib(false);
+                        }
+                        window._satLbl = on ? _satSrc().label : "SAT";
+                    };
+
+                    // Przelaczenie na kolejne zrodlo (SAT -> STREET -> TOPO). Zwraca false, gdy
+                    // wlasnie przekrecilismy sie za ostatnie - wolajacy czyta to jako "teraz gas".
+                    // HUD nie uzywa juz tej sciezki (przycisk jest segmentowy, patrz satSetSource),
+                    // ale zostaje jako API - to jedyny sposob na przejscie warstw bez znajomosci kluczy.
+                    window.satNextSource = function(){
+                        if (_satSrcIdx >= _satSrcKeys.length - 1) { _satSrcIdx = 0; window._satSrcKey = _satSrcKeys[0]; return false; }
+                        _satSrcIdx++;
+                        _satAsm = null;
+                        window._satSrcKey = _satSrcKeys[_satSrcIdx];
+                        window._satLbl = _satSrc().label;
+                        window.setSatellite(true);
+                        return true;
+                    };
+
+                    // Ustaw KONKRETNE zrodlo po kluczu z TILE_SOURCES ("sat" / "street" / "topo").
+                    // Uzywa tego segmentowy przelacznik LAYER w HUD-zie. Dziala takze przy zgaszonym
+                    // trybie - wtedy tylko zapamietuje wybor, a render zrobi dopiero setSatellite(true).
+                    // Dzieki temu klikniecie w segment przy wylaczonym podkladzie renderuje RAZ,
+                    // od razu wlasciwa warstwa, zamiast najpierw pokazywac poprzednia.
+                    window.satSetSource = function(key){
+                        var i = _satSrcKeys.indexOf(key);
+                        if (i < 0) return false;
+                        _satSrcIdx = i;
+                        _satAsm = null;
+                        window._satSrcKey = key;
+                        window._satLbl = _satSrc().label;
+                        if (window._satOn) window.setSatellite(true);
+                        return true;
+                    };
+                } catch(_sate) { console.warn("Satellite mode init failed:", _sate); }
 
                 // ============================================================================
                 // --- "GDZIE TERAZ?" - rekomendator celow podrozy (przycisk #wherenow-toggle) ---
@@ -7204,17 +7829,37 @@
                             if (_flagSrc) {
                                 _head.children.push(am5.Picture.new(root, { src: _flagSrc, width: 24, height: 16, centerY: am5.p50, marginRight: 8 }));
                             }
-                            _head.children.push(am5.Label.new(root, {
+                            // centerY: p50 TYLKO przy fladze - tam sluzy do wyrownania nazwy do 16-px obrazka.
+                            // Bez flagi (punkty trasy misji) centrowanie wypycha etykiete polowa POZA kontener
+                            // naglowka, ten raportuje ~polowe wysokosci i verticalLayout wsuwa nastepny wiersz
+                            // pod spod nazwy - dopisek .note nachodzil wtedy na nazwe miasta (2026-07-29).
+                            var _titleSet = {
                                 text: _dc.title,
                                 fill: am5.color(0xffffff), fontSize: 17, fontFamily: "Courier New", fontWeight: "bold",
-                                lineHeight: am5.percent(100), paddingTop: 0, paddingBottom: 0, centerY: am5.p50
-                            }));
+                                lineHeight: am5.percent(100), paddingTop: 0, paddingBottom: 0
+                            };
+                            if (_flagSrc) _titleSet.centerY = am5.p50;
+                            _head.children.push(am5.Label.new(root, _titleSet));
                             if (_statLines.length) {
                                 tooltipCont.children.push(am5.Label.new(root, {
                                     text: _statLines.join("\n"),
                                     fill: am5.color(0xffffff), fontSize: 17, fontFamily: "Courier New", fontWeight: "bold",
                                     lineHeight: am5.percent(130), paddingTop: 0, paddingBottom: 0,
                                     centerX: am5.p50, x: am5.p50, textAlign: "center", marginTop: 2
+                                }));
+                            }
+                            // OPCJONALNY DOPISEK (dataContext.note) - wiersz pod nazwa, mniejszy i w blekicie
+                            // HUD-u, zeby nie konkurowal wizualnie z nazwa miasta/kraju. Uzywa go trasa misji
+                            // (MISSIONS_DB.route[].note), ale kazdy punkt z .title moze go dostac. "\n" w tresci
+                            // lamie na kolejne wiersze.
+                            if (_dc.note) {
+                                tooltipCont.children.push(am5.Label.new(root, {
+                                    text: String(_dc.note),
+                                    fill: am5.color(0x7fd8ff), fontSize: 13, fontFamily: "Courier New",
+                                    // paddingBottom 3: ostatni wiersz dopisku dotykal dolnej krawedzi ramki
+                                    // (paddingBottom kontenera = 5 nie wystarcza przy lineHeight 130%).
+                                    lineHeight: am5.percent(130), paddingTop: 0, paddingBottom: 3,
+                                    centerX: am5.p50, x: am5.p50, textAlign: "center", marginTop: 3
                                 }));
                             }
                         }
@@ -7361,20 +8006,86 @@
                         { id:"night-toggle", on:function(){return window._terminatorOn;}, set:function(v){ if(window.setTerminator) window.setTerminator(v); }, lbl:"NIGHT" },
                         { id:"tz-toggle",    on:function(){return window._tzOn;},         set:function(v){ if(window.setTimezones) window.setTimezones(v); }, lbl:"ZONES" },
                         { id:"visa-toggle",  on:function(){return window._visaOn;},        set:function(v){ if(window.setVisa) window.setVisa(v); }, lbl:"VISA" },
-                        { id:"climate-toggle", on:function(){return window._climateOn;},   set:function(v){ if(window.setClimateMode) window.setClimateMode(v); }, lbl:"CLIMATE" }
+                        { id:"climate-toggle", on:function(){return window._climateOn;},   set:function(v){ if(window.setClimateMode) window.setClimateMode(v); }, lbl:"CLIMATE" },
+                        // SAT nie jest zwyklym wl/wyl - ma cztery stany (OFF + trzy warstwy) i wlasny,
+                        // SEGMENTOWY przycisk. seg:true wypina go z generycznego malowania etykiety
+                        // ("NAZWA: ON/OFF") i z generycznego onclick; jedno i drugie robi ponizej
+                        // wlasny blok, ktory podpina m.paint.
+                        { id:"sat-toggle",   on:function(){return window._satOn;},         set:function(v){ if(window.setSatellite) window.setSatellite(v); }, lbl:"LAYER", seg:true }
                     ];
-                    function _paintMode(m, on){ var b=document.getElementById(m.id); if(b){ var lbl=b.querySelector(".rb-label"); if(lbl){ lbl.textContent=m.lbl+(on?": ON":": OFF"); } b.style.opacity=on?"1":"0.4"; } }
+                    function _paintMode(m, on){
+                        var b=document.getElementById(m.id); if(!b) return;
+                        // Segmentowy (SAT/LAYER): stan niesie podswietlony segment, a nie tekst i wygaszenie
+                        // calego przycisku - dokladnie jak w DETAIL, ktory tez nigdy nie jest przygaszony.
+                        if (m.seg) { if (m.paint) m.paint(); return; }
+                        var lbl=b.querySelector(".rb-label"); if(lbl){ lbl.textContent=m.lbl+(on?": ON":": OFF"); }
+                        b.style.opacity=on?"1":"0.4";
+                    }
                     function _setMode(m, on){
                         if (on) { _modes.forEach(function(o){ if(o!==m && o.on()){ o.set(false); _paintMode(o,false); } }); }  // zgas pozostale
                         m.set(on); _paintMode(m, on);
                     }
-                    _modes.forEach(function(m){ var b=document.getElementById(m.id); if(b){ b.onclick = function(){ _dropCountryFocus(); _setMode(m, !m.on()); }; } });
+                    // Generyczne wpiecie klika - POMIJA przyciski segmentowe (maja wlasne handlery
+                    // na poszczegolnych segmentach; klik w cala ramke nie ma tam znaczenia).
+                    _modes.forEach(function(m){ if (m.seg) return; var b=document.getElementById(m.id); if(b){ b.onclick = function(){ _dropCountryFocus(); _setMode(m, !m.on()); }; } });
+
+                    // --- SAT jako PRZELACZNIK SEGMENTOWY: OFF | SAT | STREET | TOPO ---------------
+                    // Wczesniej byl to jeden przycisk CYKLUJACY przez te cztery stany. Dzialalo, ale
+                    // zmuszalo do klikania na slepo: zeby dostac TOPO trzeba bylo przejsc przez SAT
+                    // i STREET, a z samego przycisku nie dalo sie odczytac, co jeszcze jest do wyboru.
+                    // Teraz kazdy stan ma wlasny segment - dokladnie jak DETAIL (LOW/HIGH/ULTRA),
+                    // ktorego wzorzec (.ds-opt + data-lvl, opacity 0.4/1 + fontWeight 400/700)
+                    // powtarzamy tu jeden do jednego, zeby oba przelaczniki wygladaly identycznie.
+                    (function(){
+                        var m = _modes[_modes.length - 1], b = document.getElementById(m.id);
+                        if (!b) return;
+                        var opts = b.querySelectorAll(".sat-opt");
+                        if (!opts.length) return;
+                        // Podpiete do wpisu w _modes, wiec KAZDE zgaszenie trybu z zewnatrz
+                        // (_exitActiveOverlayMode, wlaczenie VISA/CLIMATE, RESET) samo odswieza segmenty.
+                        m.paint = function(){
+                            var cur = window._satOn ? (window._satSrcKey || "sat") : "off";
+                            Array.prototype.forEach.call(opts, function(o){
+                                var act = (o.getAttribute("data-src") === cur);
+                                o.style.opacity = act ? "1" : "0.4";
+                                o.style.fontWeight = act ? "700" : "400";
+                            });
+                        };
+                        Array.prototype.forEach.call(opts, function(o){
+                            var key = o.getAttribute("data-src");
+                            o.onclick = function(e){
+                                e.stopPropagation();
+                                _dropCountryFocus();
+                                if (key === "off") { _setMode(m, false); return; }
+                                // Zrodlo USTAWIAMY PRZED wlaczeniem trybu - satSetSource przy zgaszonym
+                                // podkladzie tylko zapamietuje wybor, wiec setSatellite renderuje raz,
+                                // od razu wlasciwa warstwa (zamiast mignac poprzednia).
+                                if (window.satSetSource) window.satSetSource(key);
+                                if (!m.on()) _setMode(m, true); else m.paint();
+                            };
+                        });
+                        m.paint();
+                    })();
                     // Wylacz aktywny tryb-nakladke (VISA/CLIMATE) WRAZ z przyciskiem - wolane przy kliknieciu
                     // w kraj na nakladce. Tryby wykluczaja sie, wiec aktywny jest max jeden; gasimy kazdy "on".
                     // NIE wola _dropCountryFocus (inaczej wyczyscilby wlasnie wybrany kraj), bo zaraz po nim
                     // handler nakladki wola window._selectCountry i otwiera intel.
-                    window._exitActiveOverlayMode = function(){
-                        _modes.forEach(function(m){ if (m.on()) { m.set(false); _paintMode(m, false); } });
+                    //
+                    // keepSat = zostaw wlaczony podklad SAT/STREET/TOPO (feedback 2026-07-29). SAT nie jest
+                    // nakladka w tym samym sensie co reszta: VISA i CLIMATE PRZEMALOWUJA panstwa, wiec
+                    // zaslanialyby to, co wlasnie chcesz pokazac, a SAT jest TLEM - trasa, punkty i etykiety
+                    // rysuja sie na nim i wyglada to lepiej niz na plaskiej szarosci. Dlatego sciezki typu
+                    // "pokaz cos na globie" moga go zachowac.
+                    // CZEGO NIE ROBIC: nie rob z tego zachowania domyslnego dla WSZYSTKICH wolan. Przy
+                    // kliknieciu w kraj podswietlenie wybranego panstwa idzie przez stan "active", ktory
+                    // nadpisuje samo `fill`, a w trybie SAT fillOpacity jest ustawione na 0.001 - czerwone
+                    // podswietlenie byloby wiec NIEWIDOCZNE i klikanie w kraje przestaloby dawac feedback.
+                    window._exitActiveOverlayMode = function(keepSat){
+                        _modes.forEach(function(m){
+                            if (!m.on()) return;
+                            if (keepSat && m.id === "sat-toggle") return;
+                            m.set(false); _paintMode(m, false);
+                        });
                     };
                     // --- Przelacznik szczegolowosci globu (LOW/HIGH/ULTRA): zapis w localStorage + reload ---
                     // Przebudowa geometrii w locie jest ryzykowna przy tak zlozonym setupie mapy, wiec
