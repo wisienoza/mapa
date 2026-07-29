@@ -96,7 +96,7 @@
                             var box = null;
                             catalog().forEach(function(b){ if (b.id === spec.id) box = b; });
                             var el = box && box.els && box.els.length === 1 ? document.querySelector(box.els[0]) : null;
-                            return el ? { id: spec.id, el: el, grow: spec.grow || 0, off: hidden.indexOf(spec.id) !== -1 } : null;
+                            return el ? { id: spec.id, el: el, grow: spec.grow || 0, cap: spec.cap || null, off: hidden.indexOf(spec.id) !== -1 } : null;
                         }).filter(Boolean);
 
                         var free = parseFloat(into.style.height) || 0;
@@ -110,10 +110,12 @@
                         if (hidden.length) {
                             for (var j = 0; j < items.length; j++) {
                                 if (items[j].off) continue;                 // ukryty - nie ma czego przenosic
-                                // + grow: zapas na tresc, ktora dopiero urosnie (wyniki wyszukiwarki,
-                                // pogoda po wybraniu celu). Patrz HUD_PACK w hud-boxes-data.js.
+                                // + grow: zapas na tresc, ktora dopiero urosnie (siatka pogody po
+                                // wybraniu celu). Box z `cap` zamiast rezerwy wymaga tylko minimum
+                                // (cap.min) - jego puchnaca czesc dostanie nizej przyciety max-height.
+                                // Patrz HUD_PACK w hud-boxes-data.js.
                                 var h = _outerH(items[j].el, true) + items[j].grow;
-                                if (h + 12 > free) break;
+                                if (h + 12 + (items[j].cap ? items[j].cap.min : 0) > free) break;
                                 want.push(items[j]); free -= h;
                             }
                         }
@@ -132,6 +134,25 @@
                         // UWAGA na przyszlosc: `margin-top:auto` siedzi w ATRYBUCIE style .flights-floater,
                         // wiec kazde `el.style.marginTop = ''` je KASUJE i panel wraca pod poprzednika
                         // (kosztowalo to jedna iteracje 2026-07-29).
+
+                        // PRZYCIECIE PUCHNACEJ CZESCI (dzis: lista wynikow wyszukiwarki) do tego, co
+                        // realnie zostalo wolne na dole kolumny. Dzieki temu box nie musi rezerwowac
+                        // miejsca "w ciemno" - wchodzi tam, gdzie by sie z rezerwa nie zmiescil, a lista
+                        // zaczyna scrollowac odrobine wczesniej. `free` jest tu juz po odjeciu wszystkich
+                        // przeniesionych boxow, wiec opisuje realny zapas (przy FLIGHTS w tej samej
+                        // kolumnie to dokladnie ta przerwa, ktora robi jego margin-top:auto).
+                        // Wartosc bazowa CZYTAMY I ODTWARZAMY z data-hb-max, a nie przez maxHeight='':
+                        // #search-results ma max-height w ATRYBUCIE style, wiec wyczyszczenie inline'a
+                        // zdjeloby limit calkiem i lista rozpychalaby panel bez konca.
+                        items.forEach(function(it){
+                            if (!it.cap) return;
+                            var capEl = document.querySelector(it.cap.sel);
+                            if (!capEl) return;
+                            if (capEl.dataset.hbMax === undefined) capEl.dataset.hbMax = capEl.style.maxHeight || '';
+                            capEl.style.maxHeight = (want.indexOf(it) !== -1)
+                                ? Math.max(it.cap.min, Math.min(it.cap.max, Math.round(free))) + 'px'
+                                : capEl.dataset.hbMax;
+                        });
                     }
 
                     cols.forEach(function(c){

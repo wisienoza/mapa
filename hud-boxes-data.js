@@ -45,23 +45,22 @@ window.HUD_BOXES = [
       note: "Przycisk rankingu najlepszych kierunków na wybrany miesiąc." },
     { id: "vaccines", icon: "💉", label: "SZCZEPIENIA",            host: "#vaccinations-link", els: ["#vaccinations-link"],
       note: "Przycisk z tabelą szczepień dla podróżujących (stały PDF)." },
-    // PRZELACZNIKI TRYBOW MAPY (#toggle-stack, prawy dolny rog). host:null - te przyciski sa za male
-    // na krzyzyk (LAYER i DETAIL maja segmenty dociagnięte do prawej krawedzi, ✕ lezalby na TOPO/ULTRA),
-    // a przy 148px szerokosci ✕ prosilby sie o klikniecie zamiast przelacznika. Chowane WYLACZNIE
-    // z panelu 👁. Ukrycie NIE gasi trybu - to tylko schowany przycisk; jesli VISA byla wlaczona,
-    // zostaje wlaczona (do zgaszenia RESET-em albo po ponownym pokazaniu przycisku).
-    { id: "visa",     icon: "🛂", label: "VISA (przełącznik)",     host: null,               els: ["#visa-toggle"],
-      note: "Kolorowanie mapy wg wymogów wizowych dla paszportu PL." },
-    { id: "zones",    icon: "🕐", label: "ZONES (przełącznik)",    host: null,               els: ["#tz-toggle"],
-      note: "Siatka stref czasowych na globie." },
-    { id: "night",    icon: "☾",  label: "NIGHT (przełącznik)",    host: null,               els: ["#night-toggle"],
-      note: "Terminator dzień/noc." },
-    { id: "climate",  icon: "🌡", label: "CLIMATE (przełącznik)",  host: null,               els: ["#climate-toggle"],
-      note: "Komfort klimatyczny wg wybranego miesiąca." },
-    { id: "layer",    icon: "🛰", label: "LAYER (podkład globu)",  host: null,               els: ["#sat-toggle"],
-      note: "OFF / SAT / STREET / TOPO - podkład rastrowy nałożony na kulę." },
-    { id: "detail",   icon: "🌐", label: "DETAIL (szczegółowość)", host: null,               els: ["#detail-switch"],
-      note: "LOW / HIGH / ULTRA - dokładność granic. Ukrycie nie zmienia wybranego poziomu." },
+    // PRZELACZNIKI (#toggle-stack, prawy dolny rog) - DWIE GRUPY, nie szesc osobnych pozycji
+    // (feedback 2026-07-29: rozbicie na pojedyncze przyciski robilo z panelu 👁 sciane wierszy).
+    // Podzial idzie po tym, jak te przyciski wygladaja i dzialaja: cztery wlacz/wylacz kolorujace
+    // globus, i dwa segmentowe wybierajace wariant. Wpis moze obejmowac KILKA elementow - stad
+    // brak jakiegokolwiek kontenera w index.html.
+    // host:null - przyciski sa za male na krzyzyk (LAYER i DETAIL maja segmenty dociagniete do prawej
+    // krawedzi, ✕ lezalby na TOPO/ULTRA), a przy 148px szerokosci ✕ prosilby sie o klikniecie zamiast
+    // przelacznika. Chowane WYLACZNIE z panelu 👁.
+    // Ukrycie NIE gasi trybu - to tylko schowany przycisk; jesli VISA byla wlaczona, zostaje wlaczona
+    // (do zgaszenia RESET-em albo po ponownym pokazaniu przyciskow).
+    { id: "modes",    icon: "🎛", label: "Tryby mapy",             host: null,
+      els: ["#visa-toggle", "#tz-toggle", "#night-toggle", "#climate-toggle"],
+      note: "Cztery przełączniki kolorujące globus: VISA, ZONES, NIGHT, CLIMATE." },
+    { id: "switches", icon: "🛰", label: "LAYER i DETAIL",         host: null,
+      els: ["#sat-toggle", "#detail-switch"],
+      note: "Podkład globu (SAT / STREET / TOPO) i szczegółowość granic (LOW / HIGH / ULTRA)." },
     { id: "syslog",   icon: "🖥", label: "System Log",             host: ".sys-log-header",  els: [".sys-log-container"],
       note: "Zielona konsola z komunikatami w prawym dolnym rogu." },
     { id: "lootbar",  icon: "🚩", label: "Pasek flag",             host: "#loot-wrapper",    els: ["#loot-wrapper"],
@@ -105,9 +104,16 @@ window.HUD_PACK = {
     into: "#left-hud",
     boxes: [
         // Zapasy liczone z REALNYCH ograniczen, nie "na oko" - kazdy zbedny piksel zabiera miejsce
-        // boxowi na koncu kolejki (przy 160/210 FLIGHTS przestawal sie miescic o 10 px).
+        // boxowi na koncu kolejki (przy 160/210 FLIGHTS przestawal sie miescic o 10 px, a SEARCH
+        // zostawal w kolumnie 2 mimo widocznej dziury obok).
         { id: "weather", grow: 130 },   // siatka pogody po wybraniu celu (teraz: SYSTEM OFFLINE / STANDBY)
-        { id: "search",  grow: 205 },   // #search-results: max-height 200 + 5 px margin-top
+        // SEARCH nie rezerwuje miejsca "w ciemno": jego jedyna puchnaca czesc (lista wynikow) ma
+        // max-height, wiec zamiast trzymac 205 px na zapas PRZYCINAMY ja do tego, co realnie zostalo
+        // w kolumnie. Efekt: box wchodzi tam, gdzie by sie nie zmiescil z rezerwa, a lista po prostu
+        // zaczyna scrollowac troche wczesniej (ma juz overflow-y:auto).
+        //   cap.sel - element z limitem wysokosci; cap.min - ponizej tylu px wolnego NIE przenosimy
+        //   boxu wcale (lista bylaby bezuzyteczna); cap.max - wartosc bazowa z index.html
+        { id: "search",  grow: 0, cap: { sel: "#search-results", min: 90, max: 200 } },
         { id: "flights", grow: 0 }      // staly rozmiar, nic w nim nie puchnie
     ]
 };
