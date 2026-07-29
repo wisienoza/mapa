@@ -503,6 +503,11 @@
            gorze wrapperow HUD. Wysokosc kolumn liczy adjustLayout z realnego offsetHeight paska,
            wiec ona koryguje sie sama. */
         body.hb-off-lootbar #bottom-right-hud { bottom: 7px; max-height: calc(100vh - 14px); }
+        /* Kolumna 1 zwinieta (wszystkie jej boxy ukryte) -> kolumna 2 zjezdza na lewa krawiedz, wiec
+           belka RESET / ❓ / 👁 musi zjechac razem z nia. Jej left:340px to nie ozdoba: to szerokosc
+           kolumny 1 (320) + gap (20), czyli belka od zawsze stoi POD kolumna 2. Patrz HUD_COLUMNS.
+           !important jest KONIECZNE: left:340px siedzi w atrybucie style elementu i bez tego wygrywa. */
+        body.hb-col-off-left #bottom-left-bar { left: 0 !important; }
 
         @media (max-height: 1000px) {
             h1 { font-size: 0.9rem; margin-bottom: 5px; }

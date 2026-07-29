@@ -33,6 +33,16 @@
                     });
                     if (document.body) document.body.classList.toggle('hb-off-' + box.id, off);
                 });
+                // ZWIJANIE PUSTYCH KOLUMN. Kolumny maja stala szerokosc (320 / 260 px), wiec sama
+                // display:none na ich boxach zostawialaby pusta dziure i sasiednie kolumny nie
+                // dojezdzalyby do krawedzi ekranu. Gdy nie zostal ani jeden widoczny box - chowamy
+                // caly kontener i flex .left-wrapper dociaga reszte (razem z gapem 20px).
+                (Array.isArray(window.HUD_COLUMNS) ? window.HUD_COLUMNS : []).forEach(function(col){
+                    var empty = (col.boxes || []).length > 0 && col.boxes.every(function(id){ return hidden.indexOf(id) !== -1; });
+                    var node = document.querySelector(col.sel);
+                    if (node) node.style.display = empty ? 'none' : '';
+                    if (document.body) document.body.classList.toggle('hb-col-off-' + col.key, empty);
+                });
                 // Wysokosci kolumn i max-height paneli scrollowalnych licza sie z realnych pozycji na
                 // ekranie - po zniknieciu/powrocie boxu MUSZA byc przeliczone, inaczej Progression Tree
                 // i Factbook zostaja z wysokoscia sprzed zmiany.
@@ -49,6 +59,21 @@
             };
 
             window.showAllHudBoxes = function(){ writeHidden([]); window.applyHudBoxes(); _renderHudBoxRows(); };
+            window.hideAllHudBoxes = function(){
+                writeHidden(catalog().map(function(b){ return b.id; }));
+                window.applyHudBoxes(); _renderHudBoxRows();
+            };
+            // Jeden przycisk w panelu, dwa stany: dopoki cokolwiek jest widoczne - chowa reszte,
+            // a gdy juz wszystko schowane - przywraca komplet. Wyjscie z "pustego ekranu" jest zawsze
+            // pod reka, bo sam przycisk 👁 (#hudboxes-toggle) NIE jest w katalogu i nie da sie go ukryc.
+            function _allHudBoxesHidden(){
+                var n = catalog().length;
+                return n > 0 && readHidden().length >= n;
+            }
+            window.toggleAllHudBoxes = function(){
+                if (_allHudBoxesHidden()) window.showAllHudBoxes();
+                else window.hideAllHudBoxes();
+            };
 
             // Krzyzyk ✕ w naglowku boxu. Wstawiany z JS, a nie recznie w index.html, zeby dodanie
             // nowego boxu bylo zmiana W JEDNYM MIEJSCU (hud-boxes-data.js).
@@ -100,6 +125,13 @@
                         window.setHudBoxHidden(id, !window.isHudBoxHidden(id));
                     };
                 }
+                var allBtn = document.getElementById('hudboxes-all');
+                if (allBtn) {
+                    var back = _allHudBoxesHidden();
+                    allBtn.textContent = back ? 'POKAŻ WSZYSTKO ↻' : 'UKRYJ WSZYSTKO ✕';
+                    allBtn.style.borderColor = back ? '#22d3ee' : '#ef4444';
+                    allBtn.style.color = back ? '#22d3ee' : '#ef4444';
+                }
             }
 
             window.showHudBoxesPanel = function(){
@@ -114,14 +146,14 @@
                       +     '<h1 style="margin:0; border:none; padding:0; font-size:1.3rem; color:#22d3ee;">👁 WIDOCZNOŚĆ BOXÓW</h1>'
                       +     '<span id="hudboxes-close" style="cursor:pointer; font-size:1.5rem; color:#8f9ba8; line-height:1;">✕</span>'
                       +   '</div>'
-                      +   '<div style="font-family:\'JetBrains Mono\',monospace; font-size:0.68rem; color:#6b7684; line-height:1.5; margin-bottom:10px;">Kliknij wiersz, żeby schować lub przywrócić box. Ustawienie zapisuje się w tej przeglądarce i przetrwa odświeżenie. Każdy widoczny box da się też schować krzyżykiem ✕ w jego nagłówku.</div>'
+                      +   '<div style="font-family:\'JetBrains Mono\',monospace; font-size:0.68rem; color:#6b7684; line-height:1.5; margin-bottom:10px;">Kliknij wiersz, żeby schować lub przywrócić box. Przycisk na dole chowa wszystko naraz, a gdy nic już nie zostało — przywraca komplet. Ustawienie zapisuje się w tej przeglądarce i przetrwa odświeżenie. Każdy widoczny box da się też schować krzyżykiem ✕ w jego nagłówku.</div>'
                       +   '<div id="hudboxes-body"></div>'
-                      +   '<div id="hudboxes-all" class="reset-btn" style="position:static; margin-top:14px; text-align:center; border-color:#22d3ee; color:#22d3ee;">POKAŻ WSZYSTKO ↻</div>'
+                      +   '<div id="hudboxes-all" class="reset-btn" style="position:static; margin-top:14px; text-align:center;">POKAŻ WSZYSTKO ↻</div>'
                       + '</div>';
                     document.body.appendChild(el);
                     el.addEventListener('click', function(ev){ if (ev.target === el) window.hideHudBoxesPanel(); });
                     document.getElementById('hudboxes-close').onclick = window.hideHudBoxesPanel;
-                    document.getElementById('hudboxes-all').onclick = window.showAllHudBoxes;
+                    document.getElementById('hudboxes-all').onclick = window.toggleAllHudBoxes;
                 }
                 _renderHudBoxRows();
                 el.style.display = 'flex';
