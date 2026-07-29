@@ -27,9 +27,11 @@ window.HUD_BOXES = [
       note: "Paski postępu dla każdego kontynentu." },
     { id: "wonders",  icon: "🏛", label: "World Wonders",          host: "#h1-wonders",      els: ["#h1-wonders", "#wonders-stats"],
       note: "Lista cudów świata ze statusem zaliczenia." },
-    { id: "weather",  icon: "🌡", label: "Live Environ Feed",      host: "#h1-weather",      els: ["#h1-weather", "#weather-panel"],
+    // Trzy boxy kolumny 2 maja WLASNE kontenery (.hud-box), bo tylko one wedruja miedzy kolumnami
+    // (patrz HUD_PACK nizej) - stad w `els` jeden selektor kontenera zamiast pary naglowek+panel.
+    { id: "weather",  icon: "🌡", label: "Live Environ Feed",      host: "#h1-weather",      els: ["#box-weather"],
       note: "Pogoda i dane środowiskowe wybranego celu." },
-    { id: "search",   icon: "🔍", label: "Search & Track",         host: "#h1-search",       els: ["#h1-search", "#search-panel"],
+    { id: "search",   icon: "🔍", label: "Search & Track",         host: "#h1-search",       els: ["#box-search"],
       note: "Wyszukiwarka państw i miast." },
     { id: "flights",  icon: "✈",  label: "Flights",                host: "#h1-flights",      els: ["#flights-floater"],
       note: "Linki FR24/LOTER, przełącznik tras na globie, statystyki lotów i MAX RANGE." },
@@ -66,20 +68,29 @@ window.HUD_BOXES = [
       note: "Przewijany pasek flag odwiedzonych państw przy dolnej krawędzi. Po ukryciu HUD rozciąga się na całą wysokość ekranu." }
 ];
 
-// KOLUMNY HUD-u. Kazda ma STALA szerokosc (320 / 260 px) i zostaje w ukladzie nawet wtedy, gdy
-// wszystkie jej boxy sa schowane - czyli zostawia po sobie pusta dziure, a sasiednie kolumny nie
-// dojezdzaja do krawedzi ekranu. Ten spis pozwala app.js zwinac (display:none) CALA kolumne, gdy
-// nie zostal w niej ani jeden widoczny box.
-//   key   - sufiks klasy body.hb-col-off-<key> (dla regul CSS zalezacych od zwinietej kolumny;
-//           dzis korzysta z tego #bottom-left-bar, ktory stoi na sztywnym left:340px pod kolumna 2)
-//   sel   - selektor kontenera kolumny
-//   boxes - id boxow z HUD_BOXES, ktore w niej mieszkaja (komplet - inaczej kolumna zwinie sie
-//           z nadal widoczna zawartoscia)
-// Kolumny factbooka tu NIE MA celowo: ten box JEST cala swoja kolumna (chowamy #factbook-floater
-// bezposrednio), wiec nie ma czego zwijac osobno.
+// KOLUMNY HUD-u. Kazda ma STALA szerokosc (320 / 260 / 240 px) i zostawalaby w ukladzie nawet wtedy,
+// gdy wszystkie jej boxy sa schowane - czyli po pustej kolumnie zostawalaby dziura, a sasiedzi nie
+// dojezdzaliby do krawedzi ekranu. Ten spis pozwala app.js zwinac (display:none) CALA kolumne.
+//   key - sufiks klasy body.hb-col-off-<key> (dla ewentualnych regul CSS zaleznych od zwinietej kolumny)
+//   sel - selektor kontenera kolumny
+// PUSTOSC czytamy Z DOM (czy zostalo dziecko bez display:none), a nie z listy id - kolumna 2 potrafi
+// opustoszec takze wtedy, gdy jej boxy nie sa ukryte, tylko PRZEWEDROWALY do kolumny 1 (patrz HUD_PACK).
+// Kolumny factbooka tu NIE MA celowo: ten box JEST cala swoja kolumna (#factbook-floater), wiec znika
+// razem z nia.
 window.HUD_COLUMNS = [
-    { key: "left",    sel: "#left-hud",        boxes: ["status", "mission", "region", "wonders"] },
-    { key: "weather", sel: ".weather-floater", boxes: ["weather", "search", "flights"] },
-    { key: "ranks",   sel: ".right-hud",       boxes: ["ranks", "wherenow", "vaccines"] },
-    { key: "toggles", sel: "#toggle-stack",    boxes: ["visa", "zones", "night", "climate", "layer", "detail"] }
+    { key: "left",    sel: "#left-hud" },
+    { key: "weather", sel: ".weather-floater" },
+    { key: "ranks",   sel: ".right-hud" },
+    { key: "toggles", sel: "#toggle-stack" }
 ];
+
+// PRZENOSZENIE BOXOW MIEDZY KOLUMNAMI. Gdy w kolumnie 1 zwolni sie miejsce (np. po ukryciu World
+// Wonders, ktore normalnie rozciaga sie do dolu ekranu), boxy z kolumny 2 przeprowadzaja sie tam
+// po kolei - zamiast zostawiac pionowa dziure obok. Silnik: window._packHudBoxes w app.js.
+//   from  - kolumna-zrodlo (dom kanoniczny tych boxow)
+//   into  - kolumna-cel (wedruja na jej KONIEC, w kolejnosci z `boxes`)
+//   boxes - id z HUD_BOXES w kolejnosci przeprowadzki; kazdy MUSI miec w `els` DOKLADNIE JEDEN
+//           selektor obejmujacy caly box (kontener .hud-box), bo przenosimy jeden wezel DOM
+// Dopoki nic nie jest ukryte, kolumna 1 jest pelna (World Wonders ma flex:1 i zjada reszte miejsca),
+// wiec wolnego wychodzi ~0 i NIC sie nie rusza - uklad domyslny zostaje bajt w bajt taki jak byl.
+window.HUD_PACK = { from: ".weather-floater", into: "#left-hud", boxes: ["weather", "search", "flights"] };

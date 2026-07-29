@@ -508,11 +508,13 @@
            gorze wrapperow HUD. Wysokosc kolumn liczy adjustLayout z realnego offsetHeight paska,
            wiec ona koryguje sie sama. */
         body.hb-off-lootbar #bottom-right-hud { bottom: 7px; max-height: calc(100vh - 14px); }
-        /* Kolumna 1 zwinieta (wszystkie jej boxy ukryte) -> kolumna 2 zjezdza na lewa krawiedz, wiec
-           belka RESET / ❓ / 👁 musi zjechac razem z nia. Jej left:340px to nie ozdoba: to szerokosc
-           kolumny 1 (320) + gap (20), czyli belka od zawsze stoi POD kolumna 2. Patrz HUD_COLUMNS.
-           !important jest KONIECZNE: left:340px siedzi w atrybucie style elementu i bez tego wygrywa. */
-        body.hb-col-off-left #bottom-left-bar { left: 0 !important; }
+        /* Kontener pojedynczego boxu kolumny 2 (naglowek + panel razem) - przenoszony miedzy kolumnami
+           przez _packHudBoxes. Zwykly blok, zero wlasnych odstepow: marginesy naglowka i panelu zostaja
+           w srodku i daja dokladnie ten sam uklad, co przed zawinieciem.
+           POZYCJA BELKI #bottom-left-bar NIE jest juz stala: gdy kolumna 1 lub 2 znika, belka jedzie za
+           ostatnia widoczna kolumna. Robi to _packHudBoxes inline'em (bar.style.left), wiec NIE dokladaj
+           tu reguly na left - z !important wygralaby z JS i belka zostalaby w miejscu. */
+        .hud-box { display: block; }
 
         @media (max-height: 1000px) {
             h1 { font-size: 0.9rem; margin-bottom: 5px; }
@@ -586,16 +588,24 @@
             <div class="hud-panel" id="wonders-stats"></div>
         </div>
 
+        <!-- KAZDY box tej kolumny siedzi we WLASNYM kontenerze .hud-box. To nie kosmetyka: naglowek
+             i panel musza dac sie przeniesc do kolumny 1 JAKO CALOSC, gdy zwolni sie tam miejsce
+             (app.js, window._packHudBoxes - patrz HUD_PACK w hud-boxes-data.js). Luznymi rodzenstwami
+             flexa nie da sie ruszyc atomowo. Kontener jest przezroczysty dla ukladu (zwykly blok),
+             wiec odstepy zostaja te same co przed zawinieciem. -->
         <div class="weather-floater">
-            <h1 id="h1-weather">Live Environ Feed</h1>
-            <div class="hud-panel" id="weather-panel">
-                <div class="max-range-box">
-                    <div class="range-label" id="weather-target">TARGET: NONE</div>
-                    <div id="weather-content" style="margin-top: 10px;">
-                        <div style="color: #8f9ba8; font-family: 'Consolas', monospace; font-size: 0.9rem;">SYSTEM OFFLINE / STANDBY</div>
+            <div class="hud-box" id="box-weather">
+                <h1 id="h1-weather">Live Environ Feed</h1>
+                <div class="hud-panel" id="weather-panel">
+                    <div class="max-range-box">
+                        <div class="range-label" id="weather-target">TARGET: NONE</div>
+                        <div id="weather-content" style="margin-top: 10px;">
+                            <div style="color: #8f9ba8; font-family: 'Consolas', monospace; font-size: 0.9rem;">SYSTEM OFFLINE / STANDBY</div>
+                        </div>
                     </div>
                 </div>
             </div>
+            <div class="hud-box" id="box-search">
             <h1 id="h1-search">Search & Track</h1>
             <div class="hud-panel" id="search-panel">
                 <div class="range-label">SATELLITE UPLINK / SEARCH</div>
@@ -605,6 +615,7 @@
                     <span id="country-search-clear" title="Wyczyść" style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); display: none; cursor: pointer; color: #00ff00; font-size: 1.35rem; line-height: 1; padding: 0 5px; user-select: none;">&times;</span>
                 </div>
                 <div id="search-results" style="max-height: 200px; overflow-y: auto; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; background: rgba(0,0,0,0.6); margin-top: 5px; border-radius: 4px;"></div>
+            </div>
             </div>
             <!-- FLIGHTS: wczesniej position:absolute (left:325px; bottom:72px) wzgledem .left-wrapper.
                  Przy niskim oknie wysokosc .left-wrapper maleje (adjustLayout liczy ja z innerHeight),

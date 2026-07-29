@@ -43,20 +43,112 @@
                     });
                     if (document.body) document.body.classList.toggle('hb-off-' + box.id, off);
                 });
-                // ZWIJANIE PUSTYCH KOLUMN. Kolumny maja stala szerokosc (320 / 260 px), wiec sama
-                // display:none na ich boxach zostawialaby pusta dziure i sasiednie kolumny nie
-                // dojezdzalyby do krawedzi ekranu. Gdy nie zostal ani jeden widoczny box - chowamy
-                // caly kontener i flex .left-wrapper dociaga reszte (razem z gapem 20px).
-                (Array.isArray(window.HUD_COLUMNS) ? window.HUD_COLUMNS : []).forEach(function(col){
-                    var empty = (col.boxes || []).length > 0 && col.boxes.every(function(id){ return hidden.indexOf(id) !== -1; });
-                    var node = document.querySelector(col.sel);
-                    if (node) _setVis(node, empty);
-                    if (document.body) document.body.classList.toggle('hb-col-off-' + col.key, empty);
-                });
                 // Wysokosci kolumn i max-height paneli scrollowalnych licza sie z realnych pozycji na
                 // ekranie - po zniknieciu/powrocie boxu MUSZA byc przeliczone, inaczej Progression Tree
-                // i Factbook zostaja z wysokoscia sprzed zmiany.
+                // i Factbook zostaja z wysokoscia sprzed zmiany. Na koncu adjustLayout siedzi tez
+                // _packHudBoxes (przeprowadzka boxow + zwijanie pustych kolumn), wiec ta jedna linia
+                // domyka caly uklad.
                 if (window.adjustLayoutSoon) window.adjustLayoutSoon();
+            };
+
+            // Wysokosc elementu W UKLADZIE (offsetHeight nie liczy marginesow, a to one robia odstepy
+            // miedzy boxami). skipTop=true dla .flights-floater: ma margin-top:auto, ktory w kolumnie 2
+            // spycha go na sam dol - getComputedStyle zwraca WYLICZONA wartosc tego auto (potrafi byc
+            // kilkaset px), wiec wliczenie jej zawyzaloby wysokosc boxu o cala pustke nad nim.
+            function _outerH(el, skipTop){
+                if (!el || el.style.display === 'none') return 0;
+                var cs = getComputedStyle(el);
+                if (cs.display === 'none') return 0;
+                return el.offsetHeight + (skipTop ? 0 : (parseFloat(cs.marginTop) || 0)) + (parseFloat(cs.marginBottom) || 0);
+            }
+            function _hasVisibleChild(node){
+                for (var i = 0; i < node.children.length; i++) if (node.children[i].style.display !== 'none') return true;
+                return false;
+            }
+
+            // PRZEPROWADZKA BOXOW MIEDZY KOLUMNAMI + ZWIJANIE PUSTYCH KOLUMN.
+            // Wolana z KONCA adjustLayout (tam sa juz ustawione wysokosci kolumn, z ktorych liczymy
+            // wolne miejsce). Kolejnosc krokow jest istotna:
+            //   1. wszystkie kolumny na chwile widoczne - inaczej zwinieta kolumna raportuje zerowe
+            //      wysokosci dzieci i policzylibysmy bzdury (a raz zwinieta nigdy by nie wrocila),
+            //   2. wolne miejsce w kolumnie-celu = jej wysokosc minus WLASNE boxy (goscie z kolumny 2
+            //      sa z tej sumy wylaczeni - inaczej wynik zalezalby od poprzedniego przebiegu),
+            //   3. przydzial: boxy zrodla po kolei, dopoki sie miesci (pierwszy, ktory nie wchodzi,
+            //      przerywa - inaczej kolejnosc na ekranie przestalaby byc kolejnoscia czytania),
+            //   4. DOM ruszamy TYLKO gdy przydzial faktycznie sie zmienil (kazdy appendChild kasuje
+            //      focus, a w kolumnie 2 siedzi pole wyszukiwarki - user pisalby w znikajacy input),
+            //   5. zwiniecie pustych kolumn i dosuniecie belki RESET/❓/👁 pod ostatnia widoczna.
+            // Gdy nic nie jest ukryte, World Wonders (flex:1) wypelnia kolumne 1 do dna, wiec wolnego
+            // wychodzi ~0 i krok 3 nie przydziela niczego - uklad domyslny zostaje nietkniety.
+            window._packHudBoxes = function(){
+                if (window._hbPacking) return;
+                window._hbPacking = true;
+                try {
+                    var cols = Array.isArray(window.HUD_COLUMNS) ? window.HUD_COLUMNS : [];
+                    cols.forEach(function(c){ var n = document.querySelector(c.sel); if (n) _setVis(n, false); });
+
+                    var cfg = window.HUD_PACK;
+                    var into = cfg && document.querySelector(cfg.into);
+                    var from = cfg && document.querySelector(cfg.from);
+                    if (into && from) {
+                        var hidden = readHidden();
+                        var items = (cfg.boxes || []).map(function(id){
+                            var box = null;
+                            catalog().forEach(function(b){ if (b.id === id) box = b; });
+                            var el = box && box.els && box.els.length === 1 ? document.querySelector(box.els[0]) : null;
+                            return el ? { id: id, el: el, off: hidden.indexOf(id) !== -1 } : null;
+                        }).filter(Boolean);
+
+                        var free = parseFloat(into.style.height) || 0;
+                        for (var i = 0; i < into.children.length; i++) {
+                            var ch = into.children[i], own = true;
+                            items.forEach(function(it){ if (it.el === ch) own = false; });
+                            if (own) free -= _outerH(ch);
+                        }
+
+                        var want = [];   // boxy, ktore maja wyladowac w kolumnie 1
+                        if (hidden.length) {
+                            for (var j = 0; j < items.length; j++) {
+                                if (items[j].off) continue;                 // ukryty - nie ma czego przenosic
+                                var h = _outerH(items[j].el, true);
+                                if (h + 12 > free) break;
+                                want.push(items[j]); free -= h;
+                            }
+                        }
+                        var changed = items.some(function(it){
+                            var target = want.indexOf(it) !== -1 ? into : from;
+                            return it.el.parentNode !== target;
+                        });
+                        if (changed) {
+                            items.forEach(function(it){ if (want.indexOf(it) === -1) from.appendChild(it.el); });
+                            want.forEach(function(it){ into.appendChild(it.el); });
+                        }
+                        // margin-top:auto ma sens tylko w kolumnie 2 (dosuwa FLIGHTS do dolu). Po
+                        // przeprowadzce do kolumny 1 zepchnaloby box pod sam dol, odrywajac go od
+                        // poprzednika - a przeniesienie mialo wypelnic dziure, nie zrobic nowej.
+                        items.forEach(function(it){
+                            if (it.el.classList.contains('flights-floater')) it.el.style.marginTop = (it.el.parentNode === into) ? '0px' : '';
+                        });
+                    }
+
+                    cols.forEach(function(c){
+                        var n = document.querySelector(c.sel);
+                        if (!n) return;
+                        var empty = !_hasVisibleChild(n);
+                        _setVis(n, empty);
+                        if (document.body) document.body.classList.toggle('hb-col-off-' + c.key, empty);
+                    });
+
+                    // Belka RESET / ❓ / 👁 stoi na sztywnym left:340px (= szerokosc kolumny 1 + gap),
+                    // czyli POD kolumna 2. Gdy ktoras z kolumn zniknie, pozostale przesuwaja sie w lewo
+                    // i belka musi jechac za nimi - inaczej wisi w prozni obok HUD-u.
+                    var bar = document.getElementById('bottom-left-bar');
+                    if (bar && into && from) {
+                        var anchor = null;
+                        [into, from].forEach(function(n){ if (n.style.display !== 'none') anchor = n; });
+                        bar.style.left = (anchor ? anchor.offsetLeft : 0) + 'px';
+                    }
+                } finally { window._hbPacking = false; }
             };
 
             window.setHudBoxHidden = function(id, off){
@@ -5679,6 +5771,13 @@
             // wysokich ekranach, zamiast siedziec przy dole jak dotad).
             const weatherCol = document.querySelector('.weather-floater');
             if (weatherCol) weatherCol.style.height = colH;
+            // .left-wrapper dostaje te sama wysokosc jako MINIMUM. Wysokosc bral dotad z kolumn-dzieci,
+            // wiec gdy user ukryl WSZYSTKIE boxy (obie kolumny na display:none), wrapper zapadal sie do
+            // zera - a razem z nim #bottom-left-bar, ktory kotwiczy sie do jego DOLU (bottom:0).
+            // Przyciski RESET / ❓ / 👁 wyjezdzaly wtedy nad gorna krawiedz ekranu, czyli poza zasieg
+            // myszy (zgloszone 2026-07-29). Przy widocznych kolumnach min-height nic nie zmienia:
+            // maja dokladnie te sama wartosc.
+            if (leftWrapper) leftWrapper.style.minHeight = colH;
 
             // Glob: stala srednica wg szerokosci (nie rosnie na full screen pod boxy).
             // WYMIARY Z REALNEGO KONTENERA (#chartdiv), nie z window.innerWidth/innerHeight (zmiana
@@ -5737,6 +5836,10 @@
                     rankSidebar.style.maxHeight = Math.max(100, (hudTop - rsTop - gapPx) / scale - reserve) + 'px';
                 }
             }
+            // NA SAMYM KONCU: przepakowanie boxow miedzy kolumna 1 a 2 (patrz _packHudBoxes na gorze
+            // pliku). Musi isc PO ustawieniu wysokosci kolumn - z nich liczy wolne miejsce. Gdy nic nie
+            // jest ukryte, funkcja wychodzi od razu i nie dotyka DOM.
+            if (window._packHudBoxes) window._packHudBoxes();
         }
 
         // ZMIANA ROZMIARU: przelicz OD RAZU + jeszcze raz PO USTANIU zmiany (2026-07-22).
