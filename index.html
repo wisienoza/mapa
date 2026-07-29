@@ -498,6 +498,11 @@
         #loot-wrapper .hb-x { top: 4px; right: 10px; font-size: 0.85rem; }
         .sys-log-header { position: relative; }
         .sys-log-header .hb-x { color: #00aa00; }
+        /* GDZIE TERAZ? / SZCZEPIENIA tez nie maja naglowka - krzyzyk siedzi w rogu samego przycisku.
+           position:relative musi byc przez !important: inline style ma tam static (patrz komentarz
+           przy .reset-btn). Dla pozycjonowania absolutnego dziecka relative nic w ukladzie nie zmienia. */
+        #wherenow-toggle, #vaccinations-link { position: relative !important; }
+        #wherenow-toggle .hb-x, #vaccinations-link .hb-x { top: 2px; right: 4px; }
         /* Pasek flag ukryty -> dolny-prawy HUD (przelaczniki + SYSTEM_LOG) traci to, nad czym stal.
            Bez tego zostawalby zawieszony 63px nad dolna krawiedzia ekranu. 7px = ten sam luz, co na
            gorze wrapperow HUD. Wysokosc kolumn liczy adjustLayout z realnego offsetHeight paska,

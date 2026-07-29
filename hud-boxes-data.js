@@ -43,6 +43,23 @@ window.HUD_BOXES = [
       note: "Przycisk rankingu najlepszych kierunków na wybrany miesiąc." },
     { id: "vaccines", icon: "💉", label: "SZCZEPIENIA",            host: "#vaccinations-link", els: ["#vaccinations-link"],
       note: "Przycisk z tabelą szczepień dla podróżujących (stały PDF)." },
+    // PRZELACZNIKI TRYBOW MAPY (#toggle-stack, prawy dolny rog). host:null - te przyciski sa za male
+    // na krzyzyk (LAYER i DETAIL maja segmenty dociagnięte do prawej krawedzi, ✕ lezalby na TOPO/ULTRA),
+    // a przy 148px szerokosci ✕ prosilby sie o klikniecie zamiast przelacznika. Chowane WYLACZNIE
+    // z panelu 👁. Ukrycie NIE gasi trybu - to tylko schowany przycisk; jesli VISA byla wlaczona,
+    // zostaje wlaczona (do zgaszenia RESET-em albo po ponownym pokazaniu przycisku).
+    { id: "visa",     icon: "🛂", label: "VISA (przełącznik)",     host: null,               els: ["#visa-toggle"],
+      note: "Kolorowanie mapy wg wymogów wizowych dla paszportu PL." },
+    { id: "zones",    icon: "🕐", label: "ZONES (przełącznik)",    host: null,               els: ["#tz-toggle"],
+      note: "Siatka stref czasowych na globie." },
+    { id: "night",    icon: "☾",  label: "NIGHT (przełącznik)",    host: null,               els: ["#night-toggle"],
+      note: "Terminator dzień/noc." },
+    { id: "climate",  icon: "🌡", label: "CLIMATE (przełącznik)",  host: null,               els: ["#climate-toggle"],
+      note: "Komfort klimatyczny wg wybranego miesiąca." },
+    { id: "layer",    icon: "🛰", label: "LAYER (podkład globu)",  host: null,               els: ["#sat-toggle"],
+      note: "OFF / SAT / STREET / TOPO - podkład rastrowy nałożony na kulę." },
+    { id: "detail",   icon: "🌐", label: "DETAIL (szczegółowość)", host: null,               els: ["#detail-switch"],
+      note: "LOW / HIGH / ULTRA - dokładność granic. Ukrycie nie zmienia wybranego poziomu." },
     { id: "syslog",   icon: "🖥", label: "System Log",             host: ".sys-log-header",  els: [".sys-log-container"],
       note: "Zielona konsola z komunikatami w prawym dolnym rogu." },
     { id: "lootbar",  icon: "🚩", label: "Pasek flag",             host: "#loot-wrapper",    els: ["#loot-wrapper"],
@@ -58,10 +75,11 @@ window.HUD_BOXES = [
 //   sel   - selektor kontenera kolumny
 //   boxes - id boxow z HUD_BOXES, ktore w niej mieszkaja (komplet - inaczej kolumna zwinie sie
 //           z nadal widoczna zawartoscia)
-// Kolumn 3 i 4 tu NIE MA celowo: factbook JEST cala swoja kolumna (chowamy #factbook-floater
-// bezposrednio), a w kolumnie z drzewkiem rang zostaja przyciski GDZIE TERAZ? / SZCZEPIENIA,
-// wiec nigdy nie jest pusta.
+// Kolumny factbooka tu NIE MA celowo: ten box JEST cala swoja kolumna (chowamy #factbook-floater
+// bezposrednio), wiec nie ma czego zwijac osobno.
 window.HUD_COLUMNS = [
     { key: "left",    sel: "#left-hud",        boxes: ["status", "mission", "region", "wonders"] },
-    { key: "weather", sel: ".weather-floater", boxes: ["weather", "search", "flights"] }
+    { key: "weather", sel: ".weather-floater", boxes: ["weather", "search", "flights"] },
+    { key: "ranks",   sel: ".right-hud",       boxes: ["ranks", "wherenow", "vaccines"] },
+    { key: "toggles", sel: "#toggle-stack",    boxes: ["visa", "zones", "night", "climate", "layer", "detail"] }
 ];

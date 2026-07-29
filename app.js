@@ -17,19 +17,29 @@
 
             window.isHudBoxHidden = function(id){ return readHidden().indexOf(id) !== -1; };
 
-            // Naklada zapisany stan na DOM. Chowamy przez display:none (nie visibility) - box ma
-            // ZNIKNAC z ukladu, a nie zostawic po sobie dziure. Pokazanie = wyczyszczenie inline
-            // display, zeby wartosc wrocila z arkusza (h1 -> block, .h1-nav -> flex itd.);
-            // zaden z tych elementow nie ma display w atrybucie style w index.html, wiec '' jest
-            // bezpieczne. Dodatkowo na <body> ladu je klasa hb-off-<id> dla kazdego ukrytego boxu -
-            // korzysta z niej CSS tam, gdzie ukrycie wymaga korekty kotwic (patrz hb-off-lootbar).
+            // Chowamy przez display:none (nie visibility) - box ma ZNIKNAC z ukladu, a nie zostawic
+            // po sobie dziure. POKAZANIE NIE MOZE byc zwyklym display='' : czesc elementow ma display
+            // w ATRYBUCIE style (np. #toggle-stack ma tam grid, a przyciski przelacznikow flex), wiec
+            // wyczyszczenie inline'a rozwalilo by ich uklad na stale. Dlatego przy pierwszym dotknieciu
+            // elementu zapamietujemy jego ORYGINALNY inline display w data-hb-disp i to on wraca.
+            function _restoreDisp(el){
+                if (el.dataset.hbDisp === undefined) el.dataset.hbDisp = el.style.display || '';
+                return el.dataset.hbDisp;
+            }
+            function _setVis(el, off){
+                var orig = _restoreDisp(el);   // MUSI byc przed zapisem 'none', inaczej zapamietamy nasze wlasne ukrycie
+                el.style.display = off ? 'none' : orig;
+            }
+            // Dodatkowo na <body> laduje klasa hb-off-<id> dla kazdego ukrytego boxu (i hb-col-off-<key>
+            // dla zwinietej kolumny) - korzysta z nich CSS tam, gdzie ukrycie wymaga korekty kotwic
+            // (patrz hb-off-lootbar i hb-col-off-left w index.html).
             window.applyHudBoxes = function(){
                 var hidden = readHidden();
                 catalog().forEach(function(box){
                     var off = hidden.indexOf(box.id) !== -1;
                     (box.els || []).forEach(function(sel){
                         var nodes = document.querySelectorAll(sel);
-                        for (var i = 0; i < nodes.length; i++) nodes[i].style.display = off ? 'none' : '';
+                        for (var i = 0; i < nodes.length; i++) _setVis(nodes[i], off);
                     });
                     if (document.body) document.body.classList.toggle('hb-off-' + box.id, off);
                 });
@@ -40,7 +50,7 @@
                 (Array.isArray(window.HUD_COLUMNS) ? window.HUD_COLUMNS : []).forEach(function(col){
                     var empty = (col.boxes || []).length > 0 && col.boxes.every(function(id){ return hidden.indexOf(id) !== -1; });
                     var node = document.querySelector(col.sel);
-                    if (node) node.style.display = empty ? 'none' : '';
+                    if (node) _setVis(node, empty);
                     if (document.body) document.body.classList.toggle('hb-col-off-' + col.key, empty);
                 });
                 // Wysokosci kolumn i max-height paneli scrollowalnych licza sie z realnych pozycji na
