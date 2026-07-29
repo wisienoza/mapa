@@ -91,12 +91,14 @@ window.HUD_COLUMNS = [
 //   boxes - w kolejnosci przeprowadzki:
 //             id   - id z HUD_BOXES; MUSI miec w `els` DOKLADNIE JEDEN selektor obejmujacy caly box
 //                    (kontener .hud-box), bo przenosimy jeden wezel DOM
-//             grow - ZAPAS w px na pozniejszy rozrost tresci. Test "czy sie miesci" robimy RAZ, przy
-//                    przeliczaniu ukladu - a niektore panele puchna dopiero od akcji usera: lista
-//                    wynikow wyszukiwarki (max-height 200) i tresc pogody po kliknieciu w kraj.
-//                    Bez zapasu box wchodzilby do kolumny 1 "na styk" i wylewal sie potem pod pasek
-//                    flag. Przepakowania NIE robimy na kazda zmiane tresci celowo - box skakalby
-//                    miedzy kolumnami przy pisaniu w wyszukiwarce.
+//             grow - luz w px, jaki musi byc przy tym boxie, zeby go przeniesc. Test "czy sie miesci"
+//                    robimy RAZ, przy przeliczaniu ukladu - a niektore panele puchna dopiero od akcji
+//                    usera (tresc pogody po kliknieciu w kraj to ~110 px). To WARUNEK WEJSCIA, NIE
+//                    rezerwa: od wolnego miejsca odejmujemy potem tylko REALNA wysokosc boxu. Inaczej
+//                    zapas pierwszego zabieral miejsce nastepnym w kolejce i FLIGHTS nie przenosil sie
+//                    mimo 400 px wolnego pod pogoda (zgloszone 2026-07-29).
+//                    Przepakowania NIE robimy na kazda zmiane tresci celowo - box skakalby miedzy
+//                    kolumnami przy pisaniu w wyszukiwarce.
 // Dopoki nic nie jest ukryte, kolumna 1 jest pelna (World Wonders ma flex:1 i zjada reszte miejsca),
 // wiec wolnego wychodzi ~0 i NIC sie nie rusza - uklad domyslny zostaje bajt w bajt taki jak byl.
 window.HUD_PACK = {

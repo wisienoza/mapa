@@ -110,12 +110,18 @@
                         if (hidden.length) {
                             for (var j = 0; j < items.length; j++) {
                                 if (items[j].off) continue;                 // ukryty - nie ma czego przenosic
-                                // + grow: zapas na tresc, ktora dopiero urosnie (siatka pogody po
-                                // wybraniu celu). Box z `cap` zamiast rezerwy wymaga tylko minimum
-                                // (cap.min) - jego puchnaca czesc dostanie nizej przyciety max-height.
-                                // Patrz HUD_PACK w hud-boxes-data.js.
-                                var h = _outerH(items[j].el, true) + items[j].grow;
-                                if (h + 12 + (items[j].cap ? items[j].cap.min : 0) > free) break;
+                                // grow/cap.min to WARUNEK WEJSCIA tego boxu ("nie przenos, jesli nie ma
+                                // przy nim tyle luzu na rozrost"), a NIE rezerwa odkladana na stale.
+                                // Od wolnego miejsca odejmujemy TYLKO realna wysokosc - inaczej zapas
+                                // pierwszego boxu zabieral miejsce nastepnym w kolejce i FLIGHTS nie
+                                // przenosil sie mimo 400 px wolnego pod panelem pogody (2026-07-29).
+                                // Konsekwencja jest swiadoma: gdy kolumna jest zapakowana pod korek,
+                                // rozrost panelu pogody (~110 px po wybraniu celu) zjada najpierw
+                                // przerwe nad FLIGHTS (jego margin-top:auto), a dopiero potem spycha
+                                // go w dol. Ciasne pakowanie jest tu wazniejsze (decyzja usera).
+                                var h = _outerH(items[j].el, true);
+                                var need = h + items[j].grow + (items[j].cap ? items[j].cap.min : 0);
+                                if (need + 2 > free) break;
                                 want.push(items[j]); free -= h;
                             }
                         }
