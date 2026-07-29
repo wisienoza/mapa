@@ -479,6 +479,31 @@
            63 = 56 (pasek flag) + 7 (luz), max-height 63 + 7 (gorny margines wrapperow). */
         #bottom-right-hud { bottom: 63px; max-height: calc(100vh - 70px); }
 
+        /* --- UKRYWANIE BOXOW HUD (katalog: hud-boxes-data.js, logika: app.js) ---
+           Krzyzyk doklejany z JS do naglowka kazdego ukrywalnego boxu. NIE chowa sie pod :hover
+           naglowka, bo naglowki leza w kontenerach z pointer-events:none (patrz .ui-container) i
+           taki hover nigdy by nie zadzialal - dlatego siedzi staly, ale mocno przygaszony, i
+           rozjasnia sie dopiero pod kursorem. Sam krzyzyk MUSI miec pointer-events:auto z tego
+           samego powodu. position:absolute wzgledem naglowka (h1 dostaje relative nizej). */
+        .hb-x { position: absolute; top: 0; right: 0; z-index: 5; cursor: pointer; pointer-events: auto;
+                color: #8f9ba8; opacity: 0.28; font-size: 0.75rem; line-height: 1; padding: 2px 3px;
+                user-select: none; transition: opacity 0.15s, color 0.15s; }
+        .hb-x:hover { opacity: 1; color: #ef4444; }
+        h1 { position: relative; }
+        /* ACTIVE MISSION ma w naglowku przelacznik misji (◀ 1/1 ▶) przy prawej krawedzi - krzyzyk
+           w rogu ladowalby na nim. Tu jedzie normalnym flexem, jako ostatni element wiersza. */
+        h1.h1-nav .hb-x { position: static; margin-left: 2px; }
+        /* Pasek flag i SYSTEM_LOG nie maja naglowka h1 - krzyzyk siedzi w nich samych
+           (.loot-bar-wrapper jest juz position:absolute, .sys-log-header dostaje relative nizej). */
+        #loot-wrapper .hb-x { top: 4px; right: 10px; font-size: 0.85rem; }
+        .sys-log-header { position: relative; }
+        .sys-log-header .hb-x { color: #00aa00; }
+        /* Pasek flag ukryty -> dolny-prawy HUD (przelaczniki + SYSTEM_LOG) traci to, nad czym stal.
+           Bez tego zostawalby zawieszony 63px nad dolna krawiedzia ekranu. 7px = ten sam luz, co na
+           gorze wrapperow HUD. Wysokosc kolumn liczy adjustLayout z realnego offsetHeight paska,
+           wiec ona koryguje sie sama. */
+        body.hb-off-lootbar #bottom-right-hud { bottom: 7px; max-height: calc(100vh - 14px); }
+
         @media (max-height: 1000px) {
             h1 { font-size: 0.9rem; margin-bottom: 5px; }
             /* padding NIE jest tu juz nadpisywany - 7px z reguly bazowej jest na tyle ciasne, ze na
@@ -552,7 +577,7 @@
         </div>
 
         <div class="weather-floater">
-            <h1>Live Environ Feed</h1>
+            <h1 id="h1-weather">Live Environ Feed</h1>
             <div class="hud-panel" id="weather-panel">
                 <div class="max-range-box">
                     <div class="range-label" id="weather-target">TARGET: NONE</div>
@@ -561,8 +586,8 @@
                     </div>
                 </div>
             </div>
-            <h1>Search & Track</h1>
-            <div class="hud-panel">
+            <h1 id="h1-search">Search & Track</h1>
+            <div class="hud-panel" id="search-panel">
                 <div class="range-label">SATELLITE UPLINK / SEARCH</div>
                 <div style="position: relative; margin-top: 10px;">
                     <input type="text" id="country-search" placeholder="ENTER NAME..."
@@ -582,8 +607,8 @@
                  teraz stoi rowno przy dole (bottom:0), wiec rezerwa zeszla o te same 22px (-> 50px), a
                  potem jeszcze o 30% samego odstepu (13px -> 9px). Ponizej ~46px przyciski zaczna wchodzic
                  na panel FLIGHTS. -->
-            <div class="flights-floater" style="width:100%; z-index:110; pointer-events:auto; margin-top:auto; margin-bottom:46px;">
-                <h1>Flights</h1>
+            <div class="flights-floater" id="flights-floater" style="width:100%; z-index:110; pointer-events:auto; margin-top:auto; margin-bottom:46px;">
+                <h1 id="h1-flights">Flights</h1>
                 <div class="hud-panel" style="padding-bottom:5px;">
                     <div class="range-label">MY FLIGHTS</div>
                     <div class="mf-row">
@@ -615,12 +640,16 @@
         <div id="bottom-left-bar" style="position:absolute; left:340px; bottom:0; display:flex; gap:10px; align-items:stretch; pointer-events:none; z-index:110;">
             <div class="reset-btn" id="reset-btn" style="position:static; white-space:nowrap;">RESET AND RESUME ORBIT ↻</div>
             <div class="reset-btn" id="help-toggle" style="position:static; width:40px; box-sizing:border-box; padding:0; display:flex; align-items:center; justify-content:center; font-size:1.1rem; border-color:#facc15; color:#facc15;" title="Instrukcja / manual">❓</div>
+            <!-- Widocznosc boxow HUD: spis boxow siedzi w hud-boxes-data.js, logika w app.js
+                 (window.showHudBoxesPanel). Tu jest tylko wejscie do panelu - drugie, szybsze, to
+                 krzyzyk ✕ doklejany z JS do naglowka kazdego boxu. -->
+            <div class="reset-btn" id="hudboxes-toggle" style="position:static; width:40px; box-sizing:border-box; padding:0; display:flex; align-items:center; justify-content:center; font-size:1.1rem; border-color:#22d3ee; color:#22d3ee;" title="Pokaż / ukryj poszczególne boxy HUD">👁</div>
         </div>
     </div>
 
     <div class="right-wrapper">
-        <div class="factbook-floater">
-            <h1>Regional Intel / Factbook</h1>
+        <div class="factbook-floater" id="factbook-floater">
+            <h1 id="h1-factbook">Regional Intel / Factbook</h1>
             <div class="hud-panel" id="factbook-panel">
                 <div class="max-range-box">
                     <div class="range-label" id="factbook-target">TARGET: NONE</div>
@@ -632,7 +661,7 @@
         </div>
 
         <div class="right-hud">
-            <h1>Progression Tree</h1>
+            <h1 id="h1-ranks">Progression Tree</h1>
             <div class="rank-sidebar" id="rank-list"></div>
             <!-- Przyciski siedza POD drzewkiem rang, w tej samej kolumnie 240px. Miejsce na nie
                  rezerwuje adjustLayout w app.js (odejmuje ICH SUMARYCZNA wysokosc od max-height
@@ -706,7 +735,10 @@
          tego pliku trzeba bumpnac TAMTEN numer osobno.
          Celowo TYLKO te pliki: ciezkie bazy (flags 2 MB, climate 2.3 MB) maja sie cache'owac,
          bo zmieniaja sie raz na ruski rok, a publiczna kopia na GitHub Pages sciagalaby je od nowa. -->
-    <script src="help.js?v=20260729j"></script>
-    <script src="app.js?v=20260729j"></script>
+    <!-- Katalog ukrywalnych boxow HUD. MUSI stac PRZED app.js - logika czyta window.HUD_BOXES od razu
+         przy parsowaniu app.js (blok na jego gorze), zeby ukryte panele nie mrugaly przy wejsciu. -->
+    <script src="hud-boxes-data.js?v=20260729k"></script>
+    <script src="help.js?v=20260729k"></script>
+    <script src="app.js?v=20260729k"></script>
 </body>
 </html>
