@@ -125,15 +125,13 @@
                             items.forEach(function(it){ if (want.indexOf(it) === -1) from.appendChild(it.el); });
                             want.forEach(function(it){ into.appendChild(it.el); });
                         }
-                        // margin-top:auto (FLIGHTS) zostaje NIETKNIETY takze po przeprowadzce: box ma
-                        // trzymac sie dolu kolumny ZAWSZE, niezaleznie od tego, w ktorej wyladowal
-                        // (decyzja usera 2026-07-29). W kolumnie 1 dziala tak samo jak w 2 - gdy nie
-                        // ma juz elementu z flex:1 (World Wonders ukryty), to wlasnie ten auto-margines
-                        // pochlania wolna przestrzen i spycha panel na dno. Czyscimy tylko ewentualna
-                        // wartosc z wczesniejszego przebiegu, zeby inline nie przykryl arkusza.
-                        items.forEach(function(it){
-                            if (it.el.classList.contains('flights-floater') && it.el.style.marginTop) it.el.style.marginTop = '';
-                        });
+                        // margin-top:auto (FLIGHTS) NIE JEST TU RUSZANY I NIE MOZE BYC: box ma trzymac
+                        // sie dolu kolumny ZAWSZE, w ktorej by nie wyladowal (decyzja usera 2026-07-29),
+                        // a w kolumnie 1 ten auto-margines dziala tak samo - gdy nie ma juz elementu
+                        // z flex:1 (World Wonders ukryty), to wlasnie on pochlania wolna przestrzen.
+                        // UWAGA na przyszlosc: `margin-top:auto` siedzi w ATRYBUCIE style .flights-floater,
+                        // wiec kazde `el.style.marginTop = ''` je KASUJE i panel wraca pod poprzednika
+                        // (kosztowalo to jedna iteracje 2026-07-29).
                     }
 
                     cols.forEach(function(c){

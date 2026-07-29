@@ -104,8 +104,10 @@ window.HUD_PACK = {
     from: ".weather-floater",
     into: "#left-hud",
     boxes: [
-        { id: "weather", grow: 160 },   // siatka pogody po wybraniu celu (teraz: SYSTEM OFFLINE)
-        { id: "search",  grow: 210 },   // #search-results ma max-height 200 + margines
-        { id: "flights", grow: 0 }      // staly rozmiar
+        // Zapasy liczone z REALNYCH ograniczen, nie "na oko" - kazdy zbedny piksel zabiera miejsce
+        // boxowi na koncu kolejki (przy 160/210 FLIGHTS przestawal sie miescic o 10 px).
+        { id: "weather", grow: 130 },   // siatka pogody po wybraniu celu (teraz: SYSTEM OFFLINE / STANDBY)
+        { id: "search",  grow: 205 },   // #search-results: max-height 200 + 5 px margin-top
+        { id: "flights", grow: 0 }      // staly rozmiar, nic w nim nie puchnie
     ]
 };
