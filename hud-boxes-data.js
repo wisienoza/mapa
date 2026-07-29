@@ -89,8 +89,23 @@ window.HUD_COLUMNS = [
 // po kolei - zamiast zostawiac pionowa dziure obok. Silnik: window._packHudBoxes w app.js.
 //   from  - kolumna-zrodlo (dom kanoniczny tych boxow)
 //   into  - kolumna-cel (wedruja na jej KONIEC, w kolejnosci z `boxes`)
-//   boxes - id z HUD_BOXES w kolejnosci przeprowadzki; kazdy MUSI miec w `els` DOKLADNIE JEDEN
-//           selektor obejmujacy caly box (kontener .hud-box), bo przenosimy jeden wezel DOM
+//   boxes - w kolejnosci przeprowadzki:
+//             id   - id z HUD_BOXES; MUSI miec w `els` DOKLADNIE JEDEN selektor obejmujacy caly box
+//                    (kontener .hud-box), bo przenosimy jeden wezel DOM
+//             grow - ZAPAS w px na pozniejszy rozrost tresci. Test "czy sie miesci" robimy RAZ, przy
+//                    przeliczaniu ukladu - a niektore panele puchna dopiero od akcji usera: lista
+//                    wynikow wyszukiwarki (max-height 200) i tresc pogody po kliknieciu w kraj.
+//                    Bez zapasu box wchodzilby do kolumny 1 "na styk" i wylewal sie potem pod pasek
+//                    flag. Przepakowania NIE robimy na kazda zmiane tresci celowo - box skakalby
+//                    miedzy kolumnami przy pisaniu w wyszukiwarce.
 // Dopoki nic nie jest ukryte, kolumna 1 jest pelna (World Wonders ma flex:1 i zjada reszte miejsca),
 // wiec wolnego wychodzi ~0 i NIC sie nie rusza - uklad domyslny zostaje bajt w bajt taki jak byl.
-window.HUD_PACK = { from: ".weather-floater", into: "#left-hud", boxes: ["weather", "search", "flights"] };
+window.HUD_PACK = {
+    from: ".weather-floater",
+    into: "#left-hud",
+    boxes: [
+        { id: "weather", grow: 160 },   // siatka pogody po wybraniu celu (teraz: SYSTEM OFFLINE)
+        { id: "search",  grow: 210 },   // #search-results ma max-height 200 + margines
+        { id: "flights", grow: 0 }      // staly rozmiar
+    ]
+};

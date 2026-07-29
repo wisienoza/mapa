@@ -92,11 +92,11 @@
                     var from = cfg && document.querySelector(cfg.from);
                     if (into && from) {
                         var hidden = readHidden();
-                        var items = (cfg.boxes || []).map(function(id){
+                        var items = (cfg.boxes || []).map(function(spec){
                             var box = null;
-                            catalog().forEach(function(b){ if (b.id === id) box = b; });
+                            catalog().forEach(function(b){ if (b.id === spec.id) box = b; });
                             var el = box && box.els && box.els.length === 1 ? document.querySelector(box.els[0]) : null;
-                            return el ? { id: id, el: el, off: hidden.indexOf(id) !== -1 } : null;
+                            return el ? { id: spec.id, el: el, grow: spec.grow || 0, off: hidden.indexOf(spec.id) !== -1 } : null;
                         }).filter(Boolean);
 
                         var free = parseFloat(into.style.height) || 0;
@@ -110,7 +110,9 @@
                         if (hidden.length) {
                             for (var j = 0; j < items.length; j++) {
                                 if (items[j].off) continue;                 // ukryty - nie ma czego przenosic
-                                var h = _outerH(items[j].el, true);
+                                // + grow: zapas na tresc, ktora dopiero urosnie (wyniki wyszukiwarki,
+                                // pogoda po wybraniu celu). Patrz HUD_PACK w hud-boxes-data.js.
+                                var h = _outerH(items[j].el, true) + items[j].grow;
                                 if (h + 12 > free) break;
                                 want.push(items[j]); free -= h;
                             }
@@ -123,11 +125,14 @@
                             items.forEach(function(it){ if (want.indexOf(it) === -1) from.appendChild(it.el); });
                             want.forEach(function(it){ into.appendChild(it.el); });
                         }
-                        // margin-top:auto ma sens tylko w kolumnie 2 (dosuwa FLIGHTS do dolu). Po
-                        // przeprowadzce do kolumny 1 zepchnaloby box pod sam dol, odrywajac go od
-                        // poprzednika - a przeniesienie mialo wypelnic dziure, nie zrobic nowej.
+                        // margin-top:auto (FLIGHTS) zostaje NIETKNIETY takze po przeprowadzce: box ma
+                        // trzymac sie dolu kolumny ZAWSZE, niezaleznie od tego, w ktorej wyladowal
+                        // (decyzja usera 2026-07-29). W kolumnie 1 dziala tak samo jak w 2 - gdy nie
+                        // ma juz elementu z flex:1 (World Wonders ukryty), to wlasnie ten auto-margines
+                        // pochlania wolna przestrzen i spycha panel na dno. Czyscimy tylko ewentualna
+                        // wartosc z wczesniejszego przebiegu, zeby inline nie przykryl arkusza.
                         items.forEach(function(it){
-                            if (it.el.classList.contains('flights-floater')) it.el.style.marginTop = (it.el.parentNode === into) ? '0px' : '';
+                            if (it.el.classList.contains('flights-floater') && it.el.style.marginTop) it.el.style.marginTop = '';
                         });
                     }
 
