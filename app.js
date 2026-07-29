@@ -1,4 +1,142 @@
 // === APPLICATION LOGIC (wydzielone z index.html) ===
+        // === WIDOCZNOSC BOXOW HUD (ukrywanie pojedynczych paneli) ===
+        // Katalog boxow: hud-boxes-data.js (window.HUD_BOXES) - tam sa selektory i opisy, tutaj sama
+        // logika. Stan: localStorage['hudHidden'] = JSON z tablica id UKRYTYCH boxow (brak klucza =
+        // wszystko widoczne, czyli zachowanie sprzed tej funkcji).
+        // Blok stoi CELOWO na gorze app.js i wykonuje sie od razu przy parsowaniu (skrypt jest ostatni
+        // w <body>, wiec caly HUD jest juz w DOM). Gdyby czekal na am5.ready, ukryte panele mrugalyby
+        // przez sekunde przy kazdym wejsciu na strone.
+        (function(){
+            var LS_KEY = 'hudHidden';
+            function catalog(){ return Array.isArray(window.HUD_BOXES) ? window.HUD_BOXES : []; }
+            function readHidden(){
+                try { var v = JSON.parse(localStorage.getItem(LS_KEY) || '[]'); return Array.isArray(v) ? v : []; }
+                catch(e){ return []; }
+            }
+            function writeHidden(arr){ try { localStorage.setItem(LS_KEY, JSON.stringify(arr)); } catch(e){} }
+
+            window.isHudBoxHidden = function(id){ return readHidden().indexOf(id) !== -1; };
+
+            // Naklada zapisany stan na DOM. Chowamy przez display:none (nie visibility) - box ma
+            // ZNIKNAC z ukladu, a nie zostawic po sobie dziure. Pokazanie = wyczyszczenie inline
+            // display, zeby wartosc wrocila z arkusza (h1 -> block, .h1-nav -> flex itd.);
+            // zaden z tych elementow nie ma display w atrybucie style w index.html, wiec '' jest
+            // bezpieczne. Dodatkowo na <body> ladu je klasa hb-off-<id> dla kazdego ukrytego boxu -
+            // korzysta z niej CSS tam, gdzie ukrycie wymaga korekty kotwic (patrz hb-off-lootbar).
+            window.applyHudBoxes = function(){
+                var hidden = readHidden();
+                catalog().forEach(function(box){
+                    var off = hidden.indexOf(box.id) !== -1;
+                    (box.els || []).forEach(function(sel){
+                        var nodes = document.querySelectorAll(sel);
+                        for (var i = 0; i < nodes.length; i++) nodes[i].style.display = off ? 'none' : '';
+                    });
+                    if (document.body) document.body.classList.toggle('hb-off-' + box.id, off);
+                });
+                // Wysokosci kolumn i max-height paneli scrollowalnych licza sie z realnych pozycji na
+                // ekranie - po zniknieciu/powrocie boxu MUSZA byc przeliczone, inaczej Progression Tree
+                // i Factbook zostaja z wysokoscia sprzed zmiany.
+                if (window.adjustLayoutSoon) window.adjustLayoutSoon();
+            };
+
+            window.setHudBoxHidden = function(id, off){
+                var hidden = readHidden(), i = hidden.indexOf(id);
+                if (off && i === -1) hidden.push(id);
+                if (!off && i !== -1) hidden.splice(i, 1);
+                writeHidden(hidden);
+                window.applyHudBoxes();
+                _renderHudBoxRows();
+            };
+
+            window.showAllHudBoxes = function(){ writeHidden([]); window.applyHudBoxes(); _renderHudBoxRows(); };
+
+            // Krzyzyk ✕ w naglowku boxu. Wstawiany z JS, a nie recznie w index.html, zeby dodanie
+            // nowego boxu bylo zmiana W JEDNYM MIEJSCU (hud-boxes-data.js).
+            // pointer-events:auto na .hb-x jest KONIECZNE: naglowki h1 leza w kontenerach z
+            // pointer-events:none (klikalne sa tam tylko .hud-panel), wiec bez tego krzyzyk byl by
+            // martwy. Dlatego tez nie chowamy go pod :hover naglowka - ten hover by nie zadzialal;
+            // zamiast tego siedzi przygaszony (opacity 0.28 w arkuszu) i rozjasnia sie pod kursorem.
+            function _injectHudBoxX(){
+                catalog().forEach(function(box){
+                    if (!box.host) return;
+                    var host = document.querySelector(box.host);
+                    if (!host || host.querySelector('.hb-x')) return;
+                    var x = document.createElement('span');
+                    x.className = 'hb-x';
+                    x.textContent = '✕';
+                    x.title = 'Ukryj: ' + box.label + ' (przywrócisz przyciskiem 👁 w lewym dolnym rogu)';
+                    x.addEventListener('click', function(ev){ ev.stopPropagation(); window.setHudBoxHidden(box.id, true); });
+                    // Pasek flag lapie pointerdown do przeciagania - bez tego lapaniu krzyzyka
+                    // towarzyszylo szarpniecie paska.
+                    x.addEventListener('pointerdown', function(ev){ ev.stopPropagation(); });
+                    host.appendChild(x);
+                });
+            }
+
+            window.hideHudBoxesPanel = function(){
+                var el = document.getElementById('hudboxes-overlay');
+                if (el) el.style.display = 'none';
+            };
+
+            function _renderHudBoxRows(){
+                var body = document.getElementById('hudboxes-body');
+                if (!body) return;
+                var hidden = readHidden();
+                body.innerHTML = catalog().map(function(box){
+                    var off = hidden.indexOf(box.id) !== -1;
+                    return '<div class="hb-row" data-id="' + box.id + '" style="display:flex; gap:10px; align-items:center; padding:8px 6px; border-bottom:1px solid rgba(255,255,255,0.06); cursor:pointer;">'
+                      +   '<span style="font-size:1rem; flex:0 0 22px; text-align:center;">' + (box.icon || '▪') + '</span>'
+                      +   '<span style="flex:1 1 auto; min-width:0;">'
+                      +     '<span style="display:block; font-family:\'Rajdhani\',sans-serif; font-weight:700; letter-spacing:1px; font-size:0.95rem; color:' + (off ? '#6b7684' : '#c6cfd9') + ';">' + box.label + '</span>'
+                      +     '<span style="display:block; font-family:\'JetBrains Mono\',monospace; font-size:0.68rem; color:#6b7684; line-height:1.4; margin-top:2px;">' + (box.note || '') + '</span>'
+                      +   '</span>'
+                      +   '<span style="flex:0 0 96px; text-align:center; font-family:\'JetBrains Mono\',monospace; font-size:0.7rem; letter-spacing:1px; padding:4px 0; border-radius:4px; border:1px solid ' + (off ? '#4b5563' : '#00ff00') + '; color:' + (off ? '#6b7684' : '#00ff00') + '; background:' + (off ? 'transparent' : 'rgba(0,255,0,0.08)') + ';">' + (off ? 'UKRYTY' : 'WIDOCZNY') + '</span>'
+                      + '</div>';
+                }).join('');
+                var rows = body.querySelectorAll('.hb-row');
+                for (var i = 0; i < rows.length; i++) {
+                    rows[i].onclick = function(){
+                        var id = this.getAttribute('data-id');
+                        window.setHudBoxHidden(id, !window.isHudBoxHidden(id));
+                    };
+                }
+            }
+
+            window.showHudBoxesPanel = function(){
+                var el = document.getElementById('hudboxes-overlay');
+                if (!el) {
+                    el = document.createElement('div');
+                    el.id = 'hudboxes-overlay';
+                    el.style.cssText = "display:none; position:fixed; inset:0; z-index:200; background:rgba(0,0,0,0.75); backdrop-filter:blur(4px); align-items:center; justify-content:center;";
+                    el.innerHTML =
+                        '<div style="background:rgba(8,8,10,0.96); border:1px solid rgba(34,211,238,0.4); border-radius:8px; padding:22px; width:min(640px,92vw); max-height:85vh; overflow-y:auto; box-shadow:0 8px 40px rgba(0,0,0,0.6); font-family:\'Rajdhani\',sans-serif;">'
+                      +   '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">'
+                      +     '<h1 style="margin:0; border:none; padding:0; font-size:1.3rem; color:#22d3ee;">👁 WIDOCZNOŚĆ BOXÓW</h1>'
+                      +     '<span id="hudboxes-close" style="cursor:pointer; font-size:1.5rem; color:#8f9ba8; line-height:1;">✕</span>'
+                      +   '</div>'
+                      +   '<div style="font-family:\'JetBrains Mono\',monospace; font-size:0.68rem; color:#6b7684; line-height:1.5; margin-bottom:10px;">Kliknij wiersz, żeby schować lub przywrócić box. Ustawienie zapisuje się w tej przeglądarce i przetrwa odświeżenie. Każdy widoczny box da się też schować krzyżykiem ✕ w jego nagłówku.</div>'
+                      +   '<div id="hudboxes-body"></div>'
+                      +   '<div id="hudboxes-all" class="reset-btn" style="position:static; margin-top:14px; text-align:center; border-color:#22d3ee; color:#22d3ee;">POKAŻ WSZYSTKO ↻</div>'
+                      + '</div>';
+                    document.body.appendChild(el);
+                    el.addEventListener('click', function(ev){ if (ev.target === el) window.hideHudBoxesPanel(); });
+                    document.getElementById('hudboxes-close').onclick = window.hideHudBoxesPanel;
+                    document.getElementById('hudboxes-all').onclick = window.showAllHudBoxes;
+                }
+                _renderHudBoxRows();
+                el.style.display = 'flex';
+            };
+
+            function _initHudBoxes(){
+                _injectHudBoxX();
+                window.applyHudBoxes();
+                var btn = document.getElementById('hudboxes-toggle');
+                if (btn) btn.onclick = function(){ window.showHudBoxesPanel(); };
+            }
+            if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', _initHudBoxes);
+            else _initHudBoxes();
+        })();
+
         // --- RYSOWANIE TRASY MISJI (nowe) ---
         window.displayMissionRoute = function(missionName) {
             if (typeof stopRot === 'function') stopRot();
@@ -9196,7 +9334,8 @@
             { id: "help-overlay",              hide: "hideHelpPanel" },
             { id: "flight-search-overlay",     hide: "hideFlightSearch" },
             { id: "stay-search-overlay",       hide: "hideStaySearch" },
-            { id: "wherenow-overlay",          hide: null }
+            { id: "wherenow-overlay",          hide: null },
+            { id: "hudboxes-overlay",          hide: "hideHudBoxesPanel" }
         ];
         document.addEventListener("keydown", function(ev){
             if (ev.key !== "Escape") return;
