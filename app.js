@@ -7527,7 +7527,16 @@
                         if (same && a.gen === _satGen && !(a.cacheOnly && !reuseOnly)) return a;
                         if (!same && reuseOnly) {
                             if (_satCovers(a, p)) return a;                                  // przyblizanie: kadr sie kurczy
-                            if (a && performance.now() - _satBuiltAt < _S_REBUILD_MS) return a; // oddalanie: hamulec
+                            // ODDALANIE, hamulec czasowy. ZWRACAMY null, NIE stara mozaike - i to jest
+                            // tu cala sztuczka. null znaczy dla _satRender "nie ruszaj canvasa", wiec na
+                            // ekranie zostaje POPRZEDNIA KLATKA: przez <=90 ms obraz jest o tyle
+                            // nieaktualny, czego nie widac. Zwracanie stalej mozaiki (pierwsza wersja
+                            // hamulca, 2026-07-30) wygladalo DUZO gorzej: mozaika sprzed oddalenia
+                            // pokrywa juz tylko srodek kadru, wiec reprojekcja rysowala plamke w srodku
+                            // i przezroczystosc dookola, a co 90 ms wskakiwala pelna klatka. Uzytkownik
+                            // zglosil to jako "zanika mapa i sie pojawia" - dwa rozne zle stany na
+                            // przemian migaja bardziej niz jeden zly stan trzymany na stale.
+                            if (a && performance.now() - _satBuiltAt < _S_REBUILD_MS) return null;
                         }
 
                         if (!_satMosCv) {
@@ -7570,7 +7579,7 @@
 
                         if (_satMosCv.width !== w || _satMosCv.height !== h) { _satMosCv.width = w; _satMosCv.height = h; }
                         else _satMosCtx.clearRect(0, 0, w, h);
-                        var have = new Uint8Array(p.nx * p.ny), drawn = 0, blanks = 0;
+                        var have = new Uint8Array(p.nx * p.ny), drawn = 0, blanks = 0, placed = 0;
                         for (j = 0; j < p.ny; j++) {
                             for (i = 0; i < p.nx; i++) {
                                 k = j * p.nx + i;
@@ -7582,13 +7591,21 @@
                                 } else {
                                     var an = _satAncestor(p.z, p.tx + i, p.ty + j);
                                     if (an) {
-                                        have[k] = 1;
+                                        have[k] = 1; placed++;
                                         var sz = 256 / (1 << an.up);
                                         try { _satMosCtx.drawImage(an.rec.img, an.sx * sz, an.sy * sz, sz, sz, i * 256, j * 256, 256, 256); } catch(_e){}
                                     }
                                 }
                             }
                         }
+                        // PUSTE ZLOZENIE. Przy oddalaniu z glebokiego zoomu cache ma same POTOMKI
+                        // (kafle glebsze), ktore do niczego nie sluza, wiec petla wyzej potrafi nie
+                        // narysowac ani jednego piksela. Instalowanie takiej mozaiki znaczyloby
+                        // wyczyszczenie ekranu do czarnego - a to dokladnie ten "zanik", ktory ma
+                        // znikac. Zwracamy null: poprzednia klatka zostaje, dopoki cokolwiek nie
+                        // doleci. Zamowienia i tak juz poszly (get == _satTile poza ruchem), a odczyt
+                        // 19 MB z pustego canvasa oszczedzamy w calosci.
+                        if (drawn === 0 && placed === 0) return null;
                         // Werdykt o zaslepkach PRZED odczytem pikseli - gdy zapada, cala mozaika idzie
                         // do kosza, wiec nie ma po co czytac z canvasa 19 MB.
                         if (_satCeiling(drawn, blanks, p)) return null;
@@ -7804,6 +7821,11 @@
                             _satCv.style.display = "block";
                             _satAttrib(true);
                             _satAsm = null;
+                            // Czyscimy JAWNIE, bo od 2026-07-30 puste zlozenie zwraca null i zostawia
+                            // canvas nietkniety (patrz "PUSTE ZLOZENIE"). Bez tego zmiana warstwy przy
+                            // duzym zoomie trzymalaby na ekranie zdjecie POPRZEDNIEJ warstwy - klikasz
+                            // STREET, a dalej widzisz SAT, dopoki nie doleca nowe kafle.
+                            if (_satCtx) _satCtx.clearRect(0, 0, _satCv.width, _satCv.height);
                             _satBaseGrid();                          // zanim cokolwiek narysujemy - patrz komentarz
                             _satRender(1);
                             _satPlFlag(false);
