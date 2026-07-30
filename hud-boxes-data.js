@@ -39,28 +39,23 @@ window.HUD_BOXES = [
       note: "Prawy panel z profilem państwa, miasta i lotniska. Po ukryciu kliknięcie w kraj nadal go zaznacza, ale nie ma gdzie pokazać danych." },
     { id: "ranks",    icon: "🏅", label: "Progression Tree",       host: "#h1-ranks",        els: ["#h1-ranks", "#rank-list"],
       note: "Drzewko rang w prawej kolumnie." },
-    // Dwa przyciski pod drzewkiem rang. Nie maja naglowka h1, wiec krzyzyk siedzi w rogu SAMEGO
-    // przycisku (patrz regula .hb-x w index.html - dostaja tam position:relative).
-    { id: "wherenow", icon: "🎯", label: "GDZIE TERAZ?",           host: "#wherenow-toggle", els: ["#wherenow-toggle"],
-      note: "Przycisk rankingu najlepszych kierunków na wybrany miesiąc." },
-    { id: "vaccines", icon: "💉", label: "SZCZEPIENIA",            host: "#vaccinations-link", els: ["#vaccinations-link"],
-      note: "Przycisk z tabelą szczepień dla podróżujących (stały PDF)." },
-    // PRZELACZNIKI (#toggle-stack, prawy dolny rog) - DWIE GRUPY, nie szesc osobnych pozycji
-    // (feedback 2026-07-29: rozbicie na pojedyncze przyciski robilo z panelu 👁 sciane wierszy).
-    // Podzial idzie po tym, jak te przyciski wygladaja i dzialaja: cztery wlacz/wylacz kolorujace
-    // globus, i dwa segmentowe wybierajace wariant. Wpis moze obejmowac KILKA elementow - stad
-    // brak jakiegokolwiek kontenera w index.html.
-    // host:null - przyciski sa za male na krzyzyk (LAYER i DETAIL maja segmenty dociagniete do prawej
-    // krawedzi, ✕ lezalby na TOPO/ULTRA), a przy 148px szerokosci ✕ prosilby sie o klikniecie zamiast
-    // przelacznika. Chowane WYLACZNIE z panelu 👁.
-    // Ukrycie NIE gasi trybu - to tylko schowany przycisk; jesli VISA byla wlaczona, zostaje wlaczona
-    // (do zgaszenia RESET-em albo po ponownym pokazaniu przyciskow).
-    { id: "modes",    icon: "🎛", label: "Tryby mapy",             host: null,
-      els: ["#visa-toggle", "#tz-toggle", "#night-toggle", "#climate-toggle"],
-      note: "Cztery przełączniki kolorujące globus: VISA, ZONES, NIGHT, CLIMATE." },
-    { id: "switches", icon: "🛰", label: "LAYER i DETAIL",         host: null,
-      els: ["#sat-toggle", "#detail-switch"],
-      note: "Podkład globu (SAT / STREET / TOPO) i szczegółowość granic (LOW / HIGH / ULTRA)." },
+    // Para przycisków pod drzewkiem rang - JEDNA pozycja, nie dwie (feedback 2026-07-29: "mają się
+    // całe grupy ubijać"). host:null, bo krzyżyk musialby siedziec w jednym z przyciskow, a chowalby
+    // oba - mylace. Chowane z panelu 👁.
+    { id: "rankbtns", icon: "🎯", label: "Przyciski: GDZIE TERAZ? / SZCZEPIENIA", host: null,
+      els: ["#wherenow-toggle", "#vaccinations-link"],
+      note: "Ranking kierunków na wybrany miesiąc i tabela szczepień (PDF) - oba pod drzewkiem rang." },
+    // CALY STOS PRZELACZNIKOW (#toggle-stack, prawy dolny rog) - JEDNA pozycja (feedback 2026-07-29:
+    // "mają się całe grupy ubijać"; wczesniej bylo szesc osobnych, potem dwie podgrupy - obie wersje
+    // za drobne). Chowamy sam KONTENER, wiec nie trzeba wymieniac przyciskow po kolei.
+    // host:null - stos nie ma naglowka, a krzyzyk w rogu ktoregokolwiek przycisku nakladalby sie na
+    // segmenty LAYER/DETAIL dociagniete do prawej krawedzi. Chowany z panelu 👁.
+    // Ukrycie NIE gasi trybow - to tylko schowane przyciski; jesli VISA byla wlaczona, zostaje wlaczona
+    // (do zgaszenia RESET-em albo po ponownym pokazaniu stosu).
+    // UWAGA: #toggle-stack jest przez to JEDNOCZESNIE boxem i kontenerem-kolumna, dlatego CELOWO
+    // wypadl z HUD_COLUMNS - inaczej zwijanie pustych kolumn odkrywalo by go z powrotem.
+    { id: "toggles",  icon: "🎛", label: "Przełączniki mapy",      host: null,               els: ["#toggle-stack"],
+      note: "Cały stos w prawym dolnym rogu: VISA, ZONES, NIGHT, CLIMATE, LAYER i DETAIL." },
     { id: "syslog",   icon: "🖥", label: "System Log",             host: ".sys-log-header",  els: [".sys-log-container"],
       note: "Zielona konsola z komunikatami w prawym dolnym rogu." },
     { id: "lootbar",  icon: "🚩", label: "Pasek flag",             host: "#loot-wrapper",    els: ["#loot-wrapper"],
@@ -76,11 +71,13 @@ window.HUD_BOXES = [
 // opustoszec takze wtedy, gdy jej boxy nie sa ukryte, tylko PRZEWEDROWALY do kolumny 1 (patrz HUD_PACK).
 // Kolumny factbooka tu NIE MA celowo: ten box JEST cala swoja kolumna (#factbook-floater), wiec znika
 // razem z nia.
+// #toggle-stack tu NIE MA z tego samego powodu, co factbooka: caly stos jest JEDNYM boxem
+// (id "toggles"), wiec chowa sie sam z siebie. Wpisanie go tutaj cofaloby to ukrycie - krok 1
+// _packHudBoxes odkrywa wszystkie kolumny, zeby zmierzyc ich zawartosc.
 window.HUD_COLUMNS = [
     { key: "left",    sel: "#left-hud" },
     { key: "weather", sel: ".weather-floater" },
-    { key: "ranks",   sel: ".right-hud" },
-    { key: "toggles", sel: "#toggle-stack" }
+    { key: "ranks",   sel: ".right-hud" }
 ];
 
 // PRZENOSZENIE BOXOW MIEDZY KOLUMNAMI. Gdy w kolumnie 1 zwolni sie miejsce (np. po ukryciu World
