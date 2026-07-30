@@ -7159,6 +7159,7 @@
                     var _satGen    = 0;                  // rosnie z kazdym doladowanym kaflem -> uniewaznia mozaike
                     var _satAsm    = null;               // zlozona mozaika: { z, ox, oy, w, h, px (Uint8ClampedArray), gen }
                     var _satBufs   = {};                 // bufory robocze per krok (1 = pelna rozdzielczosc, 2 = szybka)
+                    var _satMosCv  = null, _satMosCtx = null;   // JEDEN canvas mozaiki na cale zycie trybu
                     var _satRAF = 0, _satIdle = 0, _satWantQuick = false;
                     var _satOrig = null;                 // zapamietany wyglad warstw amCharts (do przywrocenia)
                     var _satAttr = null;                 // element z licencja zrodla
@@ -7297,13 +7298,46 @@
                         rec = { img: img, ok: false, blank: false };
                         _satTiles.set(key, rec);
                         if (_satTiles.size > 600) {                       // LRU: Map trzyma kolejnosc wstawiania
-                            var it = _satTiles.keys();
-                            for (var d = 0; d < 150; d++) { var kk = it.next(); if (kk.done) break; _satTiles.delete(kk.value); }
+                            // Kafle NISKICH poziomow omijamy przy czyszczeniu. Caly swiat do z7 to
+                            // raptem kilkadziesiat kafli, a to wlasnie one sluza jako PRZODEK pod
+                            // dziury (_satAncestor) po kazdej zmianie poziomu - wyrzucenie ich
+                            // oznacza czarna tarcze zamiast rozmytego podgladu.
+                            var it = _satTiles.keys(), gone = 0, seen = 0;
+                            while (gone < 150 && seen < 400) {
+                                var kk = it.next(); if (kk.done) break; seen++;
+                                if (parseInt(kk.value.split("|")[1], 10) <= 7) continue;
+                                _satTiles.delete(kk.value); gone++;
+                            }
                         }
                         img.crossOrigin = "anonymous";
                         img.onload  = function(){ rec.ok = true; rec.blank = _satIsBlank(img); _satGen++; _satSchedule(false); };
                         img.onerror = function(){ rec.dead = true; };
                         img.src = TILE_SOURCES[sk].url.replace("{z}", z).replace("{x}", xx).replace("{y}", y);
+                        return null;
+                    }
+
+                    // --- PODGLAD Z PRZODKA -----------------------------------------------------
+                    // _satTile ZAMAWIA kafel, gdy go nie ma. Te dwie funkcje tylko PYTAJA cache i
+                    // nigdy nie ruszaja sieci - sluza do zalatania dziury tym, co juz mamy.
+                    // Kazdy kafel poziomu z-1 zawiera cwiartke obszaru czterech kafli poziomu z,
+                    // wiec brakujacy kafel mozna zastapic odpowiednim WYCINKIEM przodka rozciagnietym
+                    // do 256x256. Obraz jest rozmyty (2x, 4x, ... powiekszenie), ale jest NATYCHMIAST.
+                    // Bez tego kazda zmiana poziomu kafli daje czarna tarcze na czas rundy do serwera.
+                    // Idziemy najwyzej 5 poziomow w gore (32x powiekszenia i tak nikt nie nazwie
+                    // obrazem, a petla musi sie konczyc).
+                    function _satCached(z, x, y){
+                        var n = 1 << z;
+                        if (y < 0 || y >= n) return null;
+                        var rec = _satTiles.get(_satSrcKeys[_satSrcIdx] + "|" + z + "/" + (((x % n) + n) % n) + "/" + y);
+                        return (rec && rec.ok) ? rec : null;
+                    }
+                    function _satAncestor(z, x, y){
+                        var n = 1 << z, xx = ((x % n) + n) % n;
+                        for (var up = 1; up <= 5 && z - up >= 0; up++) {
+                            var f = 1 << up;
+                            var r = _satCached(z - up, Math.floor(xx / f), Math.floor(y / f));
+                            if (r) return { rec: r, up: up, sx: xx % f, sy: ((y % f) + f) % f };
+                        }
                         return null;
                     }
 
@@ -7423,39 +7457,129 @@
                     // --- MOZAIKA: kafle -> jedna tablica pikseli --------------------------------
                     // Skladamy raz i trzymamy. Sam obrot kuli mozaiki NIE zmienia - przebudowa jest
                     // potrzebna dopiero, gdy zmieni sie poziom/zakres kafli albo cos doleci z sieci.
-                    function _satAssemble(p){
-                        if (_satAsm && _satAsm.z === p.z && _satAsm.tx === p.tx && _satAsm.ty === p.ty
-                            && _satAsm.nx === p.nx && _satAsm.ny === p.ny && _satAsm.gen === _satGen) return _satAsm;
-                        var w = p.nx * 256, h = p.ny * 256;
-                        var cv = document.createElement("canvas"); cv.width = w; cv.height = h;
-                        var cx = cv.getContext("2d");
-                        var drawn = 0, blanks = 0;
-                        for (var j = 0; j < p.ny; j++) {
-                            for (var i = 0; i < p.nx; i++) {
-                                var rec = _satTile(p.z, p.tx + i, p.ty + j);
+                    //
+                    // TO JEST NAJDROZSZA OPERACJA CALEGO TRYBU (mozaika 9x8 kafli = bufor 2304x2048,
+                    // czyli ~19 MB pikseli do odczytania z canvasa). Cztery rzeczy pilnuja, zeby nie
+                    // wykonywala sie czesciej, niz musi (2026-07-30):
+                    //
+                    // 1. JEDEN CANVAS na cale zycie trybu (_satMosCv), z willReadFrequently. Wczesniej
+                    //    kazde zlozenie tworzylo nowy canvas - przy 72 kaflach dolatujacych pojedynczo
+                    //    to 72 alokacje po ~19 MB, czyli GC w srodku animacji zoomu. Flaga kaze
+                    //    przegladarce trzymac bufor po stronie CPU: getImageData przestaje byc
+                    //    synchronicznym odczytem z GPU (to on potrafil zjesc kilkadziesiat ms).
+                    //
+                    // 2. DOLATUJACY KAFEL NIE PRZEBUDOWUJE CALOSCI. Przy niezmienionym planie
+                    //    dorysowujemy tylko nowe kafle i tylko ICH kwadraty 256x256 czytamy z powrotem
+                    //    do bufora pikseli. Koszt na kafel spada z ~19 MB do 256 kB.
+                    //
+                    // 3. W RUCHU (reuseOnly) NIE SKLADAMY NIC. Reprojekcja w _satRender umie narysowac
+                    //    mozaike z DOWOLNEGO poziomu - stara po prostu robi sie stopniowo rozmyta,
+                    //    dopoki geometrycznie pokrywa widok (_satCovers). Klatka animacji zoomu kosztuje
+                    //    wiec sama reprojekcje, a siec dostaje JEDNO zamowienie po zatrzymaniu zamiast
+                    //    kompletu kafli z kazdego mijanego po drodze poziomu.
+                    //
+                    // 4. DZIURY WYPELNIA PRZODEK z cache (_satAncestor), wiec swiezy plan pokazuje od
+                    //    razu rozmyty obraz ostrzejacy kafel po kaflu, a nie czarna tarcze.
+                    function _satCovers(a, p){
+                        if (!a) return false;
+                        // Porownanie w znormalizowanych wspolrzednych swiata [0,1) - tylko one sa
+                        // wspolne dla dwoch roznych poziomow. Pion prosto, w poziomie liczymy
+                        // PRZESUNIECIE poczatku planu wzgledem poczatku mozaiki modulo 1, bo
+                        // dlugosc geograficzna sie owija.
+                        var na = 1 << a.z, np = 1 << p.z;
+                        if (p.ty / np < a.ty / na - 1e-9) return false;
+                        if ((p.ty + p.ny) / np > (a.ty + a.ny) / na + 1e-9) return false;
+                        var wa = a.nx / na, wp = p.nx / np;
+                        if (wa >= 1 - 1e-9) return true;            // mozaika obejmuje caly obwod
+                        var d = (p.tx / np) - (a.tx / na);
+                        return (d - Math.floor(d)) + wp <= wa + 1e-9;
+                    }
+
+                    function _satAssemble(p, reuseOnly){
+                        var a = _satAsm;
+                        var same = !!a && a.z === p.z && a.tx === p.tx && a.ty === p.ty && a.nx === p.nx && a.ny === p.ny;
+                        if (same && a.gen === _satGen) return a;
+                        if (!same && reuseOnly && _satCovers(a, p)) return a;
+
+                        if (!_satMosCv) {
+                            _satMosCv  = document.createElement("canvas");
+                            _satMosCtx = _satMosCv.getContext("2d", { willReadFrequently: true });
+                        }
+                        var w = p.nx * 256, h = p.ny * 256, i, j, k, rec;
+
+                        if (same) {
+                            // TEN SAM PLAN, tylko cos dolecialo z sieci: dorysowujemy wylacznie kafle,
+                            // ktorych jeszcze nie mielismy w ostrej wersji (have < 2). clearRect przed
+                            // rysowaniem, bo pod spodem moze lezec rozmyty przodek.
+                            var touched = false;
+                            for (j = 0; j < p.ny; j++) for (i = 0; i < p.nx; i++) {
+                                k = j * p.nx + i;
+                                if (a.have[k] === 2) continue;
+                                rec = _satTile(p.z, p.tx + i, p.ty + j);
+                                if (!rec) continue;
+                                a.have[k] = 2; a.drawn++; if (rec.blank) a.blanks++;
+                                try {
+                                    _satMosCtx.clearRect(i * 256, j * 256, 256, 256);
+                                    _satMosCtx.drawImage(rec.img, i * 256, j * 256, 256, 256);
+                                } catch(_e){ continue; }
+                                touched = true;
+                                try {
+                                    var td = _satMosCtx.getImageData(i * 256, j * 256, 256, 256).data;
+                                    for (var r = 0; r < 256; r++)
+                                        a.px.set(td.subarray(r * 1024, r * 1024 + 1024), ((j * 256 + r) * a.w + i * 256) * 4);
+                                } catch(_sc){ console.warn("SAT: canvas zatruty (brak CORS na kaflach)", _sc); return null; }
+                            }
+                            a.gen = _satGen;
+                            if (touched && _satCeiling(a.drawn, a.blanks, p)) return null;
+                            return a;
+                        }
+
+                        if (_satMosCv.width !== w || _satMosCv.height !== h) { _satMosCv.width = w; _satMosCv.height = h; }
+                        else _satMosCtx.clearRect(0, 0, w, h);
+                        var have = new Uint8Array(p.nx * p.ny), drawn = 0, blanks = 0;
+                        for (j = 0; j < p.ny; j++) {
+                            for (i = 0; i < p.nx; i++) {
+                                k = j * p.nx + i;
+                                rec = _satTile(p.z, p.tx + i, p.ty + j);
                                 if (rec) {
                                     drawn++; if (rec.blank) blanks++;
-                                    try { cx.drawImage(rec.img, i * 256, j * 256, 256, 256); } catch(_e){}
+                                    have[k] = 2;
+                                    try { _satMosCtx.drawImage(rec.img, i * 256, j * 256, 256, 256); } catch(_e){}
+                                } else {
+                                    var an = _satAncestor(p.z, p.tx + i, p.ty + j);
+                                    if (an) {
+                                        have[k] = 1;
+                                        var sz = 256 / (1 << an.up);
+                                        try { _satMosCtx.drawImage(an.rec.img, an.sx * sz, an.sy * sz, sz, sz, i * 256, j * 256, 256, 256); } catch(_e){}
+                                    }
                                 }
                             }
                         }
-                        // HAMULEC GLEBOKOSCI. Jesli wiekszosc tego, co dolecialo, to zaslepki "Map data
-                        // not yet available", to znaczy ze zrodlo nie ma tu juz zdjec na tym poziomie.
-                        // Zapamietujemy sufit dla rejonu i przerysowujemy poziom nizej. Warunek drawn>=4
-                        // chroni przed werdyktem z jednego kafla, ktory akurat przypadl na pustynie.
-                        // Ponizej z4 nie schodzimy - tam kazde zrodlo ma pelny swiat, wiec taki werdykt
-                        // znaczylby tylko tyle, ze wykrywacz sie myli, a petla musi sie konczyc.
-                        if (drawn >= 4 && blanks * 2 > drawn && p.z > 4 && p.capKey) {
-                            _satCaps.set(p.capKey, p.z - 1);
-                            _satAsm = null;
-                            _satSchedule(false);
-                            return null;                 // stara mozaika zostaje na ekranie do czasu nowej
-                        }
+                        // Werdykt o zaslepkach PRZED odczytem pikseli - gdy zapada, cala mozaika idzie
+                        // do kosza, wiec nie ma po co czytac z canvasa 19 MB.
+                        if (_satCeiling(drawn, blanks, p)) return null;
                         var id;
-                        try { id = cx.getImageData(0, 0, w, h); }
+                        try { id = _satMosCtx.getImageData(0, 0, w, h); }
                         catch(_sec){ console.warn("SAT: canvas zatruty (brak CORS na kaflach)", _sec); return null; }
-                        _satAsm = { z: p.z, tx: p.tx, ty: p.ty, nx: p.nx, ny: p.ny, w: w, h: h, px: id.data, gen: _satGen };
+                        _satAsm = { z: p.z, tx: p.tx, ty: p.ty, nx: p.nx, ny: p.ny, w: w, h: h,
+                                    px: id.data, gen: _satGen, have: have, drawn: drawn, blanks: blanks };
                         return _satAsm;
+                    }
+
+                    // HAMULEC GLEBOKOSCI. Jesli wiekszosc tego, co dolecialo, to zaslepki "Map data
+                    // not yet available", to znaczy ze zrodlo nie ma tu juz zdjec na tym poziomie.
+                    // Zapamietujemy sufit dla rejonu i przerysowujemy poziom nizej. Warunek drawn>=4
+                    // chroni przed werdyktem z jednego kafla, ktory akurat przypadl na pustynie.
+                    // Ponizej z4 nie schodzimy - tam kazde zrodlo ma pelny swiat, wiec taki werdykt
+                    // znaczylby tylko tyle, ze wykrywacz sie myli, a petla musi sie konczyc.
+                    // Zwraca true, gdy werdykt zapadl - wolajacy oddaje wtedy null i stara mozaika
+                    // zostaje na ekranie do czasu zlozenia nowej.
+                    function _satCeiling(drawn, blanks, p){
+                        if (!(drawn >= 4 && blanks * 2 > drawn && p.z > 4 && p.capKey)) return false;
+                        _satCaps.set(p.capKey, p.z - 1);
+                        _satAsm = null;
+                        _satSchedule(false);
+                        return true;
                     }
 
                     function _satBuf(step, w, h){
@@ -7502,7 +7626,9 @@
                             window._satZoomCap = 0;
                         }
 
-                        var asm = _satAssemble(p); if (!asm) return;
+                        // step > 1 znaczy "jestesmy w ruchu" - wtedy mozaiki NIE przebudowujemy,
+                        // tylko reprojektujemy te, ktora juz mamy (patrz komentarz przy _satAssemble).
+                        var asm = _satAssemble(p, step > 1); if (!asm) return;
 
                         var bw = Math.ceil(W / step), bh = Math.ceil(H / step);
                         var buf = _satBuf(step, bw, bh), out = buf.data, A = asm.px;
@@ -7511,14 +7637,26 @@
                         var cdp = Math.cos(g.dp), sdp = Math.sin(g.dp);
                         var cx = g.cx, cy = g.cy, R = g.R, dl = g.dl;
 
-                        for (var by = 0; by < bh; by++) {
+                        // Poza tarcza kuli nie ma czego liczyc. Zamiast przebiegac caly ekran i
+                        // odrzucac piksele warunkiem, czyscimy bufor jednym memsetem i wchodzimy
+                        // tylko w prostokat tarczy, a w kazdym wierszu tylko w cieciwe |X| <=
+                        // sqrt(1-Y^2). Przy widoku calej kuli to ~2x mniej odwrotnych projekcji
+                        // (kolo to PI/4 powierzchni swojego kwadratu); przy glebokim zoomie tarcza
+                        // i tak wypelnia ekran, wiec nic nie tracimy.
+                        out.fill(0);
+                        var by0 = Math.max(0, Math.floor((cy - R) / step));
+                        var by1 = Math.min(bh, Math.ceil((cy + R) / step) + 1);
+                        for (var by = by0; by < by1; by++) {
                             var Yv = (cy - (by * step + step * 0.5)) / R;
+                            var t = 1 - Yv * Yv; if (t <= 0) continue;
+                            var half = Math.sqrt(t) * R;
                             var row = by * bw * 4;
-                            for (var bx = 0; bx < bw; bx++) {
+                            var bx1 = Math.min(bw, Math.ceil((cx + half) / step) + 1);
+                            for (var bx = Math.max(0, Math.floor((cx - half) / step)); bx < bx1; bx++) {
                                 var o = row + bx * 4;
                                 var Xv = ((bx * step + step * 0.5) - cx) / R;
                                 var s = Xv * Xv + Yv * Yv;
-                                if (s > 1) { out[o + 3] = 0; continue; }          // poza tarcza kuli
+                                if (s > 1) continue;                             // rogi cieciwy
                                 var Zv = Math.sqrt(1 - s);
                                 var c = Yv * cdp - Zv * sdp;                     // skladowa Z po cofnieciu Ry
                                 if (c > 1) c = 1; else if (c < -1) c = -1;
@@ -7530,7 +7668,7 @@
                                 var axp = mx - ox;
                                 if (axp < 0) axp += Wpx; else if (axp >= aw) axp -= Wpx;
                                 var ayp = my - oy;
-                                if (axp < 0 || axp >= aw || ayp < 0 || ayp >= ah) { out[o + 3] = 0; continue; }
+                                if (axp < 0 || axp >= aw || ayp < 0 || ayp >= ah) continue;   // bufor juz wyzerowany
                                 var ai = (((ayp | 0) * aw) + (axp | 0)) * 4;
                                 out[o] = A[ai]; out[o + 1] = A[ai + 1]; out[o + 2] = A[ai + 2]; out[o + 3] = A[ai + 3];
                             }
