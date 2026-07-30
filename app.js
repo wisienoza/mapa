@@ -7582,6 +7582,23 @@
                         _satAttr.style.display = on ? "block" : "none";
                     }
 
+                    // FLAGA POLSKI NA PODKLADZIE (2026-07-30). Wygaszenie wypelnien panstw w trybie
+                    // LAYER idzie przez SZABLON poligonow (fillOpacity 0.001), a "dom" jest malowany
+                    // PER-POLIGON: biala polnoc na samym poligonie PL i osobny #PL_FLAG_SOUTH z jawnym
+                    // fillOpacity:1 na czerwono (patrz refreshVisitedUI). Jawna wartosc nie slucha
+                    // szablonu, wiec na zdjeciu satelitarnym Polska zostawala JEDYNYM zamalowanym
+                    // krajem i zaslaniala podklad - dokladnie to, po co sie ten tryb wlacza.
+                    // Chowamy wiec czerwona polowke na czas podkladu (biala i tak schodzi z szablonem).
+                    // Wolane z OBU galezi setSatellite; przy pierwszym tworzeniu poligonu w refreshVisitedUI
+                    // stan poczatkowy bierze sie z window._satOn - inaczej flaga wskakiwalaby widoczna,
+                    // gdyby dane odswiezyly sie przy juz wlaczonym podkladzie.
+                    function _satPlFlag(show){
+                        var it = poly.getDataItemById("PL_FLAG_SOUTH");
+                        if (!it) return;
+                        var p = it.get("mapPolygon");
+                        if (p) p.set("visible", !!show);
+                    }
+
                     // --- WLACZANIE / WYLACZANIE TRYBU ------------------------------------------
                     // Kafle sa POD amCharts, wiec zeby je bylo widac, trzeba zdjac nieprzezroczyste
                     // tlo oceanu (bg) i wypelnienia panstw (poly). Kontury ZOSTAJA - to one daja
@@ -7612,6 +7629,7 @@
                             _satAttrib(true);
                             _satAsm = null;
                             _satRender(1);
+                            _satPlFlag(false);
                         } else {
                             // Zoom scinamy PRZED obnizeniem maxZoomLevel: przy wyjsciu z przyblizenia
                             // rzedu 10 tys. wektorowy glob musi wrocic do swojego zakresu, inaczej
@@ -7625,6 +7643,7 @@
                             _satCv.style.display = "none";
                             if (_satCtx) _satCtx.clearRect(0, 0, _satCv.width, _satCv.height);
                             _satAttrib(false);
+                            _satPlFlag(true);
                         }
                         window._satLbl = on ? _satSrc().label : "SAT";
                     };
@@ -9005,7 +9024,9 @@
                                 var _plSouthItem = poly.getDataItemById("PL_FLAG_SOUTH");
                                 if (_plSouthItem) {
                                     var _plSouthPoly = _plSouthItem.get("mapPolygon");
-                                    _plSouthPoly.setAll({ fill: am5.color(0xdc143c), stroke: am5.color(0xdc143c), fillOpacity: 1, interactive: false, tooltipText: "" });
+                                    // visible zalezne od _satOn: przy wlaczonym podkladzie LAYER czerwona
+                                    // polowka ma sie NIE pokazywac (patrz _satPlFlag w bloku SAT).
+                                    _plSouthPoly.setAll({ fill: am5.color(0xdc143c), stroke: am5.color(0xdc143c), fillOpacity: 1, interactive: false, tooltipText: "", visible: !window._satOn });
                                 }
                             }
                         }
