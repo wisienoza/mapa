@@ -7160,6 +7160,14 @@
                     var _satAsm    = null;               // zlozona mozaika: { z, ox, oy, w, h, px (Uint8ClampedArray), gen }
                     var _satBufs   = {};                 // bufory robocze per krok (1 = pelna rozdzielczosc, 2 = szybka)
                     var _satMosCv  = null, _satMosCtx = null;   // JEDEN canvas mozaiki na cale zycie trybu
+                    // Minimalny odstep miedzy PELNYMI przebudowami mozaiki W TRAKCIE RUCHU.
+                    // Potrzebny wylacznie przy ODDALANIU: przy przyblizaniu kadr sie kurczy, wiec stara
+                    // mozaika go pokrywa (_satCovers) i przebudowy nie ma wcale. Przy oddalaniu kadr
+                    // ROSNIE, wiec pokrycie pada Z DEFINICJI w kazdej klatce - bez tego hamulca kazda
+                    // klatka animacji oddalania placi pelne zlozenie + odczyt ~19 MB. 90 ms to okolo
+                    // 3 przebudowy na jeden obrot kolka (animacja zoomu trwa 250 ms).
+                    var _S_REBUILD_MS = 90;
+                    var _satBuiltAt = 0;
                     var _satRAF = 0, _satIdle = 0, _satWantQuick = false;
                     var _satOrig = null;                 // zapamietany wyglad warstw amCharts (do przywrocenia)
                     var _satAttr = null;                 // element z licencja zrodla
@@ -7323,8 +7331,12 @@
                     // wiec brakujacy kafel mozna zastapic odpowiednim WYCINKIEM przodka rozciagnietym
                     // do 256x256. Obraz jest rozmyty (2x, 4x, ... powiekszenie), ale jest NATYCHMIAST.
                     // Bez tego kazda zmiana poziomu kafli daje czarna tarcze na czas rundy do serwera.
-                    // Idziemy najwyzej 5 poziomow w gore (32x powiekszenia i tak nikt nie nazwie
-                    // obrazem, a petla musi sie konczyc).
+                    // Idziemy najwyzej 8 poziomow w gore. To NIE jest limit estetyczny tylko techniczny:
+                    // wycinek przodka ma bok 256/2^up piksela, wiec przy up=8 schodzi dokladnie do 1 px,
+                    // a glebiej trzeba by podawac drawImage ulamkowy prostokat zrodlowy. 256x powiekszenie
+                    // to i tak plama koloru - ale plama jest lepsza niz czarna dziura, a znika po jednej
+                    // klatce. (Bylo 5; przy oddalaniu z glebokiego zoomu to za malo, zeby siegnac po
+                    // cokolwiek z cache.)
                     function _satCached(z, x, y){
                         var n = 1 << z;
                         if (y < 0 || y >= n) return null;
@@ -7333,12 +7345,22 @@
                     }
                     function _satAncestor(z, x, y){
                         var n = 1 << z, xx = ((x % n) + n) % n;
-                        for (var up = 1; up <= 5 && z - up >= 0; up++) {
+                        for (var up = 1; up <= 8 && z - up >= 0; up++) {
                             var f = 1 << up;
                             var r = _satCached(z - up, Math.floor(xx / f), Math.floor(y / f));
                             if (r) return { rec: r, up: up, sx: xx % f, sy: ((y % f) + f) % f };
                         }
                         return null;
+                    }
+
+                    // SIATKA AWARYJNA: 16 kafli poziomu 2 = caly swiat. Zamawiamy ja raz przy wlaczeniu
+                    // trybu i przy KAZDEJ zmianie zrodla (cache jest kluczowany zrodlem, wiec po
+                    // przelaczeniu warstwy jest pusty). To ostatni przodek, po ktory moze siegnac
+                    // _satAncestor, gdy w danym rejonie nie ma nic blizszego - bez niej pierwsze
+                    // oddalenie po zmianie warstwy przy duzym zoomie leci po pustym cache i daje czarna
+                    // tarcze. Koszt: 16 malych kafli, chronionych przed LRU regula z<=7 z _satTile.
+                    function _satBaseGrid(){
+                        for (var y = 0; y < 4; y++) for (var x = 0; x < 4; x++) _satTile(2, x, y);
                     }
 
                     // --- SUFIT POZIOMU NA REJON ------------------------------------------------
@@ -7498,14 +7520,25 @@
                     function _satAssemble(p, reuseOnly){
                         var a = _satAsm;
                         var same = !!a && a.z === p.z && a.tx === p.tx && a.ty === p.ty && a.nx === p.nx && a.ny === p.ny;
-                        if (same && a.gen === _satGen) return a;
-                        if (!same && reuseOnly && _satCovers(a, p)) return a;
+                        // a.cacheOnly = mozaika zlozona W RUCHU, wiec BEZ zamawiania czegokolwiek z sieci.
+                        // Taka mozaika nie moze zostac na ekranie na stale: pierwszy render po zatrzymaniu
+                        // (reuseOnly=false) musi wejsc w sciezke przyrostowa i dopiero TAM zamowic kafle.
+                        // Bez tego wyjatku "gen sie nie zmienil -> zwroc to samo" zamrazalby rozmyty obraz.
+                        if (same && a.gen === _satGen && !(a.cacheOnly && !reuseOnly)) return a;
+                        if (!same && reuseOnly) {
+                            if (_satCovers(a, p)) return a;                                  // przyblizanie: kadr sie kurczy
+                            if (a && performance.now() - _satBuiltAt < _S_REBUILD_MS) return a; // oddalanie: hamulec
+                        }
 
                         if (!_satMosCv) {
                             _satMosCv  = document.createElement("canvas");
                             _satMosCtx = _satMosCv.getContext("2d", { willReadFrequently: true });
                         }
                         var w = p.nx * 256, h = p.ny * 256, i, j, k, rec;
+                        // W RUCHU nie tykamy sieci - bierzemy wylacznie to, co juz lezy w cache.
+                        // Inaczej dlugie oddalanie sciagaloby komplet kafli z KAZDEGO mijanego poziomu,
+                        // a zaden z nich nie zdazylby sie pokazac.
+                        var get = reuseOnly ? _satCached : _satTile;
 
                         if (same) {
                             // TEN SAM PLAN, tylko cos dolecialo z sieci: dorysowujemy wylacznie kafle,
@@ -7515,7 +7548,7 @@
                             for (j = 0; j < p.ny; j++) for (i = 0; i < p.nx; i++) {
                                 k = j * p.nx + i;
                                 if (a.have[k] === 2) continue;
-                                rec = _satTile(p.z, p.tx + i, p.ty + j);
+                                rec = get(p.z, p.tx + i, p.ty + j);
                                 if (!rec) continue;
                                 a.have[k] = 2; a.drawn++; if (rec.blank) a.blanks++;
                                 try {
@@ -7530,6 +7563,7 @@
                                 } catch(_sc){ console.warn("SAT: canvas zatruty (brak CORS na kaflach)", _sc); return null; }
                             }
                             a.gen = _satGen;
+                            if (!reuseOnly) a.cacheOnly = false;   // po zatrzymaniu kafle sa juz zamowione
                             if (touched && _satCeiling(a.drawn, a.blanks, p)) return null;
                             return a;
                         }
@@ -7540,7 +7574,7 @@
                         for (j = 0; j < p.ny; j++) {
                             for (i = 0; i < p.nx; i++) {
                                 k = j * p.nx + i;
-                                rec = _satTile(p.z, p.tx + i, p.ty + j);
+                                rec = get(p.z, p.tx + i, p.ty + j);
                                 if (rec) {
                                     drawn++; if (rec.blank) blanks++;
                                     have[k] = 2;
@@ -7561,8 +7595,10 @@
                         var id;
                         try { id = _satMosCtx.getImageData(0, 0, w, h); }
                         catch(_sec){ console.warn("SAT: canvas zatruty (brak CORS na kaflach)", _sec); return null; }
+                        _satBuiltAt = performance.now();
                         _satAsm = { z: p.z, tx: p.tx, ty: p.ty, nx: p.nx, ny: p.ny, w: w, h: h,
-                                    px: id.data, gen: _satGen, have: have, drawn: drawn, blanks: blanks };
+                                    px: id.data, gen: _satGen, have: have, drawn: drawn, blanks: blanks,
+                                    cacheOnly: !!reuseOnly };
                         return _satAsm;
                     }
 
@@ -7768,6 +7804,7 @@
                             _satCv.style.display = "block";
                             _satAttrib(true);
                             _satAsm = null;
+                            _satBaseGrid();                          // zanim cokolwiek narysujemy - patrz komentarz
                             _satRender(1);
                             _satPlFlag(false);
                         } else {
