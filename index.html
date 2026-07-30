@@ -343,26 +343,9 @@
         /* padding 7px (bylo 15px, i to bez wariantu w @media - stad najgrubsza ramka wewnetrzna
            w calym HUD). box-sizing:border-box juz tu bylo, wiec max-height liczone przez adjustLayout
            dalej obejmuje padding - zmiana tylko oddaje miejsce pozycjom listy rang. */
-        /* RAMKA panelu rang. Scroll ZSZEDL Z NIEJ na #rank-list (2026-07-30): panel ma teraz stopke
-           z przyciskami GDZIE TERAZ? / SZCZEPIENIA, ktora MUSI stac w miejscu, gdy lista sie przewija.
-           Wysokosc dyktuje zawartosc (lista dostaje max-height z adjustLayout), stad brak max-height tutaj. */
-        .rank-sidebar { box-sizing: border-box; background: rgba(0, 0, 0, 0.75); backdrop-filter: blur(8px); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 8px; padding: 7px; pointer-events: auto; }
-        #rank-list { overflow-y: auto; }
-        #rank-list::-webkit-scrollbar { width: 4px; }
-        #rank-list::-webkit-scrollbar-thumb { background: #444; border-radius: 2px; }
-        /* STOPKA PANELU RANG (2026-07-30). Wczesniej te dwa przyciski stały LUZEM pod panelem, bez
-           naglowka i w pelnej szerokosci kolumny - lamaly jezyk HUD-u ("naglowek h1 + ciemny panel"
-           albo chrome w rogach/belkach) i czytaly sie jak cos, co zostalo po przenosinach. Teraz sa
-           TRESCIA panelu, ktory ma naglowek, oddzielona wloskiem od listy rang - ten sam wzorzec co
-           panel FLIGHTS, gdzie linki, statystyki i rekord dystansu siedza w jednym pudle. */
-        #rank-tools { display: flex; gap: 6px; margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.12); }
-        /* flex:1 - oba dziela szerokosc panelu rowno, wiec stopka jest symetryczna niezaleznie od
-           dlugosci napisow. 0.8rem (nie 0.9 jak reszta .reset-btn) i BEZ EMOJI w napisach: zmierzone
-           w polu 111px na przycisk - "🎯 GDZIE TERAZ?" potrzebuje 115px (samo emoji ze spacja to ~21px),
-           a "GDZIE TERAZ?" 96px. Kolory ramek (cyjan / purpura) i tak je rozroznaja.
-           Chcesz emoji z powrotem? Trzeba ustawic te przyciski jeden POD drugim (flex-direction:column
-           na #rank-tools) - wtedy kazdy ma cale 224px. */
-        #rank-tools .reset-btn { flex: 1 1 0; min-width: 0; padding: 6px 2px; font-size: 0.8rem; justify-content: center; }
+        .rank-sidebar { box-sizing: border-box; max-height: calc(100vh - 280px); background: rgba(0, 0, 0, 0.75); backdrop-filter: blur(8px); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 8px; padding: 7px; overflow-y: auto; pointer-events: auto; }
+        .rank-sidebar::-webkit-scrollbar { width: 4px; }
+        .rank-sidebar::-webkit-scrollbar-thumb { background: #444; border-radius: 2px; }
         #factbook-panel { box-sizing: border-box; max-height: calc(100vh - 320px); overflow-y: auto; }
         #factbook-panel::-webkit-scrollbar { width: 4px; }
         #factbook-panel::-webkit-scrollbar-thumb { background: #444; border-radius: 2px; }
@@ -719,19 +702,19 @@
 
         <div class="right-hud">
             <h1 id="h1-ranks">Progression Tree</h1>
-            <!-- RAMKA panelu + scrollowana lista + STALA stopka. Rozdzial na #rank-box i #rank-list
-                 (2026-07-30) jest konieczny: gdyby stopka siedziala w elemencie ze scrollem, jechalaby
-                 razem z lista. Wysokosc listy ustawia adjustLayout, odejmujac wysokosc stopki. -->
-            <div class="rank-sidebar" id="rank-box">
-                <div id="rank-list"></div>
-                <!-- SZCZEPIENIA: staly PDF (tabela szczepien dla podrozujacych), IDENTYCZNY dla kazdego
-                     kraju. Dlatego od 2026-07-26 stoi globalnie, raz - a nie w gestym pasku linkow
-                     w profilu kazdego panstwa, gdzie udawal dane zalezne od kraju. -->
-                <div id="rank-tools">
-                    <div class="reset-btn" id="wherenow-toggle" style="position:static; box-sizing:border-box; align-items:center; gap:4px; border-color:#22d3ee; color:#22d3ee; white-space:nowrap;" title="Ranking najlepszych celow podrozy na wybrany miesiac (klimat + dojazd + ceny + wiza + bezpieczenstwo)">GDZIE TERAZ?</div>
-                    <a href="https://zagrozeniazdrowotne.gssewarszawa.pl/docs/Tabela_szczepien.pdf" target="_blank" rel="noopener" class="reset-btn" id="vaccinations-link" style="position:static; box-sizing:border-box; align-items:center; gap:4px; border-color:#8E24AA; color:#BA68C8; white-space:nowrap; text-decoration:none;" title="Tabela szczepien dla podrozujacych - staly PDF (GSSE Warszawa), ten sam dla wszystkich kierunkow">SZCZEPIENIA</a>
-                </div>
-            </div>
+            <div class="rank-sidebar" id="rank-list"></div>
+            <!-- Przyciski siedza POD drzewkiem rang, w tej samej kolumnie 240px. Miejsce na nie
+                 rezerwuje adjustLayout w app.js (odejmuje ICH SUMARYCZNA wysokosc od max-height
+                 #rank-list), inaczej lista rozpycha sie do dolnego HUD i przyciski wyjezdzaja poza
+                 ekran. Dodajesz tu kolejny przycisk -> dopisz go tam do puli rezerwacji.
+                 PROBA Z 2026-07-30 (wciagniecie obu do stopki panelu rang - #rank-box + #rank-tools,
+                 z wloskiem nad nimi) ZOSTALA COFNIETA: userowi nie podszedl wyglad. Jesli ktos
+                 wroci do tego pomyslu, patrz historia git - a najpierw zapytaj. -->
+            <div class="reset-btn" id="wherenow-toggle" style="position:static; margin-top:10px; box-sizing:border-box; display:flex; align-items:center; justify-content:center; gap:6px; padding:8px 10px; border-color:#22d3ee; color:#22d3ee; white-space:nowrap;" title="Ranking najlepszych celow podrozy na wybrany miesiac (klimat + dojazd + ceny + wiza + bezpieczenstwo)">🎯 GDZIE TERAZ?</div>
+            <!-- SZCZEPIENIA: staly PDF (tabela szczepien dla podrozujacych), IDENTYCZNY dla kazdego kraju.
+                 Dlatego od 2026-07-26 stoi tu - globalnie, raz - a nie w gestym pasku linkow w profilu
+                 kazdego panstwa, gdzie udawal dane zalezne od kraju. -->
+            <a href="https://zagrozeniazdrowotne.gssewarszawa.pl/docs/Tabela_szczepien.pdf" target="_blank" rel="noopener" class="reset-btn" id="vaccinations-link" style="position:static; margin-top:8px; box-sizing:border-box; display:flex; align-items:center; justify-content:center; gap:6px; padding:8px 10px; border-color:#8E24AA; color:#BA68C8; white-space:nowrap; text-decoration:none;" title="Tabela szczepien dla podrozujacych - staly PDF (GSSE Warszawa), ten sam dla wszystkich kierunkow">💉 SZCZEPIENIA</a>
         </div>
     </div>
 
@@ -810,8 +793,8 @@
          bo zmieniaja sie raz na ruski rok, a publiczna kopia na GitHub Pages sciagalaby je od nowa. -->
     <!-- Katalog ukrywalnych boxow HUD. MUSI stac PRZED app.js - logika czyta window.HUD_BOXES od razu
          przy parsowaniu app.js (blok na jego gorze), zeby ukryte panele nie mrugaly przy wejsciu. -->
-    <script src="hud-boxes-data.js?v=20260730d"></script>
-    <script src="help.js?v=20260730d"></script>
-    <script src="app.js?v=20260730d"></script>
+    <script src="hud-boxes-data.js?v=20260730e"></script>
+    <script src="help.js?v=20260730e"></script>
+    <script src="app.js?v=20260730e"></script>
 </body>
 </html>

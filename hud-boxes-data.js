@@ -38,13 +38,15 @@ window.HUD_BOXES = [
     { id: "factbook", icon: "📖", label: "Regional Intel / Factbook", host: "#h1-factbook",  els: ["#factbook-floater"],
       note: "Prawy panel z profilem państwa, miasta i lotniska. Po ukryciu kliknięcie w kraj nadal go zaznacza, ale nie ma gdzie pokazać danych." },
     { id: "ranks",    icon: "🏅", label: "Progression Tree",       host: "#h1-ranks",        els: ["#h1-ranks", "#rank-list"],
-      note: "Drzewko rang w prawej kolumnie (bez stopki z przyciskami - to osobna pozycja)." },
-    // Para przycisków - JEDNA pozycja, nie dwie (feedback 2026-07-29: "mają się całe grupy ubijać").
-    // Od 2026-07-30 siedzą w STOPCE panelu rang (#rank-tools), więc chowamy jeden kontener.
-    // host:null, bo krzyżyk musialby siedziec w jednym z przyciskow, a chowalby oba - mylace.
+      note: "Drzewko rang w prawej kolumnie." },
+    // Para przycisków pod drzewkiem rang - JEDNA pozycja, nie dwie (feedback 2026-07-29: "mają się
+    // całe grupy ubijać"). host:null, bo krzyżyk musialby siedziec w jednym z przyciskow, a chowalby
+    // oba - mylace. Chowane z panelu 👁.
+    // (Próba wciągnięcia ich do STOPKI panelu rang - 2026-07-30 - została COFNIĘTA: userowi nie
+    // podszedł wygląd. Stoją luzem pod panelem, jak od początku.)
     { id: "rankbtns", icon: "🎯", label: "Przyciski: GDZIE TERAZ? / SZCZEPIENIA", host: null,
-      els: ["#rank-tools"],
-      note: "Ranking kierunków na wybrany miesiąc i tabela szczepień (PDF) - stopka panelu rang." },
+      els: ["#wherenow-toggle", "#vaccinations-link"],
+      note: "Ranking kierunków na wybrany miesiąc i tabela szczepień (PDF) - oba pod drzewkiem rang." },
     // CALY STOS PRZELACZNIKOW (#toggle-stack, prawy dolny rog) - JEDNA pozycja (feedback 2026-07-29:
     // "mają się całe grupy ubijać"; wczesniej bylo szesc osobnych, potem dwie podgrupy - obie wersje
     // za drobne). Chowamy sam KONTENER, wiec nie trzeba wymieniac przyciskow po kolei.
@@ -74,11 +76,7 @@ window.HUD_BOXES = [
 // #toggle-stack tu NIE MA z tego samego powodu, co factbooka: caly stos jest JEDNYM boxem
 // (id "toggles"), wiec chowa sie sam z siebie. Wpisanie go tutaj cofaloby to ukrycie - krok 1
 // _packHudBoxes odkrywa wszystkie kolumny, zeby zmierzyc ich zawartosc.
-// KOLEJNOSC MA ZNACZENIE przy zagniezdzeniu: #rank-box lezy WEWNATRZ .right-hud, wiec musi byc
-// oceniony PIERWSZY - inaczej .right-hud sprawdzalby widocznosc dziecka, ktoremu jeszcze nie
-// ustawilismy display i kolumna nie zwijalaby sie w tym samym przebiegu.
 window.HUD_COLUMNS = [
-    { key: "rankbox", sel: "#rank-box" },
     { key: "left",    sel: "#left-hud" },
     { key: "weather", sel: ".weather-floater" },
     { key: "ranks",   sel: ".right-hud" }
