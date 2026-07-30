@@ -374,6 +374,18 @@
            wiekszym czteroelementowy LAYER ze slowem STREET nie miescil sie w dwoch kolumnach. */
         #sat-toggle .rb-label, #detail-switch .rb-label { flex: 0 0 52px; }
         #sat-toggle .sat-opt, #detail-switch .ds-opt { flex: 1 1 auto; text-align: center; padding: 2px 4px; }
+        /* ROZMIESZCZENIE STOSU (2026-07-30): trzy kolumny, dwa rzedy - tryby po lewej, segmentowe
+           LAYER/DETAIL po prawej. MUSI byc jawne: kolejnosc w DOM to visa, tz, night, climate, sat,
+           detail, wiec auto-flow wrzucilby NIGHT do pierwszego rzedu obok VISA i ZONES.
+           Po co to: stos zszedl z 4 rzedow (~156px) na 2 (~78px), a od jego gornej krawedzi
+           adjustLayout liczy max-height panelu Regional Intel - im nizszy rog, tym mniej przewijania
+           w profilu kraju. Dokladasz przelacznik? Dopisz mu grid-area, nie licz na auto-flow. */
+        #toggle-stack > #visa-toggle    { grid-area: 1 / 1; }
+        #toggle-stack > #tz-toggle      { grid-area: 1 / 2; }
+        #toggle-stack > #night-toggle   { grid-area: 2 / 1; }
+        #toggle-stack > #climate-toggle { grid-area: 2 / 2; }
+        #toggle-stack > #sat-toggle     { grid-area: 1 / 3; }
+        #toggle-stack > #detail-switch  { grid-area: 2 / 3; }
 
         /* --- LOOT BAR / MARQUEE FIX --- */
         /* cursor:grab + touch-action:none -> pasek da sie przeciagac myszka i palcem (obsluga w app.js,
@@ -698,18 +710,29 @@
          .left-wrapper/.right-wrapper) kurczy ten rog W STRONE prawego-dolnego naroznika, wiec HUD zostaje
          przyklejony nad paskiem flag zamiast odjezdzac. transition jak w obu wrapperach - dla spojnosci. -->
     <div id="bottom-right-hud" style="position:fixed; right:20px; z-index:110; display:flex; flex-direction:row; align-items:flex-end; gap:8px; pointer-events:none; transform-origin:100% 100%; transition:transform 0.1s linear;">
-        <div id="toggle-stack" style="display:grid; grid-template-columns:auto auto; gap:8px; align-content:end; pointer-events:none;">
-            <div class="reset-btn" id="visa-toggle" style="position:static; width:148px; box-sizing:border-box; display:flex; align-items:center; padding:8px 12px; border-color:#c084fc; color:#c084fc; opacity:0.4; white-space:nowrap;" title="Wymogi wizowe PL wl/wyl"><span class="rb-icon">🛂</span><span class="rb-label">VISA: OFF</span></div>
-            <div class="reset-btn" id="tz-toggle" style="position:static; width:148px; box-sizing:border-box; display:flex; align-items:center; padding:8px 12px; border-color:#38d6c0; color:#38d6c0; opacity:0.4; white-space:nowrap;" title="Strefy czasowe wl/wyl"><span class="rb-icon">🕐</span><span class="rb-label">ZONES: OFF</span></div>
-            <div class="reset-btn" id="night-toggle" style="position:static; width:148px; box-sizing:border-box; display:flex; align-items:center; padding:8px 12px; border-color:#ffb066; color:#ffb066; opacity:0.4; white-space:nowrap;" title="Terminator dzien/noc wl/wyl"><span class="rb-icon">☾</span><span class="rb-label">NIGHT: OFF</span></div>
-            <div class="reset-btn" id="climate-toggle" style="position:static; width:148px; box-sizing:border-box; display:flex; align-items:center; padding:8px 12px; border-color:#f0883e; color:#f0883e; opacity:0.4; white-space:nowrap;" title="Komfort klimatyczny wg miesiaca wl/wyl"><span class="rb-icon">🌡</span><span class="rb-label">CLIMATE: OFF</span></div>
+        <!-- STOS PRZELACZNIKOW: TRZY kolumny, DWA rzedy (2026-07-30). Wczesniej byly dwie kolumny i
+             cztery rzedy - tryby nad segmentowymi LAYER/DETAIL - co dawalo ~156px wysokosci. Teraz
+             tryby stoja OBOK nich, wiec stos ma ~78px i cala kotwica #bottom-right-hud schodzi nizej;
+             tyle samo wysokosci zyskuje panel Regional Intel, ktorego max-height adjustLayout liczy
+             wlasnie od gornej krawedzi tego rogu (zeby intel kraju nie wymagal przewijania).
+             Rozmieszczenie w siatce jest JAWNE (grid-area w arkuszu, przy regulach .hb-x): kolejnosc
+             w DOM (visa, tz, night, climate, sat, detail) nie zgadza sie z kolejnoscia na ekranie
+             przy trzech kolumnach, a auto-flow wrzucilby NIGHT do pierwszego rzedu.
+             Etykiety trybow sa BEZ dopisku ": ON/OFF" (2026-07-30) - stan niesie wygaszenie calego
+             przycisku (opacity 0.4 z _paintMode), a "CLIMATE: OFF" wymagalo 148px zamiast 108px
+             i caly stos szedl o 88px szerzej w bok. -->
+        <div id="toggle-stack" style="display:grid; grid-template-columns:auto auto auto; gap:8px; align-content:end; pointer-events:none;">
+            <div class="reset-btn" id="visa-toggle" style="position:static; width:108px; box-sizing:border-box; display:flex; align-items:center; padding:8px 12px; border-color:#c084fc; color:#c084fc; opacity:0.4; white-space:nowrap;" title="Wymogi wizowe PL wl/wyl"><span class="rb-icon">🛂</span><span class="rb-label">VISA</span></div>
+            <div class="reset-btn" id="tz-toggle" style="position:static; width:108px; box-sizing:border-box; display:flex; align-items:center; padding:8px 12px; border-color:#38d6c0; color:#38d6c0; opacity:0.4; white-space:nowrap;" title="Strefy czasowe wl/wyl"><span class="rb-icon">🕐</span><span class="rb-label">ZONES</span></div>
+            <div class="reset-btn" id="night-toggle" style="position:static; width:108px; box-sizing:border-box; display:flex; align-items:center; padding:8px 12px; border-color:#ffb066; color:#ffb066; opacity:0.4; white-space:nowrap;" title="Terminator dzien/noc wl/wyl"><span class="rb-icon">☾</span><span class="rb-label">NIGHT</span></div>
+            <div class="reset-btn" id="climate-toggle" style="position:static; width:108px; box-sizing:border-box; display:flex; align-items:center; padding:8px 12px; border-color:#f0883e; color:#f0883e; opacity:0.4; white-space:nowrap;" title="Komfort klimatyczny wg miesiaca wl/wyl"><span class="rb-icon">🌡</span><span class="rb-label">CLIMATE</span></div>
             <!-- SAT: podklad ze zdjec/map rastrowych nalozony na kule. PRZELACZNIK SEGMENTOWY, taki
                  sam jak DETAIL nizej (feedback 2026-07-29) - wczesniej byl to jeden przycisk CYKLUJACY
                  OFF -> SAT -> STREET -> TOPO -> OFF, co wymagalo klikania na slepo, zeby dojsc do
                  wybranej warstwy. Teraz kazda warstwa ma wlasny segment, a stan widac bez klikania.
                  Segmenty obsluguje app.js (window.satSetSource); .sat-opt/data-src jak .ds-opt/data-lvl. -->
-            <div class="reset-btn" id="sat-toggle" style="grid-column:span 2; position:static; box-sizing:border-box; display:flex; align-items:center; gap:6px; padding:6px 10px; border-color:#7dd3fc; color:#7dd3fc; white-space:nowrap;" title="Podklad na globie: OFF / zdjecia satelitarne / mapa drogowa z ulicami / topografia z reliefem"><span class="rb-icon">🛰</span><span class="rb-label">LAYER</span><span class="sat-opt" data-src="off" style="cursor:pointer; border:1px solid currentColor; border-radius:4px; opacity:0.4;">OFF</span><span class="sat-opt" data-src="sat" style="cursor:pointer; border:1px solid currentColor; border-radius:4px; opacity:0.4;">SAT</span><span class="sat-opt" data-src="street" style="cursor:pointer; border:1px solid currentColor; border-radius:4px; opacity:0.4;">STREET</span><span class="sat-opt" data-src="topo" style="cursor:pointer; border:1px solid currentColor; border-radius:4px; opacity:0.4;">TOPO</span></div>
-            <div class="reset-btn" id="detail-switch" style="grid-column:span 2; position:static; box-sizing:border-box; display:flex; align-items:center; gap:6px; padding:6px 10px; border-color:#9ca3af; color:#9ca3af; white-space:nowrap;" title="Szczegolowosc geometrii globu — LOW/HIGH/ULTRA (przeladowuje strone)"><span class="rb-icon">🌐</span><span class="rb-label">DETAIL</span><span class="ds-opt" data-lvl="low" style="cursor:pointer; border:1px solid currentColor; border-radius:4px; opacity:0.4;">LOW</span><span class="ds-opt" data-lvl="high" style="cursor:pointer; border:1px solid currentColor; border-radius:4px; opacity:0.4;">HIGH</span><span class="ds-opt" data-lvl="ultra" style="cursor:pointer; border:1px solid currentColor; border-radius:4px; opacity:0.4;">ULTRA</span></div>
+            <div class="reset-btn" id="sat-toggle" style="position:static; box-sizing:border-box; display:flex; align-items:center; gap:6px; padding:6px 10px; border-color:#7dd3fc; color:#7dd3fc; white-space:nowrap;" title="Podklad na globie: OFF / zdjecia satelitarne / mapa drogowa z ulicami / topografia z reliefem"><span class="rb-icon">🛰</span><span class="rb-label">LAYER</span><span class="sat-opt" data-src="off" style="cursor:pointer; border:1px solid currentColor; border-radius:4px; opacity:0.4;">OFF</span><span class="sat-opt" data-src="sat" style="cursor:pointer; border:1px solid currentColor; border-radius:4px; opacity:0.4;">SAT</span><span class="sat-opt" data-src="street" style="cursor:pointer; border:1px solid currentColor; border-radius:4px; opacity:0.4;">STREET</span><span class="sat-opt" data-src="topo" style="cursor:pointer; border:1px solid currentColor; border-radius:4px; opacity:0.4;">TOPO</span></div>
+            <div class="reset-btn" id="detail-switch" style="position:static; box-sizing:border-box; display:flex; align-items:center; gap:6px; padding:6px 10px; border-color:#9ca3af; color:#9ca3af; white-space:nowrap;" title="Szczegolowosc geometrii globu — LOW/HIGH/ULTRA (przeladowuje strone)"><span class="rb-icon">🌐</span><span class="rb-label">DETAIL</span><span class="ds-opt" data-lvl="low" style="cursor:pointer; border:1px solid currentColor; border-radius:4px; opacity:0.4;">LOW</span><span class="ds-opt" data-lvl="high" style="cursor:pointer; border:1px solid currentColor; border-radius:4px; opacity:0.4;">HIGH</span><span class="ds-opt" data-lvl="ultra" style="cursor:pointer; border:1px solid currentColor; border-radius:4px; opacity:0.4;">ULTRA</span></div>
         </div>
         <div class="sys-log-container" style="position:static;">
             <div class="sys-log-header">/// SYSTEM_LOG_V5.6 [HARD_LOCK]</div>
@@ -756,8 +779,8 @@
          bo zmieniaja sie raz na ruski rok, a publiczna kopia na GitHub Pages sciagalaby je od nowa. -->
     <!-- Katalog ukrywalnych boxow HUD. MUSI stac PRZED app.js - logika czyta window.HUD_BOXES od razu
          przy parsowaniu app.js (blok na jego gorze), zeby ukryte panele nie mrugaly przy wejsciu. -->
-    <script src="hud-boxes-data.js?v=20260729n"></script>
-    <script src="help.js?v=20260729n"></script>
-    <script src="app.js?v=20260729n"></script>
+    <script src="hud-boxes-data.js?v=20260730a"></script>
+    <script src="help.js?v=20260730a"></script>
+    <script src="app.js?v=20260730a"></script>
 </body>
 </html>

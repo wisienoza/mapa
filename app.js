@@ -8331,7 +8331,11 @@
                         // Segmentowy (SAT/LAYER): stan niesie podswietlony segment, a nie tekst i wygaszenie
                         // calego przycisku - dokladnie jak w DETAIL, ktory tez nigdy nie jest przygaszony.
                         if (m.seg) { if (m.paint) m.paint(); return; }
-                        var lbl=b.querySelector(".rb-label"); if(lbl){ lbl.textContent=m.lbl+(on?": ON":": OFF"); }
+                        // Etykieta BEZ dopisku ": ON/OFF" (2026-07-30). Stan niesie wygaszenie calego
+                        // przycisku (opacity 0.4 = wylaczony), a najdluzsze "CLIMATE: OFF" wymagalo
+                        // 148px szerokosci zamiast 108px - przy nowym, trzykolumnowym ukladzie stosu
+                        // caly rog szedlby o 88px dalej w bok nad globus.
+                        var lbl=b.querySelector(".rb-label"); if(lbl){ lbl.textContent=m.lbl; }
                         b.style.opacity=on?"1":"0.4";
                     }
                     function _setMode(m, on){
