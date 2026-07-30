@@ -5859,15 +5859,17 @@
                 var rankSidebar = document.getElementById('rank-list');
                 if (rankSidebar) {
                     var rsTop = rankSidebar.getBoundingClientRect().top;
-                    // Pod drzewkiem rang stoja jeszcze przyciski GDZIE TERAZ? i SZCZEPIENIA - ich wysokosc
-                    // trzeba wylaczyc z puli, inaczej lista zajmie cala przestrzen do dolnego HUD, a
-                    // przyciski wyjada pod niego. offsetHeight jest w skali PRZED transformacja (tak jak
-                    // maxHeight), wiec odejmujemy go dopiero PO podzieleniu odstepu przez scale.
-                    // Doliczamy tez margin-top kazdego przycisku (10px / 8px, patrz index.html).
-                    var wnBtn = document.getElementById('wherenow-toggle');
-                    var vacBtn = document.getElementById('vaccinations-link');
-                    var reserve = (wnBtn ? (wnBtn.offsetHeight + 10) : 0)
-                                + (vacBtn ? (vacBtn.offsetHeight + 8) : 0);
+                    // STOPKA panelu rang (#rank-tools: GDZIE TERAZ? + SZCZEPIENIA) siedzi PONIZEJ listy
+                    // w tym samym pudle, wiec jej wysokosc trzeba wylaczyc z puli - inaczej lista
+                    // rozepchnie panel az pod dolny HUD i stopka wyjedzie poza ekran.
+                    // offsetHeight jest w skali PRZED transformacja (tak jak maxHeight), wiec odejmujemy
+                    // go dopiero PO podzieleniu odstepu przez scale. Doliczamy margin-top stopki (8px,
+                    // patrz #rank-tools w index.html) oraz dolny padding ramki panelu (7px z .rank-sidebar).
+                    // Stopka UKRYTA z panelu 👁 ma offsetHeight 0 - lista dostaje wtedy cala wysokosc,
+                    // i tak ma byc.
+                    var tools = document.getElementById('rank-tools');
+                    var toolsH = (tools && tools.offsetHeight) ? (tools.offsetHeight + 8) : 0;
+                    var reserve = toolsH + 7;
                     rankSidebar.style.maxHeight = Math.max(100, (hudTop - rsTop - gapPx) / scale - reserve) + 'px';
                 }
             }
