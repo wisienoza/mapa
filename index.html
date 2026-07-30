@@ -380,6 +380,13 @@
            Po co to: stos zszedl z 4 rzedow (~156px) na 2 (~78px), a od jego gornej krawedzi
            adjustLayout liczy max-height panelu Regional Intel - im nizszy rog, tym mniej przewijania
            w profilu kraju. Dokladasz przelacznik? Dopisz mu grid-area, nie licz na auto-flow. */
+        /* SZEROKOSC 96px: zmierzone, nie zgadniete. Najszerszy napis to "CLIMATE" = 60.5px w tym
+           foncie (JetBrains Mono 0.9rem), do tego ikona 16 + padding 2x8 + ramka 2 = 94.5 -> 96.
+           Ikona zwezona do 16px TYLKO tutaj: regula .reset-btn .rb-icon (18px) trzyma wyrownanie
+           ikon w LAYER/DETAIL i w przyciskach przy drzewku rang, wiec nie ruszamy jej globalnie.
+           Chcesz wrocic do dopisku ": ON/OFF"? Trzeba 148px, patrz komentarz przy stosie nizej. */
+        #visa-toggle .rb-icon, #tz-toggle .rb-icon,
+        #night-toggle .rb-icon, #climate-toggle .rb-icon { width: 16px; flex: 0 0 16px; }
         #toggle-stack > #visa-toggle    { grid-area: 1 / 1; }
         #toggle-stack > #tz-toggle      { grid-area: 1 / 2; }
         #toggle-stack > #night-toggle   { grid-area: 2 / 1; }
@@ -722,10 +729,10 @@
              przycisku (opacity 0.4 z _paintMode), a "CLIMATE: OFF" wymagalo 148px zamiast 108px
              i caly stos szedl o 88px szerzej w bok. -->
         <div id="toggle-stack" style="display:grid; grid-template-columns:auto auto auto; gap:8px; align-content:end; pointer-events:none;">
-            <div class="reset-btn" id="visa-toggle" style="position:static; width:108px; box-sizing:border-box; display:flex; align-items:center; padding:8px 12px; border-color:#c084fc; color:#c084fc; opacity:0.4; white-space:nowrap;" title="Wymogi wizowe PL wl/wyl"><span class="rb-icon">🛂</span><span class="rb-label">VISA</span></div>
-            <div class="reset-btn" id="tz-toggle" style="position:static; width:108px; box-sizing:border-box; display:flex; align-items:center; padding:8px 12px; border-color:#38d6c0; color:#38d6c0; opacity:0.4; white-space:nowrap;" title="Strefy czasowe wl/wyl"><span class="rb-icon">🕐</span><span class="rb-label">ZONES</span></div>
-            <div class="reset-btn" id="night-toggle" style="position:static; width:108px; box-sizing:border-box; display:flex; align-items:center; padding:8px 12px; border-color:#ffb066; color:#ffb066; opacity:0.4; white-space:nowrap;" title="Terminator dzien/noc wl/wyl"><span class="rb-icon">☾</span><span class="rb-label">NIGHT</span></div>
-            <div class="reset-btn" id="climate-toggle" style="position:static; width:108px; box-sizing:border-box; display:flex; align-items:center; padding:8px 12px; border-color:#f0883e; color:#f0883e; opacity:0.4; white-space:nowrap;" title="Komfort klimatyczny wg miesiaca wl/wyl"><span class="rb-icon">🌡</span><span class="rb-label">CLIMATE</span></div>
+            <div class="reset-btn" id="visa-toggle" style="position:static; width:96px; box-sizing:border-box; display:flex; align-items:center; padding:8px; border-color:#c084fc; color:#c084fc; opacity:0.4; white-space:nowrap;" title="Wymogi wizowe PL wl/wyl"><span class="rb-icon">🛂</span><span class="rb-label">VISA</span></div>
+            <div class="reset-btn" id="tz-toggle" style="position:static; width:96px; box-sizing:border-box; display:flex; align-items:center; padding:8px; border-color:#38d6c0; color:#38d6c0; opacity:0.4; white-space:nowrap;" title="Strefy czasowe wl/wyl"><span class="rb-icon">🕐</span><span class="rb-label">ZONES</span></div>
+            <div class="reset-btn" id="night-toggle" style="position:static; width:96px; box-sizing:border-box; display:flex; align-items:center; padding:8px; border-color:#ffb066; color:#ffb066; opacity:0.4; white-space:nowrap;" title="Terminator dzien/noc wl/wyl"><span class="rb-icon">☾</span><span class="rb-label">NIGHT</span></div>
+            <div class="reset-btn" id="climate-toggle" style="position:static; width:96px; box-sizing:border-box; display:flex; align-items:center; padding:8px; border-color:#f0883e; color:#f0883e; opacity:0.4; white-space:nowrap;" title="Komfort klimatyczny wg miesiaca wl/wyl"><span class="rb-icon">🌡</span><span class="rb-label">CLIMATE</span></div>
             <!-- SAT: podklad ze zdjec/map rastrowych nalozony na kule. PRZELACZNIK SEGMENTOWY, taki
                  sam jak DETAIL nizej (feedback 2026-07-29) - wczesniej byl to jeden przycisk CYKLUJACY
                  OFF -> SAT -> STREET -> TOPO -> OFF, co wymagalo klikania na slepo, zeby dojsc do

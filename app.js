@@ -239,7 +239,12 @@
                 var body = document.getElementById('hudboxes-body');
                 if (!body) return;
                 var hidden = readHidden();
-                body.innerHTML = catalog().map(function(box){
+                // ALFABETYCZNIE po etykiecie (feedback 2026-07-30). Sortujemy KOPIE i tylko na potrzeby
+                // widoku - kolejnosc w hud-boxes-data.js zostaje ukladowa (od gornego-lewego rogu
+                // ekranu w dol), bo tak sie ja czyta przy dopisywaniu nowych boxow.
+                // localeCompare z 'pl': bez tego "Przełączniki" wypadaja po "Przyciski" (ł > y w ASCII).
+                var sorted = catalog().slice().sort(function(a, b){ return String(a.label).localeCompare(String(b.label), 'pl'); });
+                body.innerHTML = sorted.map(function(box){
                     var off = hidden.indexOf(box.id) !== -1;
                     return '<div class="hb-row" data-id="' + box.id + '" style="display:flex; gap:10px; align-items:center; padding:8px 6px; border-bottom:1px solid rgba(255,255,255,0.06); cursor:pointer;">'
                       +   '<span style="font-size:1rem; flex:0 0 22px; text-align:center;">' + (box.icon || '▪') + '</span>'
