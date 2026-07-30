@@ -727,14 +727,16 @@
              Rozmieszczenie w siatce jest JAWNE (grid-area w arkuszu, przy regulach .hb-x): kolejnosc
              w DOM (visa, tz, night, climate, sat, detail) nie zgadza sie z kolejnoscia na ekranie
              przy trzech kolumnach, a auto-flow wrzucilby NIGHT do pierwszego rzedu.
-             Etykiety trybow sa BEZ dopisku ": ON/OFF" (2026-07-30) - stan niesie wygaszenie calego
-             przycisku (opacity 0.4 z _paintMode), a "CLIMATE: OFF" wymagalo 148px zamiast 108px
-             i caly stos szedl o 88px szerzej w bok. -->
+             Etykiety trybow sa BEZ dopisku ": ON/OFF" i BEZ IKON (2026-07-30) - stan niesie wygaszenie
+             calego przycisku (opacity 0.4 z _paintMode), a szerokosc zeszla ze 148px (z dopiskiem)
+             przez 108 i 96 az do 84px, czyli tyle, ile potrzebuje najdluzszy napis CLIMATE z lekkim
+             luzem. LAYER i DETAIL ikony ZOSTAWIAJA - tam nie ma czego oszczedzac, wiersz i tak musi
+             pomiescic segmenty. -->
         <div id="toggle-stack" style="display:grid; grid-template-columns:auto auto auto; gap:8px; align-content:end; pointer-events:none;">
-            <div class="reset-btn" id="visa-toggle" style="position:static; width:84px; box-sizing:border-box; display:flex; align-items:center; padding:8px; border-color:#c084fc; color:#c084fc; opacity:0.4; white-space:nowrap;" title="Wymogi wizowe PL wl/wyl"><span class="rb-icon">🛂</span><span class="rb-label">VISA</span></div>
-            <div class="reset-btn" id="tz-toggle" style="position:static; width:84px; box-sizing:border-box; display:flex; align-items:center; padding:8px; border-color:#38d6c0; color:#38d6c0; opacity:0.4; white-space:nowrap;" title="Strefy czasowe wl/wyl"><span class="rb-icon">🕐</span><span class="rb-label">ZONES</span></div>
-            <div class="reset-btn" id="night-toggle" style="position:static; width:84px; box-sizing:border-box; display:flex; align-items:center; padding:8px; border-color:#ffb066; color:#ffb066; opacity:0.4; white-space:nowrap;" title="Terminator dzien/noc wl/wyl"><span class="rb-icon">☾</span><span class="rb-label">NIGHT</span></div>
-            <div class="reset-btn" id="climate-toggle" style="position:static; width:84px; box-sizing:border-box; display:flex; align-items:center; padding:8px; border-color:#f0883e; color:#f0883e; opacity:0.4; white-space:nowrap;" title="Komfort klimatyczny wg miesiaca wl/wyl"><span class="rb-icon">🌡</span><span class="rb-label">CLIMATE</span></div>
+            <div class="reset-btn" id="visa-toggle" style="position:static; width:84px; box-sizing:border-box; display:flex; align-items:center; padding:8px; border-color:#c084fc; color:#c084fc; opacity:0.4; white-space:nowrap;" title="Wymogi wizowe PL wl/wyl"><span class="rb-label">VISA</span></div>
+            <div class="reset-btn" id="tz-toggle" style="position:static; width:84px; box-sizing:border-box; display:flex; align-items:center; padding:8px; border-color:#38d6c0; color:#38d6c0; opacity:0.4; white-space:nowrap;" title="Strefy czasowe wl/wyl"><span class="rb-label">ZONES</span></div>
+            <div class="reset-btn" id="night-toggle" style="position:static; width:84px; box-sizing:border-box; display:flex; align-items:center; padding:8px; border-color:#ffb066; color:#ffb066; opacity:0.4; white-space:nowrap;" title="Terminator dzien/noc wl/wyl"><span class="rb-label">NIGHT</span></div>
+            <div class="reset-btn" id="climate-toggle" style="position:static; width:84px; box-sizing:border-box; display:flex; align-items:center; padding:8px; border-color:#f0883e; color:#f0883e; opacity:0.4; white-space:nowrap;" title="Komfort klimatyczny wg miesiaca wl/wyl"><span class="rb-label">CLIMATE</span></div>
             <!-- SAT: podklad ze zdjec/map rastrowych nalozony na kule. PRZELACZNIK SEGMENTOWY, taki
                  sam jak DETAIL nizej (feedback 2026-07-29) - wczesniej byl to jeden przycisk CYKLUJACY
                  OFF -> SAT -> STREET -> TOPO -> OFF, co wymagalo klikania na slepo, zeby dojsc do
@@ -788,8 +790,8 @@
          bo zmieniaja sie raz na ruski rok, a publiczna kopia na GitHub Pages sciagalaby je od nowa. -->
     <!-- Katalog ukrywalnych boxow HUD. MUSI stac PRZED app.js - logika czyta window.HUD_BOXES od razu
          przy parsowaniu app.js (blok na jego gorze), zeby ukryte panele nie mrugaly przy wejsciu. -->
-    <script src="hud-boxes-data.js?v=20260730b"></script>
-    <script src="help.js?v=20260730b"></script>
-    <script src="app.js?v=20260730b"></script>
+    <script src="hud-boxes-data.js?v=20260730c"></script>
+    <script src="help.js?v=20260730c"></script>
+    <script src="app.js?v=20260730c"></script>
 </body>
 </html>
