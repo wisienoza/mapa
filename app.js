@@ -5859,18 +5859,12 @@
                 var rankSidebar = document.getElementById('rank-list');
                 if (rankSidebar) {
                     var rsTop = rankSidebar.getBoundingClientRect().top;
-                    // Pod drzewkiem rang stoja jeszcze przyciski GDZIE TERAZ? i SZCZEPIENIA - ich wysokosc
-                    // trzeba wylaczyc z puli, inaczej lista zajmie cala przestrzen do dolnego HUD, a
-                    // przyciski wyjada pod niego. offsetHeight jest w skali PRZED transformacja (tak jak
-                    // maxHeight), wiec odejmujemy go dopiero PO podzieleniu odstepu przez scale.
-                    // Doliczamy tez margin-top kazdego przycisku (10px / 8px, patrz index.html).
-                    // Przyciski UKRYTE z panelu 👁 maja offsetHeight 0 - lista dostaje wtedy cala
-                    // wysokosc, i tak ma byc.
-                    var wnBtn = document.getElementById('wherenow-toggle');
-                    var vacBtn = document.getElementById('vaccinations-link');
-                    var reserve = (wnBtn && wnBtn.offsetHeight ? (wnBtn.offsetHeight + 10) : 0)
-                                + (vacBtn && vacBtn.offsetHeight ? (vacBtn.offsetHeight + 8) : 0);
-                    rankSidebar.style.maxHeight = Math.max(100, (hudTop - rsTop - gapPx) / scale - reserve) + 'px';
+                    // BEZ REZERWACJI na przyciski (zmiana 2026-07-30): GDZIE TERAZ? i SZCZEPIENIA nie
+                    // stoja juz pod drzewkiem rang, tylko w #rank-tools nad stosem przelacznikow, czyli
+                    // WEWNATRZ #bottom-right-hud - a jego gorna krawiedz to wlasnie hudTop. Ich wysokosc
+                    // jest wiec juz uwzgledniona w odstepie i odejmowanie jej drugi raz zabieralo by
+                    // liscie rang ~80px na nic.
+                    rankSidebar.style.maxHeight = Math.max(100, (hudTop - rsTop - gapPx) / scale) + 'px';
                 }
             }
             // NA SAMYM KONCU: przepakowanie boxow miedzy kolumna 1 a 2 (patrz _packHudBoxes na gorze

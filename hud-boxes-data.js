@@ -39,14 +39,16 @@ window.HUD_BOXES = [
       note: "Prawy panel z profilem państwa, miasta i lotniska. Po ukryciu kliknięcie w kraj nadal go zaznacza, ale nie ma gdzie pokazać danych." },
     { id: "ranks",    icon: "🏅", label: "Progression Tree",       host: "#h1-ranks",        els: ["#h1-ranks", "#rank-list"],
       note: "Drzewko rang w prawej kolumnie." },
-    // Para przycisków pod drzewkiem rang - JEDNA pozycja, nie dwie (feedback 2026-07-29: "mają się
-    // całe grupy ubijać"). host:null, bo krzyżyk musialby siedziec w jednym z przyciskow, a chowalby
-    // oba - mylace. Chowane z panelu 👁.
-    // (Próba wciągnięcia ich do STOPKI panelu rang - 2026-07-30 - została COFNIĘTA: userowi nie
-    // podszedł wygląd. Stoją luzem pod panelem, jak od początku.)
+    // Para przycisków - JEDNA pozycja, nie dwie (feedback 2026-07-29: "mają się całe grupy ubijać").
+    // host:null, bo krzyżyk musialby siedziec w jednym z przyciskow, a chowalby oba - mylace.
+    // Chowane z panelu 👁.
+    // OD 2026-07-30 stoja w prawym DOLNYM rogu (#rank-tools, rzad nad stosem przelacznikow), a nie
+    // pod drzewkiem rang. Powod: w kolumnie rang trzymaly ja przy zyciu nawet po ukryciu drzewka,
+    // wiec Regional Intel nie dojezdzal do prawej krawedzi. Dlatego `els` wskazuje teraz KONTENER
+    // rzedu, nie oba przyciski z osobna - inaczej po ukryciu zostawalby pusty rzad z gapem.
     { id: "rankbtns", icon: "🎯", label: "Przyciski: GDZIE TERAZ? / SZCZEPIENIA", host: null,
-      els: ["#wherenow-toggle", "#vaccinations-link"],
-      note: "Ranking kierunków na wybrany miesiąc i tabela szczepień (PDF) - oba pod drzewkiem rang." },
+      els: ["#rank-tools"],
+      note: "Ranking kierunków na wybrany miesiąc i tabela szczepień (PDF) - oba w prawym dolnym rogu, nad przełącznikami mapy." },
     // CALY STOS PRZELACZNIKOW (#toggle-stack, prawy dolny rog) - JEDNA pozycja (feedback 2026-07-29:
     // "mają się całe grupy ubijać"; wczesniej bylo szesc osobnych, potem dwie podgrupy - obie wersje
     // za drobne). Chowamy sam KONTENER, wiec nie trzeba wymieniac przyciskow po kolei.

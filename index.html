@@ -703,18 +703,13 @@
         <div class="right-hud">
             <h1 id="h1-ranks">Progression Tree</h1>
             <div class="rank-sidebar" id="rank-list"></div>
-            <!-- Przyciski siedza POD drzewkiem rang, w tej samej kolumnie 240px. Miejsce na nie
-                 rezerwuje adjustLayout w app.js (odejmuje ICH SUMARYCZNA wysokosc od max-height
-                 #rank-list), inaczej lista rozpycha sie do dolnego HUD i przyciski wyjezdzaja poza
-                 ekran. Dodajesz tu kolejny przycisk -> dopisz go tam do puli rezerwacji.
-                 PROBA Z 2026-07-30 (wciagniecie obu do stopki panelu rang - #rank-box + #rank-tools,
-                 z wloskiem nad nimi) ZOSTALA COFNIETA: userowi nie podszedl wyglad. Jesli ktos
-                 wroci do tego pomyslu, patrz historia git - a najpierw zapytaj. -->
-            <div class="reset-btn" id="wherenow-toggle" style="position:static; margin-top:10px; box-sizing:border-box; display:flex; align-items:center; justify-content:center; gap:6px; padding:8px 10px; border-color:#22d3ee; color:#22d3ee; white-space:nowrap;" title="Ranking najlepszych celow podrozy na wybrany miesiac (klimat + dojazd + ceny + wiza + bezpieczenstwo)">🎯 GDZIE TERAZ?</div>
-            <!-- SZCZEPIENIA: staly PDF (tabela szczepien dla podrozujacych), IDENTYCZNY dla kazdego kraju.
-                 Dlatego od 2026-07-26 stoi tu - globalnie, raz - a nie w gestym pasku linkow w profilu
-                 kazdego panstwa, gdzie udawal dane zalezne od kraju. -->
-            <a href="https://zagrozeniazdrowotne.gssewarszawa.pl/docs/Tabela_szczepien.pdf" target="_blank" rel="noopener" class="reset-btn" id="vaccinations-link" style="position:static; margin-top:8px; box-sizing:border-box; display:flex; align-items:center; justify-content:center; gap:6px; padding:8px 10px; border-color:#8E24AA; color:#BA68C8; white-space:nowrap; text-decoration:none;" title="Tabela szczepien dla podrozujacych - staly PDF (GSSE Warszawa), ten sam dla wszystkich kierunkow">💉 SZCZEPIENIA</a>
+            <!-- GDZIE TERAZ? / SZCZEPIENIA STALY TU DO 2026-07-30 (pod drzewkiem rang). Wyprowadzone
+                 do #rank-tools w prawym DOLNYM rogu, nad stos przelacznikow - trzymane tutaj kazaly
+                 kolumnie 240px zyc nawet po ukryciu drzewka rang, wiec Regional Intel nie mogl
+                 dojechac do prawej krawedzi (kolumne zwija dopiero pusta - patrz _packHudBoxes).
+                 Przy okazji znikla rezerwacja wysokosci pod nimi w adjustLayout.
+                 Wczesniejsza proba (stopka panelu rang, #rank-box) tez zostala cofnieta - userowi
+                 nie podszedl wyglad. Zanim ktos wroci tu z przyciskiem: zapytaj. -->
         </div>
     </div>
 
@@ -735,6 +730,20 @@
              przez 108 i 96 az do 84px, czyli tyle, ile potrzebuje najdluzszy napis CLIMATE z lekkim
              luzem. LAYER i DETAIL ikony ZOSTAWIAJA - tam nie ma czego oszczedzac, wiersz i tak musi
              pomiescic segmenty. -->
+        <!-- KOLUMNA PRAWEGO ROGU (2026-07-30): rzad narzedzi NAD stosem przelacznikow. Oba elementy
+             to OSOBNE ukrywalne boxy ("rankbtns" i "toggles"), dlatego kolumna jest tylko opakowaniem
+             - ukrycie jednego nie rusza drugiego, a align-items:stretch daje rzedowi dokladnie
+             szerokosc stosu pod nim. -->
+        <div id="right-corner-col" style="display:flex; flex-direction:column; gap:8px; align-items:stretch; pointer-events:none;">
+        <!-- GDZIE TERAZ? + SZCZEPIENIA: przeniesione z kolumny rang (patrz komentarz w .right-hud).
+             flex:1 1 0 na obu -> dziela szerokosc rzedu po polowie, wiec rzad konczy sie rowno z
+             prawa krawiedzia LAYER/DETAIL. SZCZEPIENIA to staly PDF (tabela szczepien dla
+             podrozujacych), IDENTYCZNY dla kazdego kraju - stad jedno miejsce globalnie, a nie
+             wiersz w profilu kazdego panstwa, gdzie udawal dane zalezne od kierunku. -->
+        <div id="rank-tools" style="display:flex; gap:8px; pointer-events:none;">
+            <div class="reset-btn" id="wherenow-toggle" style="position:static; flex:1 1 0; box-sizing:border-box; display:flex; align-items:center; justify-content:center; gap:6px; padding:8px 10px; border-color:#22d3ee; color:#22d3ee; white-space:nowrap;" title="Ranking najlepszych celow podrozy na wybrany miesiac (klimat + dojazd + ceny + wiza + bezpieczenstwo)">🎯 GDZIE TERAZ?</div>
+            <a href="https://zagrozeniazdrowotne.gssewarszawa.pl/docs/Tabela_szczepien.pdf" target="_blank" rel="noopener" class="reset-btn" id="vaccinations-link" style="position:static; flex:1 1 0; box-sizing:border-box; display:flex; align-items:center; justify-content:center; gap:6px; padding:8px 10px; border-color:#8E24AA; color:#BA68C8; white-space:nowrap; text-decoration:none;" title="Tabela szczepien dla podrozujacych - staly PDF (GSSE Warszawa), ten sam dla wszystkich kierunkow">💉 SZCZEPIENIA</a>
+        </div>
         <div id="toggle-stack" style="display:grid; grid-template-columns:auto auto auto; gap:8px; align-content:end; pointer-events:none;">
             <div class="reset-btn" id="visa-toggle" style="position:static; width:84px; box-sizing:border-box; display:flex; align-items:center; padding:8px; border-color:#c084fc; color:#c084fc; opacity:0.4; white-space:nowrap;" title="Wymogi wizowe PL wl/wyl"><span class="rb-label">VISA</span></div>
             <div class="reset-btn" id="tz-toggle" style="position:static; width:84px; box-sizing:border-box; display:flex; align-items:center; padding:8px; border-color:#38d6c0; color:#38d6c0; opacity:0.4; white-space:nowrap;" title="Strefy czasowe wl/wyl"><span class="rb-label">ZONES</span></div>
@@ -748,6 +757,7 @@
             <div class="reset-btn" id="sat-toggle" style="position:static; box-sizing:border-box; display:flex; align-items:center; gap:6px; padding:6px 10px; border-color:#7dd3fc; color:#7dd3fc; white-space:nowrap;" title="Podklad na globie: OFF / zdjecia satelitarne / mapa drogowa z ulicami / topografia z reliefem"><span class="rb-icon">🛰</span><span class="rb-label">LAYER</span><span class="sat-opt" data-src="off" style="cursor:pointer; border:1px solid currentColor; border-radius:4px; opacity:0.4;">OFF</span><span class="sat-opt" data-src="sat" style="cursor:pointer; border:1px solid currentColor; border-radius:4px; opacity:0.4;">SAT</span><span class="sat-opt" data-src="street" style="cursor:pointer; border:1px solid currentColor; border-radius:4px; opacity:0.4;">STREET</span><span class="sat-opt" data-src="topo" style="cursor:pointer; border:1px solid currentColor; border-radius:4px; opacity:0.4;">TOPO</span></div>
             <div class="reset-btn" id="detail-switch" style="position:static; box-sizing:border-box; display:flex; align-items:center; gap:6px; padding:6px 10px; border-color:#9ca3af; color:#9ca3af; white-space:nowrap;" title="Szczegolowosc geometrii globu — LOW/HIGH/ULTRA (przeladowuje strone)"><span class="rb-icon">🌐</span><span class="rb-label">DETAIL</span><span class="ds-opt" data-lvl="low" style="cursor:pointer; border:1px solid currentColor; border-radius:4px; opacity:0.4;">LOW</span><span class="ds-opt" data-lvl="high" style="cursor:pointer; border:1px solid currentColor; border-radius:4px; opacity:0.4;">HIGH</span><span class="ds-opt" data-lvl="ultra" style="cursor:pointer; border:1px solid currentColor; border-radius:4px; opacity:0.4;">ULTRA</span></div>
         </div>
+        </div><!-- /#right-corner-col -->
         <div class="sys-log-container" style="position:static;">
             <div class="sys-log-header">/// SYSTEM_LOG_V5.6 [HARD_LOCK]</div>
             <div class="sys-log-content" id="console-logs">
@@ -793,8 +803,8 @@
          bo zmieniaja sie raz na ruski rok, a publiczna kopia na GitHub Pages sciagalaby je od nowa. -->
     <!-- Katalog ukrywalnych boxow HUD. MUSI stac PRZED app.js - logika czyta window.HUD_BOXES od razu
          przy parsowaniu app.js (blok na jego gorze), zeby ukryte panele nie mrugaly przy wejsciu. -->
-    <script src="hud-boxes-data.js?v=20260730e"></script>
-    <script src="help.js?v=20260730e"></script>
-    <script src="app.js?v=20260730h"></script>
+    <script src="hud-boxes-data.js?v=20260730f"></script>
+    <script src="help.js?v=20260730f"></script>
+    <script src="app.js?v=20260730i"></script>
 </body>
 </html>
