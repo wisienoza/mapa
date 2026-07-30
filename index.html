@@ -357,9 +357,12 @@
            panel FLIGHTS, gdzie linki, statystyki i rekord dystansu siedza w jednym pudle. */
         #rank-tools { display: flex; gap: 6px; margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.12); }
         /* flex:1 - oba dziela szerokosc panelu rowno, wiec stopka jest symetryczna niezaleznie od
-           dlugosci napisow. 0.75rem (nie 0.9 jak reszta .reset-btn): przy wiekszym stopniu pisma
-           "GDZIE TERAZ?" i "SZCZEPIENIA" nie zmieszcza sie obok siebie w 226px tresci panelu. */
-        #rank-tools .reset-btn { flex: 1 1 0; min-width: 0; padding: 6px 4px; font-size: 0.75rem; justify-content: center; }
+           dlugosci napisow. 0.8rem (nie 0.9 jak reszta .reset-btn) i BEZ EMOJI w napisach: zmierzone
+           w polu 111px na przycisk - "🎯 GDZIE TERAZ?" potrzebuje 115px (samo emoji ze spacja to ~21px),
+           a "GDZIE TERAZ?" 96px. Kolory ramek (cyjan / purpura) i tak je rozroznaja.
+           Chcesz emoji z powrotem? Trzeba ustawic te przyciski jeden POD drugim (flex-direction:column
+           na #rank-tools) - wtedy kazdy ma cale 224px. */
+        #rank-tools .reset-btn { flex: 1 1 0; min-width: 0; padding: 6px 2px; font-size: 0.8rem; justify-content: center; }
         #factbook-panel { box-sizing: border-box; max-height: calc(100vh - 320px); overflow-y: auto; }
         #factbook-panel::-webkit-scrollbar { width: 4px; }
         #factbook-panel::-webkit-scrollbar-thumb { background: #444; border-radius: 2px; }
@@ -725,8 +728,8 @@
                      kraju. Dlatego od 2026-07-26 stoi globalnie, raz - a nie w gestym pasku linkow
                      w profilu kazdego panstwa, gdzie udawal dane zalezne od kraju. -->
                 <div id="rank-tools">
-                    <div class="reset-btn" id="wherenow-toggle" style="position:static; box-sizing:border-box; align-items:center; gap:4px; border-color:#22d3ee; color:#22d3ee; white-space:nowrap;" title="Ranking najlepszych celow podrozy na wybrany miesiac (klimat + dojazd + ceny + wiza + bezpieczenstwo)">🎯 GDZIE TERAZ?</div>
-                    <a href="https://zagrozeniazdrowotne.gssewarszawa.pl/docs/Tabela_szczepien.pdf" target="_blank" rel="noopener" class="reset-btn" id="vaccinations-link" style="position:static; box-sizing:border-box; align-items:center; gap:4px; border-color:#8E24AA; color:#BA68C8; white-space:nowrap; text-decoration:none;" title="Tabela szczepien dla podrozujacych - staly PDF (GSSE Warszawa), ten sam dla wszystkich kierunkow">💉 SZCZEPIENIA</a>
+                    <div class="reset-btn" id="wherenow-toggle" style="position:static; box-sizing:border-box; align-items:center; gap:4px; border-color:#22d3ee; color:#22d3ee; white-space:nowrap;" title="Ranking najlepszych celow podrozy na wybrany miesiac (klimat + dojazd + ceny + wiza + bezpieczenstwo)">GDZIE TERAZ?</div>
+                    <a href="https://zagrozeniazdrowotne.gssewarszawa.pl/docs/Tabela_szczepien.pdf" target="_blank" rel="noopener" class="reset-btn" id="vaccinations-link" style="position:static; box-sizing:border-box; align-items:center; gap:4px; border-color:#8E24AA; color:#BA68C8; white-space:nowrap; text-decoration:none;" title="Tabela szczepien dla podrozujacych - staly PDF (GSSE Warszawa), ten sam dla wszystkich kierunkow">SZCZEPIENIA</a>
                 </div>
             </div>
         </div>
@@ -807,8 +810,8 @@
          bo zmieniaja sie raz na ruski rok, a publiczna kopia na GitHub Pages sciagalaby je od nowa. -->
     <!-- Katalog ukrywalnych boxow HUD. MUSI stac PRZED app.js - logika czyta window.HUD_BOXES od razu
          przy parsowaniu app.js (blok na jego gorze), zeby ukryte panele nie mrugaly przy wejsciu. -->
-    <script src="hud-boxes-data.js?v=20260730c"></script>
-    <script src="help.js?v=20260730c"></script>
-    <script src="app.js?v=20260730c"></script>
+    <script src="hud-boxes-data.js?v=20260730d"></script>
+    <script src="help.js?v=20260730d"></script>
+    <script src="app.js?v=20260730d"></script>
 </body>
 </html>
