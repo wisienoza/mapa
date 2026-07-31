@@ -7684,9 +7684,17 @@
                         // Stad zgloszenia "nadal slaba jakosc" przy skalowaniu Windows 125/150%:
                         // rozmycie nie powstawalo w naszym renderze, tylko w skalowaniu jego wyniku.
                         // Backing store idzie wiec w pikselach URZADZENIA, a styl zostaje w CSS.
-                        // Cap 2: przy 3x koszt petli (trygonometria na piksel) rosnie 9-krotnie,
-                        // a roznicy juz nie widac - kafle koncza sie wczesniej niz gestosc ekranu.
-                        var dpr = Math.min(window.devicePixelRatio || 1, 2);
+                        // SUFIT 1.5, nie 2 - z dwoch powodow, oba zmierzone 2026-07-31 na 1280x720:
+                        //   1. KOSZT. Pelny render (trygonometria na kazdy piksel) to 60 ms przy dpr 1,
+                        //      93 ms przy 1.5 i juz 174 ms przy 2. Ten render leci po KAZDYM zatrzymaniu
+                        //      ruchu, wiec 174 ms to wyczuwalna zadyszka; 93 ms jeszcze nie.
+                        //   2. NIE MA CZEGO POKAZAC WYZEJ. Poziom kafli dobiera sie do gestosci CSS
+                        //      (patrz _satPlan), wiec mozaika jest najwyzej ~1.6x gestsza od siatki CSS
+                        //      (najmniejsze mag po przechyle to 0.61). Przy 1.5 widac praktycznie caly
+                        //      ten zapas, a kazdy kolejny mnoznik to juz tylko powielanie pikseli.
+                        // W RUCHU (step 2) zostajemy w pikselach CSS - tam liczy sie klatka na sekunde,
+                        // a bufor i tak idzie przez drawImage, ktore rozciagnie go do backing store'u.
+                        var dpr = Math.min(window.devicePixelRatio || 1, 1.5);
                         var Wd = Math.max(1, Math.round(W * dpr)), Hd = Math.max(1, Math.round(H * dpr));
                         if (_satCv.width !== Wd || _satCv.height !== Hd) {
                             _satCv.width = Wd; _satCv.height = Hd;
@@ -7733,10 +7741,14 @@
                         // sasiadem po prostu WYRZUCA wtedy 40% pikseli zrodla, a to na kartografii OSM
                         // widac jako poszarpane litery i rwace sie cienkie drogi. Usredniamy wiec
                         // kwadrat 2x2 - tanie przyblizenie filtra pudelkowego, ktore te dziury zasypuje.
-                        // WLACZANE TYLKO gdy: (a) realnie pomniejszamy (mag < 0.8) i (b) to render
-                        // pelny (step === 1, czyli juz po zatrzymaniu ruchu). W ruchu liczy sie liczba
+                        // WLACZANE TYLKO gdy: (a) realnie pomniejszamy i (b) to render pelny
+                        // (step === 1, czyli juz po zatrzymaniu ruchu). W ruchu liczy sie liczba
                         // klatek, nie ostrosc - tam zostaje jedno probkowanie na piksel.
-                        var _mag = _S_TWOPI * R / (256 * (1 << asm.z));
+                        // mag liczymy WZGLEDEM SIATKI BUFORA (czyli razy ss), a nie CSS: na ekranie
+                        // HiDPI ta sama mozaika trafia w gestszy raster i filtr przestaje byc
+                        // potrzebny wczesniej (przy dpr 2 i mag 0.69 wychodzi 1.38 - tam juz nie ma
+                        // czego usredniac, probkujemy rzadziej niz zrodlo).
+                        var _mag = _S_TWOPI * R * ss / (256 * (1 << asm.z));
                         var box = (step === 1 && _mag < 0.8);
 
                         // Poza tarcza kuli nie ma czego liczyc. Zamiast przebiegac caly ekran i
@@ -7746,17 +7758,17 @@
                         // (kolo to PI/4 powierzchni swojego kwadratu); przy glebokim zoomie tarcza
                         // i tak wypelnia ekran, wiec nic nie tracimy.
                         out.fill(0);
-                        var by0 = Math.max(0, Math.floor((cy - R) / step));
-                        var by1 = Math.min(bh, Math.ceil((cy + R) / step) + 1);
+                        var by0 = Math.max(0, Math.floor((cy - R) / scl));
+                        var by1 = Math.min(bh, Math.ceil((cy + R) / scl) + 1);
                         for (var by = by0; by < by1; by++) {
-                            var Yv = (cy - (by * step + step * 0.5)) / R;
+                            var Yv = (cy - (by + 0.5) * scl) / R;
                             var t = 1 - Yv * Yv; if (t <= 0) continue;
                             var half = Math.sqrt(t) * R;
                             var row = by * bw * 4;
-                            var bx1 = Math.min(bw, Math.ceil((cx + half) / step) + 1);
-                            for (var bx = Math.max(0, Math.floor((cx - half) / step)); bx < bx1; bx++) {
+                            var bx1 = Math.min(bw, Math.ceil((cx + half) / scl) + 1);
+                            for (var bx = Math.max(0, Math.floor((cx - half) / scl)); bx < bx1; bx++) {
                                 var o = row + bx * 4;
-                                var Xv = ((bx * step + step * 0.5) - cx) / R;
+                                var Xv = ((bx + 0.5) * scl - cx) / R;
                                 var s = Xv * Xv + Yv * Yv;
                                 if (s > 1) continue;                             // rogi cieciwy
                                 var Zv = Math.sqrt(1 - s);
@@ -7790,8 +7802,11 @@
                             }
                         }
                         buf.ctx.putImageData(buf.id, 0, 0);
-                        _satCtx.clearRect(0, 0, W, H);
-                        _satCtx.drawImage(buf.cv, 0, 0, bw, bh, 0, 0, bw * step, bh * step);
+                        _satCtx.clearRect(0, 0, Wd, Hd);
+                        // Bufor rozciagamy na CALY backing store (Wd x Hd). Przy pelnym renderze na
+                        // HiDPI to skala 1:1 (bufor JEST w pikselach urzadzenia), przy ruchu - dawne
+                        // powiekszenie natywnym drawImage, tylko od razu do pikseli fizycznych.
+                        _satCtx.drawImage(buf.cv, 0, 0, bw, bh, 0, 0, Wd, Hd);
                     }
 
                     // Obrot/zoom sypia zdarzeniami gesto - sklejamy je do jednej klatki (rAF),
