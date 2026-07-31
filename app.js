@@ -7771,6 +7771,36 @@
                         setTimeout(function(){ _satSnapping = false; }, 320);
                     }
 
+                    // --- WYOSTRZANIE POWIEKSZONEJ MOZAIKI (2026-07-31) -------------------------
+                    // Przy tier 2 kazdy piksel kafla to na ekranie kwadrat 2x2. Obraz jest ostry
+                    // (krotnosc calkowita, zaden filtr go nie rozmywa), ale KRAWEDZIE sa "miekkie"
+                    // w odbiorze - antyaliasing kartografii tez zostal powiekszony, wiec litery maja
+                    // szersze przejscia. Maska wyostrzajaca podbija kontrast tych przejsc i napisy
+                    // realnie robia sie czytelniejsze (porownanie na zrzutach: 2026-07-31).
+                    // NIE LICZYMY TEGO W JS - splot 3x3 na 1 mln pikseli to ~100 ms, czyli drugie tyle
+                    // co caly render. Zamiast tego filtr SVG (feConvolveMatrix) podpiety pod
+                    // ctx.filter: robi to karta graficzna przy samym drawImage. ZMIERZONE: 3.7 ms na
+                    // pelna klatke 1280x720 (wobec 45-100 ms samego renderu).
+                    // preserveAlpha="true" jest konieczne - inaczej splot rusza tez kanal alfa
+                    // i krawedz tarczy globu dostaje obwodke.
+                    var _satSharpSvg = null, _satSharpOk = null;
+                    function _satSharpen(){
+                        if (_satSharpOk === null) {
+                            _satSharpOk = (_satCtx && typeof _satCtx.filter === "string");
+                            if (_satSharpOk) {
+                                _satSharpSvg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+                                _satSharpSvg.setAttribute("width", "0");
+                                _satSharpSvg.setAttribute("height", "0");
+                                _satSharpSvg.style.cssText = "position:absolute; width:0; height:0";
+                                _satSharpSvg.innerHTML = '<filter id="sat-sharpen" x="0" y="0" width="100%" height="100%">'
+                                    + '<feConvolveMatrix order="3" preserveAlpha="true"'
+                                    + ' kernelMatrix="0 -0.35 0 -0.35 2.4 -0.35 0 -0.35 0"/></filter>';
+                                document.body.appendChild(_satSharpSvg);
+                            }
+                        }
+                        return _satSharpOk;
+                    }
+
                     function _satBuf(step, w, h){
                         var b = _satBufs[step];
                         if (!b) { b = _satBufs[step] = { cv: document.createElement("canvas") }; b.ctx = b.cv.getContext("2d"); }
@@ -7964,12 +7994,18 @@
                         }
                         buf.ctx.putImageData(buf.id, 0, 0);
                         _satCtx.clearRect(0, 0, Wd, Hd);
+                        // Wyostrzamy TYLKO tam, gdzie realnie powiekszamy piksele kafla (mag >= 2
+                        // i krotnosc calkowita) i tylko w renderze pelnym. Przy mag 1 (SAT) splot
+                        // dokladalby halo do obrazu, ktory jest juz 1:1; w ruchu nie ma po co.
+                        var _sharp = (step === 1 && _intScale && _mag >= 2 && _satSharpen());
+                        if (_sharp) _satCtx.filter = "url(#sat-sharpen)";
                         // Bufor rozciagamy na CALY backing store (Wd x Hd). Przy pelnym renderze na
                         // HiDPI to skala 1:1 (bufor JEST w pikselach urzadzenia), przy ruchu - dawne
                         // powiekszenie natywnym drawImage, tylko od razu do pikseli fizycznych.
                         _satCtx.drawImage(buf.cv, 0, 0, bw, bh, 0, 0, Wd, Hd);
+                        if (_sharp) _satCtx.filter = "none";
                         _satLast = { step: step, ss: ss, z: asm.z, mag: Math.round(_mag * 100) / 100,
-                                     tier: _satTier(),
+                                     tier: _satTier(), sharp: !!_sharp,
                                      filter: lerp ? "bilinear" : (box ? "box2x2" : "nearest"),
                                      buf: bw + "x" + bh, out: Wd + "x" + Hd, at: Date.now() };
                         // Dojazd do poziomu kafli PO narysowaniu klatki - obraz na ekranie jest wtedy
