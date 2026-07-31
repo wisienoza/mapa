@@ -20,6 +20,19 @@
 //                 zostawia wtedy dziure, wiec NIE podnos tego ponad 19 "na zapas".
 //   attribution - tekst licencyjny. WYMAGANY prawnie przez Esri i OSM; renderer
 //                 wyswietla go w rogu ekranu, dopoki tryb jest wlaczony.
+//   tier        - ILE PIKSELOW EKRANU NA JEDEN PIKSEL KAFLA (domyslnie 1).
+//                 Renderer zatrzaskuje zoom tak, zeby ta krotnosc wychodzila
+//                 DOKLADNIE, wiec tier: 2 znaczy "kazdy piksel kafla to kwadrat
+//                 2x2 na ekranie" - napisy i ikony sa dwa razy wieksze, a obraz
+//                 NIE robi sie rozmyty, bo krotnosc jest calkowita (renderer
+//                 probkuje wtedy najblizszym sasiadem, patrz _satRender).
+//                 Po co: kartografia OSM/Esri jest projektowana pod ekrany
+//                 ~100 dpi, a na szerokim monitorze ogladana 1:1 jest po prostu
+//                 za mala do czytania (zgloszenie usera 2026-07-31: "nic nie
+//                 widac"). Cena: widzisz zawartosc o POZIOM plytsza (z16
+//                 rozciagniety tam, gdzie zmiescilby sie z17), za to pobierasz
+//                 4x mniej kafli. Dla ZDJEC (sat) zostaw 1 - tam powiekszenie
+//                 daje rozmazana fotografie zamiast czytelniejszego napisu.
 //   dark        - true, gdy kafle sa ciemne (zdjecia satelitarne). SterujeSILA
 //                 konturow panstw rysowanych PRZEZ amCharts NA WIERZCHU kafli:
 //                 na ciemnym zdjeciu potrzebne sa jasne obrysy, na jasnej mapie
@@ -58,6 +71,7 @@ var TILE_SOURCES = {
         url: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
         maxZoom: 19,
         attribution: "(c) OpenStreetMap contributors",
+        tier: 2,
         dark: false
     },
 
@@ -68,6 +82,7 @@ var TILE_SOURCES = {
         url: "https://services.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}",
         maxZoom: 19,
         attribution: "Topo: Esri, HERE, Garmin, USGS, NGA",
+        tier: 2,
         dark: false
     }
 };

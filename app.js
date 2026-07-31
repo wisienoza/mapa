@@ -7265,6 +7265,11 @@
                     }
 
                     function _satSrc(){ return TILE_SOURCES[_satSrcKeys[_satSrcIdx]]; }
+                    // Ile pikseli ekranu ma przypadac na jeden piksel kafla (patrz pole "tier"
+                    // w tile-sources-data.js). 1 = kafel w piksel, 2 = wszystko dwa razy wieksze.
+                    // Wchodzi w DWA miejsca, ktore musza sie zgadzac: dobor poziomu (nizej) i cel
+                    // zatrzaskiwania zoomu (_satSnapZoom). Rozjechanie ich = wieczne dojezdzanie.
+                    function _satTier(){ var t = _satSrc().tier; return (t >= 1) ? t : 1; }
 
                     // --- GEOMETRIA KULI NA EKRANIE ---------------------------------------------
                     // Zwraca srodek i promien tarczy W PIKSELACH CANVASA oraz katy obrotu w radianach.
@@ -7446,7 +7451,10 @@
                         // skok. Gdyby zatrzaskiwanie kiedys wylecialo, przechyl trzeba przywrocic razem
                         // z podniesionym budzetem - inaczej wraca rozmycie z 2026-07-31.
                         var _budget = _satBudget(W, H);
-                        var z = Math.round(Math.log(_S_TWOPI * g.R / 256) / Math.LN2);
+                        // Dzielenie przez tier: przy tier 2 schodzimy o poziom nizej niz gestosc
+                        // ekranu, bo kazdy piksel kafla ma zajac na ekranie kwadrat 2x2 (napisy
+                        // dwa razy wieksze). Przy okazji 4x mniej kafli na ten sam kadr.
+                        var z = Math.round(Math.log(_S_TWOPI * g.R / (256 * _satTier())) / Math.LN2);
                         if (!isFinite(z)) return null;
                         z = Math.max(0, Math.min(src.maxZoom, z));
                         // Sufit wykryty dla tego rejonu (patrz _satCaps): dalej zrodlo ma juz tylko
@@ -7729,11 +7737,13 @@
                     // mag liczymy w pikselach CSS (bez ss), bo zoomLevel odnosi sie do geometrii CSS.
                     function _satSnapZoom(p, g){
                         if (!window._satOn || _satSnapping) return;
+                        var tier = _satTier();
                         var mag = _S_TWOPI * g.R / (256 * (1 << p.z));
                         if (!isFinite(mag) || mag <= 0) return;
-                        if (Math.abs(Math.log(mag) / Math.LN2) < 0.01) return;
-                        if (p.atCeiling && mag > 1) return;
-                        var z0 = chart.get("zoomLevel") || 1, z1 = z0 / mag;
+                        // Celem jest mag == tier (dla tier 1 - kafel w piksel, dla 2 - kwadrat 2x2).
+                        if (Math.abs(Math.log(mag / tier) / Math.LN2) < 0.01) return;
+                        if (p.atCeiling && mag > tier) return;
+                        var z0 = chart.get("zoomLevel") || 1, z1 = z0 * tier / mag;
                         if (!isFinite(z1) || z1 < 1 || z1 > (chart.get("maxZoomLevel") || 1)) return;
                         _satSnapping = true;
                         chart.animate({ key: "zoomLevel", to: z1, duration: 220, easing: am5.ease.out(am5.ease.cubic) });
@@ -7843,6 +7853,13 @@
                         // potrzebny wczesniej (przy dpr 2 i mag 0.69 wychodzi 1.38 - tam juz nie ma
                         // czego usredniac, probkujemy rzadziej niz zrodlo).
                         var _mag = _S_TWOPI * R * ss / (256 * (1 << asm.z));
+                        // KROTNOSC CALKOWITA = NEAREST, i to jest warunek konieczny calego "tier".
+                        // Przy mag 2.000 kazdy piksel zrodla staje sie kwadratem 2x2 - obraz jest
+                        // POWIEKSZONY, ale nadal OSTRY. Puszczenie tego przez interpolacje dwuliniowa
+                        // rozmylo by dokladnie to, co ma byc ostre, i cala zmiana nie mialaby sensu.
+                        // Tolerancja 0.02, bo zatrzaskiwanie dojezdza z dokladnoscia animacji.
+                        var _magR = Math.round(_mag);
+                        var _intScale = (_magR >= 1 && Math.abs(_mag - _magR) < 0.02);
                         var box = (step === 1 && _mag < 0.8);
                         // FILTR PRZY POWIEKSZANIU (2026-07-31, druga polowa tej samej sprawy).
                         // Powyzej mag 1 na jeden piksel zrodla przypada kilka pikseli ekranu, a wtedy
@@ -7856,7 +7873,7 @@
                         // wiec nie ma po co mieszac sasiadow (i placic za to czasem).
                         // Probkujemy w SRODKACH tekseli (stad -0.5), inaczej caly obraz przesuwa sie
                         // o pol piksela zrodla i przy duzym powiekszeniu widac to jako przesuniecie.
-                        var lerp = (step === 1 && _mag > 1.05);
+                        var lerp = (step === 1 && _mag > 1.05 && !_intScale);
 
                         // Poza tarcza kuli nie ma czego liczyc. Zamiast przebiegac caly ekran i
                         // odrzucac piksele warunkiem, czyscimy bufor jednym memsetem i wchodzimy
