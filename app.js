@@ -7950,6 +7950,7 @@
                         // powiekszenie natywnym drawImage, tylko od razu do pikseli fizycznych.
                         _satCtx.drawImage(buf.cv, 0, 0, bw, bh, 0, 0, Wd, Hd);
                         _satLast = { step: step, ss: ss, z: asm.z, mag: Math.round(_mag * 100) / 100,
+                                     tier: _satTier(),
                                      filter: lerp ? "bilinear" : (box ? "box2x2" : "nearest"),
                                      buf: bw + "x" + bh, out: Wd + "x" + Hd, at: Date.now() };
                         // Dojazd do poziomu kafli PO narysowaniu klatki - obraz na ekranie jest wtedy
