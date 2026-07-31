@@ -7193,15 +7193,28 @@
                     //   -> zejscie na z4 (10x5 = 50) -> mozaika ROZCIAGNIETA 1.67x. Tak wygladal
                     //   podklad "od startu", i tego nie widac na 1280x720, gdzie ta sama scena miesci
                     //   sie w budzecie. NIE STROIC TEGO NA JEDNEJ ROZDZIELCZOSCI.
-                    // Wzor: ~1 kafel na 13 tys. pikseli widoku (empirycznie: tyle wychodzi, gdy mozaika
-                    // ma miec gestosc ekranu na globie ogladanym w calosci - polkula sciska sie ku
-                    // krawedzi, wiec kafli trzeba wiecej niz na plaskiej mapie tej samej wielkosci).
-                    //   1280x720  -> 71  -> podloga 96  (zachowuje poprawke z Indochin: z6 = 88 kafli)
-                    //   2560x750  -> 148 -> miesci 136 kafli z przykladu wyzej
-                    //   3840x2160 -> 638 -> sufit 160
-                    // SUFIT 160 JEST OD PAMIECI, nie od estetyki: 160 kafli to bufor 40 MB pikseli
-                    // plus drugie tyle na canvas zrodlowy, a kazda przebudowa mozaiki czyta ten bufor
-                    // przez getImageData. Podnoszac go, zmierz najpierw czas przebudowy.
+                    // SZEROKOSC SZEROKOSCI NIEROWNA. Pierwsza wersja tego wzoru (1 kafel na 13 tys. px,
+                    // sufit 160) byla mierzona nad rownikiem i dawala 148 dla 2560x750 - w sam raz na
+                    // kadr nad Indochinami. Ale globus wycentrowany na WARSZAWIE (52 st. N, czyli widok
+                    // STARTOWY aplikacji) potrzebuje na ten sam poziom prawie 2x wiecej kafli: Mercator
+                    // rozciaga pion o sec(fi), a w kadrze siedzi wtedy pas az po biegun. Zmierzone
+                    // 2560x750, srodek Warszawa, budzet 148: zoom 2.9 -> mag 1.67, zoom 4 -> 2.30,
+                    // zoom 6 -> 1.73, zoom 200 -> 1.80. Czyli budzet dlawil prawie caly zakres.
+                    // Wzor: ~1 kafel na 6 tys. pikseli widoku.
+                    //   1280x720  -> 154 (podloga 96 juz nie dziala; z6 = 88 kafli miesci sie z zapasem)
+                    //   2560x750  -> 320 (sufit) - zoom 2.9 bierze z5 = 240 kafli, mag 0.83
+                    //   3840x2160 -> 1382 -> sufit 320
+                    // SUFIT 320 JEST OD PAMIECI I CZASU, nie od estetyki. ZMIERZONE na 2560x750:
+                    //   mozaika 27x11 = 297 kafli -> bufor ~78 MB pikseli (plus drugie tyle na canvas
+                    //   zrodlowy), caly heap zakladki 111 MB przy limicie 4 GB - miesci sie spokojnie;
+                    //   pelny render 100-163 ms (z czego wieksza czesc to sama reprojekcja 1.92 mln
+                    //   pikseli szerokiego okna, nie przebudowa mozaiki).
+                    // Poziom NIGDY nie rosnie od budzetu - start bierze sie z przechylonego zaokraglenia
+                    // wyzej, a petla moze go tylko obnizyc. Wiekszy budzet nie zamawia wiec kafli "na
+                    // zapas", tylko przestaje ODBIERAC poziom, ktory i tak byl wyliczony.
+                    // KOSZT SIECIOWY jest realny: przy szerokim oknie zmiana widoku to 240-300 kafli
+                    // z tile.openstreetmap.org. Jesli zaczna sie dziury, _satDebug() pokaze cache.dead > 0
+                    // i wtedy trzeba przyhamowac tempo zamowien albo zmienic zrodlo.
                     function _satBudget(W, H){
                         return Math.max(96, Math.min(320, Math.ceil(W * H / 6000)));
                     }
