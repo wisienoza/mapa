@@ -7270,6 +7270,14 @@
                     // Wchodzi w DWA miejsca, ktore musza sie zgadzac: dobor poziomu (nizej) i cel
                     // zatrzaskiwania zoomu (_satSnapZoom). Rozjechanie ich = wieczne dojezdzanie.
                     function _satTier(){ var t = _satSrc().tier; return (t >= 1) ? t : 1; }
+                    // BOK KAFLA W PIKSELACH (pole "tileSize", domyslnie 256). Zrodla "@2x"/retina
+                    // oddaja 512 px na TEN SAM obszar, czyli maja dwukrotnie gestszy raster, a ich
+                    // kartografia jest narysowana odpowiednio wieksza - to inny sposob na czytelne
+                    // napisy niz tier, i LEPSZY, bo nie powieksza pikseli tylko dostaje wiecej danych.
+                    // Renderer jest na to generyczny: wszedzie, gdzie liczy sie geometria kafli,
+                    // stoi _satTS(), a nie stala. Pamiec sie nie zmienia (4x mniej kafli, kazdy 4x
+                    // wiekszy), ale BUDZET jest liczony w kaflach, wiec _satPlan skaluje go kwadratem.
+                    function _satTS(){ var s = _satSrc().tileSize; return (s >= 1) ? s : 256; }
 
                     // --- GEOMETRIA KULI NA EKRANIE ---------------------------------------------
                     // Zwraca srodek i promien tarczy W PIKSELACH CANVASA oraz katy obrotu w radianach.
@@ -7450,11 +7458,15 @@
                         // dojazd (z 1.41x na 1.75x) i zamawia wiecej kafli. Najblizszy poziom = najkrotszy
                         // skok. Gdyby zatrzaskiwanie kiedys wylecialo, przechyl trzeba przywrocic razem
                         // z podniesionym budzetem - inaczej wraca rozmycie z 2026-07-31.
-                        var _budget = _satBudget(W, H);
+                        var _ts = _satTS();
+                        // Budzet jest liczony w KAFLACH, a kafel 512 ma 4x wiecej pikseli niz 256 -
+                        // bez tego przeliczenia zrodlo @2x zjadaloby 4x wiecej pamieci mozaiki przy
+                        // tym samym "limicie". Skalujemy kwadratem boku, wiec limit pamieci zostaje.
+                        var _budget = Math.max(4, Math.round(_satBudget(W, H) * 65536 / (_ts * _ts)));
                         // Dzielenie przez tier: przy tier 2 schodzimy o poziom nizej niz gestosc
                         // ekranu, bo kazdy piksel kafla ma zajac na ekranie kwadrat 2x2 (napisy
                         // dwa razy wieksze). Przy okazji 4x mniej kafli na ten sam kadr.
-                        var z = Math.round(Math.log(_S_TWOPI * g.R / (256 * _satTier())) / Math.LN2);
+                        var z = Math.round(Math.log(_S_TWOPI * g.R / (_ts * _satTier())) / Math.LN2);
                         if (!isFinite(z)) return null;
                         z = Math.max(0, Math.min(src.maxZoom, z));
                         // Sufit wykryty dla tego rejonu (patrz _satCaps): dalej zrodlo ma juz tylko
@@ -7507,11 +7519,11 @@
                         // przebudowy mozaiki (najdrozsza operacja: getImageData z duzego canvasa).
                         var plan = null;
                         for (var guard = 0; guard < 8; guard++) {
-                            var n = 1 << z, Wpx = 256 * n;
-                            var ax0 = Math.floor(((lonC + dmin + 180) / 360) * Wpx / 256) - 1;
-                            var ax1 = Math.ceil (((lonC + dmax + 180) / 360) * Wpx / 256) + 1;
-                            var ay0 = Math.floor(_satMercY(latMax, Wpx) / 256) - 1;
-                            var ay1 = Math.ceil (_satMercY(latMin, Wpx) / 256) + 1;
+                            var n = 1 << z, Wpx = _ts * n;
+                            var ax0 = Math.floor(((lonC + dmin + 180) / 360) * Wpx / _ts) - 1;
+                            var ax1 = Math.ceil (((lonC + dmax + 180) / 360) * Wpx / _ts) + 1;
+                            var ay0 = Math.floor(_satMercY(latMax, Wpx) / _ts) - 1;
+                            var ay1 = Math.ceil (_satMercY(latMin, Wpx) / _ts) + 1;
                             if (ay0 < 0) ay0 = 0; if (ay1 > n) ay1 = n;
                             var nx = ax1 - ax0, ny = ay1 - ay0;
                             if (nx >= n) { ax0 = 0; nx = n; }              // caly swiat wszerz - bez owijania
