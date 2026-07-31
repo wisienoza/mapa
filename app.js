@@ -7675,8 +7675,21 @@
                         var g = _satGeom(); if (!g) return;
                         var r = _satHost.getBoundingClientRect();
                         var W = Math.max(1, Math.round(r.width)), H = Math.max(1, Math.round(r.height));
-                        if (_satCv.width !== W || _satCv.height !== H) {
-                            _satCv.width = W; _satCv.height = H;
+                        // EKRANY HiDPI (2026-07-31). Do teraz canvas mial tyle pikseli, ile CSS-owych
+                        // (komentarz brzmial "kafle i tak maja skonczona rozdzielczosc") - i to bylo
+                        // prawda, DOPOKI mozaika byla rzadsza od ekranu. Odkad poziom kafli wybiera sie
+                        // z przechylem w gore, mozaika jest zwykle GESTSZA (mag 0.6-1.0), wiec w bufor
+                        // CSS-owy wrzucalismy detal, ktory tam nie wchodzi, a potem przegladarka
+                        // ROZCIAGALA caly obraz do pikseli fizycznych - dwuliniowo, czyli na gladko.
+                        // Stad zgloszenia "nadal slaba jakosc" przy skalowaniu Windows 125/150%:
+                        // rozmycie nie powstawalo w naszym renderze, tylko w skalowaniu jego wyniku.
+                        // Backing store idzie wiec w pikselach URZADZENIA, a styl zostaje w CSS.
+                        // Cap 2: przy 3x koszt petli (trygonometria na piksel) rosnie 9-krotnie,
+                        // a roznicy juz nie widac - kafle koncza sie wczesniej niz gestosc ekranu.
+                        var dpr = Math.min(window.devicePixelRatio || 1, 2);
+                        var Wd = Math.max(1, Math.round(W * dpr)), Hd = Math.max(1, Math.round(H * dpr));
+                        if (_satCv.width !== Wd || _satCv.height !== Hd) {
+                            _satCv.width = Wd; _satCv.height = Hd;
                             _satCv.style.left = r.left + "px"; _satCv.style.top = r.top + "px";
                             _satCv.style.width = W + "px";     _satCv.style.height = H + "px";
                         }
@@ -7700,8 +7713,15 @@
                         // tylko reprojektujemy te, ktora juz mamy (patrz komentarz przy _satAssemble).
                         var asm = _satAssemble(p, step > 1); if (!asm) return;
 
-                        var bw = Math.ceil(W / step), bh = Math.ceil(H / step);
-                        var buf = _satBuf(step, bw, bh), out = buf.data, A = asm.px;
+                        // GESTOSC PROBKOWANIA. ss = ile pikseli bufora na jeden piksel CSS:
+                        // render pelny (po zatrzymaniu) liczy w pikselach urzadzenia, ruch zostaje
+                        // w CSS-owych - tam liczy sie klatka na sekunde, a nie ostrosc, i przy
+                        // dpr 2 + step 2 bufor bylby tej samej wielkosci co dzis pelny render.
+                        // scl = ile CSS px przypada na jeden piksel bufora (dawne "step").
+                        var ss = (step === 1) ? dpr : 1;
+                        var scl = step / ss;
+                        var bw = Math.ceil(W / scl), bh = Math.ceil(H / scl);
+                        var buf = _satBuf(step + "@" + ss, bw, bh), out = buf.data, A = asm.px;
                         var Wpx = 256 * (1 << asm.z), ox = asm.tx * 256, oy = asm.ty * 256;
                         var aw = asm.w, ah = asm.h;
                         var cdp = Math.cos(g.dp), sdp = Math.sin(g.dp);
