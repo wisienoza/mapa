@@ -8327,8 +8327,8 @@
                         var circle = container.children.push(am5.Circle.new(root, { radius: _rad, stroke: am5.color(0xfacc15), strokeWidth: _sw, fillOpacity: 0 }));
                         container.animate({ key: "opacity", from: 1, to: 0.2, duration: 600, loops: Infinity, easing: am5.ease.yoyo(am5.ease.cubic) });
                     } else {
-                        container.children.push(am5.Circle.new(root, { radius: 6, fill: am5.color(0x00ff00), stroke: am5.color(0xffffff), strokeWidth: 2, shadowColor: am5.color(0x00ff00), shadowBlur: 15 }));
-                        container.children.push(am5.Circle.new(root, { radius: 12, fill: am5.color(0x00ff00), fillOpacity: 0.1 }));
+                        var _gDot = container.children.push(am5.Circle.new(root, { radius: 6, fill: am5.color(0x00ff00), stroke: am5.color(0xffffff), strokeWidth: 2, shadowColor: am5.color(0x00ff00), shadowBlur: 15 }));
+                        var _gHalo = container.children.push(am5.Circle.new(root, { radius: 12, fill: am5.color(0x00ff00), fillOpacity: 0.1 }));
 
                         if (dataItem.dataContext.title) {
                             // UKLAD ETYKIETY (kontener PIONOWY z tlem = zielona ramka):
@@ -8354,10 +8354,11 @@
                             }
                             var _flagSrc = (typeof FLAGS !== 'undefined' && _dc.id && FLAGS[_dc.id]) ? FLAGS[_dc.id] : null;
 
+                            var _lblBg = am5.RoundedRectangle.new(root, { fill: am5.color(0x000000), fillOpacity: 0.8, stroke: am5.color(0x00ff00), strokeWidth: 1, cornerRadiusTL: 5, cornerRadiusTR: 5, cornerRadiusBL: 5, cornerRadiusBR: 5 });
                             var tooltipCont = container.children.push(am5.Container.new(root, {
                                 y: -20, centerX: am5.p50, centerY: am5.p100, layout: root.verticalLayout,
                                 paddingTop: 5, paddingBottom: 5, paddingLeft: 10, paddingRight: 10,
-                                background: am5.RoundedRectangle.new(root, { fill: am5.color(0x000000), fillOpacity: 0.8, stroke: am5.color(0x00ff00), strokeWidth: 1, cornerRadiusTL: 5, cornerRadiusTR: 5, cornerRadiusBL: 5, cornerRadiusBR: 5 })
+                                background: _lblBg
                             }));
                             var _head = tooltipCont.children.push(am5.Container.new(root, { layout: root.horizontalLayout, centerX: am5.p50, x: am5.p50 }));
                             if (_flagSrc) {
@@ -8395,6 +8396,30 @@
                                     lineHeight: am5.percent(130), paddingTop: 0, paddingBottom: 3,
                                     centerX: am5.p50, x: am5.p50, textAlign: "center", marginTop: 3
                                 }));
+                            }
+                            // --- PUNKTY TRASY MISJI: etykieta na zadanie (dataContext.route) ---
+                            // Domyslnie schowana (forceHidden = nie zajmuje tez miejsca w ukladzie), bo przy
+                            // gestej trasie kilkanascie ramek zaslania mape i siebie nawzajem. Najechanie na
+                            // kropke = podglad, klik = przypiecie na stale (drugi klik odpina). Stan trzymamy
+                            // w dataContext (_pin), a nie w domkniecu - dzieki temu przezyje przerysowanie
+                            // bulleta przez amCharts. Znaczniki KRAJU (type "visited") tego nie dostaja:
+                            // tam etykieta jest jedynym nosnikiem statystyk i ma byc widoczna od razu.
+                            if (_dc.route) {
+                                tooltipCont.set("forceHidden", true);
+                                var _syncLbl = function(){
+                                    var on = !!_dc._pin || !!_dc._hov;
+                                    tooltipCont.set("forceHidden", !on);
+                                    // Przypieta ramka ma grubszy, jasniejszy obrys - inaczej nie widac roznicy
+                                    // miedzy "trzymam kursor" a "zostawilem to otwarte".
+                                    _lblBg.setAll({ strokeWidth: _dc._pin ? 2 : 1, strokeOpacity: _dc._pin ? 1 : 0.75 });
+                                };
+                                [_gDot, _gHalo].forEach(function(sp){
+                                    sp.setAll({ interactive: true, cursorOverStyle: "pointer" });
+                                    sp.events.on("pointerover", function(){ _dc._hov = true; _syncLbl(); });
+                                    sp.events.on("pointerout", function(){ _dc._hov = false; _syncLbl(); });
+                                    sp.events.on("click", function(){ _dc._pin = !_dc._pin; _syncLbl(); });
+                                });
+                                _syncLbl();
                             }
                         }
                     }
