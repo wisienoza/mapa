@@ -8398,17 +8398,25 @@
                                 }));
                             }
                             // --- PUNKTY TRASY MISJI: etykieta na zadanie (dataContext.route) ---
-                            // Domyslnie schowana (forceHidden = nie zajmuje tez miejsca w ukladzie), bo przy
-                            // gestej trasie kilkanascie ramek zaslania mape i siebie nawzajem. Najechanie na
-                            // kropke = podglad, klik = przypiecie na stale (drugi klik odpina). Stan trzymamy
-                            // w dataContext (_pin), a nie w domkniecu - dzieki temu przezyje przerysowanie
-                            // bulleta przez amCharts. Znaczniki KRAJU (type "visited") tego nie dostaja:
-                            // tam etykieta jest jedynym nosnikiem statystyk i ma byc widoczna od razu.
+                            // Domyslnie schowana, bo przy gestej trasie kilkanascie ramek zaslania mape
+                            // i siebie nawzajem. Najechanie na kropke = podglad, klik = przypiecie na stale
+                            // (drugi klik odpina). Stan trzymamy w dataContext (_pin), a nie w domkniecu -
+                            // dzieki temu przezyje przerysowanie bulleta przez amCharts. Znaczniki KRAJU
+                            // (type "visited") tego nie dostaja: tam etykieta jest jedynym nosnikiem
+                            // statystyk i ma byc widoczna od razu.
+                            // CHOWAMY PRZEZ opacity, NIE forceHidden/visible (naprawione 2026-07-31):
+                            // te dwa WYPYCHAJA kontener z ukladu - schowany raportuje width() = 0, a jego
+                            // dzieci (naglowek i dopisek maja centerX/x = p50) siedza na x = 0. Prawidlowe
+                            // wymiary (w = 180, dzieci x = 90) amCharts wyliczal dopiero KLATKE PO
+                            // odsłonieciu, wiec pierwsza narysowana klatka miala tlo i tekst rozjechane
+                            // wzgledem siebie - i zostawala na ekranie, dopoki nic nie wymusilo kolejnego
+                            // renderu (nieruchomy kursor, zatrzymany glob). Przy opacity: 0 kontener jest
+                            // mierzony i ukladany normalnie, wiec odsloniecie jest poprawne od razu.
                             if (_dc.route) {
-                                tooltipCont.set("forceHidden", true);
+                                tooltipCont.set("opacity", 0);
                                 var _syncLbl = function(){
                                     var on = !!_dc._pin || !!_dc._hov;
-                                    tooltipCont.set("forceHidden", !on);
+                                    tooltipCont.set("opacity", on ? 1 : 0);
                                     // Przypieta ramka ma grubszy, jasniejszy obrys - inaczej nie widac roznicy
                                     // miedzy "trzymam kursor" a "zostawilem to otwarte".
                                     _lblBg.setAll({ strokeWidth: _dc._pin ? 2 : 1, strokeOpacity: _dc._pin ? 1 : 0.75 });
