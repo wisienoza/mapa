@@ -7203,7 +7203,7 @@
                     // plus drugie tyle na canvas zrodlowy, a kazda przebudowa mozaiki czyta ten bufor
                     // przez getImageData. Podnoszac go, zmierz najpierw czas przebudowy.
                     function _satBudget(W, H){
-                        return Math.max(96, Math.min(160, Math.ceil(W * H / 13000)));
+                        return Math.max(96, Math.min(320, Math.ceil(W * H / 6000)));
                     }
 
                     // --- ZASIEG ZOOMU W TYM TRYBIE --------------------------------------------
