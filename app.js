@@ -7775,6 +7775,19 @@
                         // czego usredniac, probkujemy rzadziej niz zrodlo).
                         var _mag = _S_TWOPI * R * ss / (256 * (1 << asm.z));
                         var box = (step === 1 && _mag < 0.8);
+                        // FILTR PRZY POWIEKSZANIU (2026-07-31, druga polowa tej samej sprawy).
+                        // Powyzej mag 1 na jeden piksel zrodla przypada kilka pikseli ekranu, a wtedy
+                        // najblizszy sasiad rysuje KWADRATY - na literach OSM widac to jako schodki
+                        // (zgloszenie: "a sama jakosc czcionek?"). Powiekszenie jest tu nieuniknione
+                        // w dwoch sytuacjach: przy ulamku < 0.2 oktawy (przechyl zaokraglenia nie
+                        // przelacza poziomu) oraz na koncu dojazdu, gdy zrodlu skoncza sie poziomy
+                        // i _S_MAXMAG pozwala powiekszac ostatni realny obraz nawet 8x.
+                        // Interpolacja dwuliniowa: 4 sasiadujace teksele wazone ulamkami polozenia.
+                        // Prog 1.05, a nie 1.0 - przy skali ~1:1 nearest jest OSTRZEJSZY i poprawny,
+                        // wiec nie ma po co mieszac sasiadow (i placic za to czasem).
+                        // Probkujemy w SRODKACH tekseli (stad -0.5), inaczej caly obraz przesuwa sie
+                        // o pol piksela zrodla i przy duzym powiekszeniu widac to jako przesuniecie.
+                        var lerp = (step === 1 && _mag > 1.05);
 
                         // Poza tarcza kuli nie ma czego liczyc. Zamiast przebiegac caly ekran i
                         // odrzucac piksele warunkiem, czyscimy bufor jednym memsetem i wchodzimy
@@ -7810,6 +7823,24 @@
                                 if (axp < 0 || axp >= aw || ayp < 0 || ayp >= ah) continue;   // bufor juz wyzerowany
                                 var axi = axp | 0, ayi = ayp | 0;
                                 var ai = (ayi * aw + axi) * 4;
+                                if (lerp) {
+                                    var sx = axp - 0.5, sy = ayp - 0.5;
+                                    var ix = sx > 0 ? (sx | 0) : 0, iy = sy > 0 ? (sy | 0) : 0;
+                                    var fx = sx - ix, fy = sy - iy;
+                                    if (fx < 0) fx = 0;
+                                    if (fy < 0) fy = 0;
+                                    var jx = (ix + 1 < aw) ? ix + 1 : ix;
+                                    var jy = (iy + 1 < ah) ? iy + 1 : iy;
+                                    var q0 = (iy * aw + ix) * 4, q1 = (iy * aw + jx) * 4,
+                                        q2 = (jy * aw + ix) * 4, q3 = (jy * aw + jx) * 4;
+                                    var gx = 1 - fx, gy = 1 - fy;
+                                    var w0 = gx * gy, w1 = fx * gy, w2 = gx * fy, w3 = fx * fy;
+                                    out[o]     = (A[q0]     * w0 + A[q1]     * w1 + A[q2]     * w2 + A[q3]     * w3 + 0.5) | 0;
+                                    out[o + 1] = (A[q0 + 1] * w0 + A[q1 + 1] * w1 + A[q2 + 1] * w2 + A[q3 + 1] * w3 + 0.5) | 0;
+                                    out[o + 2] = (A[q0 + 2] * w0 + A[q1 + 2] * w1 + A[q2 + 2] * w2 + A[q3 + 2] * w3 + 0.5) | 0;
+                                    out[o + 3] = (A[q0 + 3] * w0 + A[q1 + 3] * w1 + A[q2 + 3] * w2 + A[q3 + 3] * w3 + 0.5) | 0;
+                                    continue;
+                                }
                                 if (box) {
                                     // Sasiad w prawo/w dol, z przycieciem do brzegu mozaiki (bez
                                     // owijania - na skraju bufora powtarzamy ten sam piksel, roznica
@@ -7833,7 +7864,8 @@
                         // powiekszenie natywnym drawImage, tylko od razu do pikseli fizycznych.
                         _satCtx.drawImage(buf.cv, 0, 0, bw, bh, 0, 0, Wd, Hd);
                         _satLast = { step: step, ss: ss, z: asm.z, mag: Math.round(_mag * 100) / 100,
-                                     box: box, buf: bw + "x" + bh, out: Wd + "x" + Hd, at: Date.now() };
+                                     filter: lerp ? "bilinear" : (box ? "box2x2" : "nearest"),
+                                     buf: bw + "x" + bh, out: Wd + "x" + Hd, at: Date.now() };
                     }
 
                     // Obrot/zoom sypia zdarzeniami gesto - sklejamy je do jednej klatki (rAF),
