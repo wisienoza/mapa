@@ -7168,6 +7168,19 @@
                     var _satBuiltAt = 0;
                     var _satRAF = 0, _satIdle = 0, _satWantQuick = false;
                     var _satLast = null;                 // opis OSTATNIEJ narysowanej klatki (dla _satDebug)
+                    // --- ZAMAWIANIE KAFLI W TRAKCIE RUCHU (2026-07-31) -------------------------
+                    // Do teraz ruch NIE zamawial nic (reuseOnly bral wylacznie z cache), wiec zegar
+                    // dociagania startowal dopiero po 170 ms ciszy + pelnym renderze. ZMIERZONE na
+                    // 2560x750: komplet kafli leci ~250-330 ms, ale zaczyna sie ~270 ms po tym, jak
+                    // uzytkownik przestal ruszac - i to ta zwloka, a nie siec, byla widoczna jako
+                    // "ladowanie". Teraz zamawiamy, gdy PLAN sie ustabilizuje (_S_PREFETCH_MS), wiec
+                    // pobieranie idzie ROWNOLEGLE z ruchem. Prog stabilnosci jest tu po to, zeby
+                    // powolne, ciagle zoomowanie nie zamawialo kompletu z KAZDEGO mijanego poziomu -
+                    // dokladnie ten scenariusz, przed ktorym chronil dawny zakaz.
+                    // Mozaiki w ruchu dalej NIE skladamy (to getImageData z kilkudziesieciu MB).
+                    var _S_PREFETCH_MS = 80;
+                    var _satPreKey = "", _satPreAt = 0, _satPreDone = "";
+                    var _satQuickAt = 0;                 // kiedy ostatnio rysowalismy klatke "szybka" = czy trwa ruch
                     var _satOrig = null;                 // zapamietany wyglad warstw amCharts (do przywrocenia)
                     var _satAttr = null;                 // element z licencja zrodla
                     window._satOn = false;
@@ -7345,7 +7358,14 @@
                             }
                         }
                         img.crossOrigin = "anonymous";
-                        img.onload  = function(){ rec.ok = true; rec.blank = _satIsBlank(img); _satGen++; _satSchedule(false); };
+                        // W RUCHU kafel planuje klatke SZYBKA. Odkad zamawiamy kafle w trakcie ruchu
+                        // (patrz _satPrefetch), dolatuja one w srodku zoomu - a _satSchedule(false)
+                        // znaczy render PELNY, czyli 100-165 ms roboty na kazdy przychodzacy kafel.
+                        // "Trwa ruch" = ostatnia klatka szybka nie starsza niz 250 ms.
+                        img.onload  = function(){
+                            rec.ok = true; rec.blank = _satIsBlank(img); _satGen++;
+                            _satSchedule(performance.now() - _satQuickAt < 250);
+                        };
                         img.onerror = function(){ rec.dead = true; };
                         img.src = TILE_SOURCES[sk].url.replace("{z}", z).replace("{x}", xx).replace("{y}", y);
                         return null;
@@ -7677,6 +7697,21 @@
                         return true;
                     }
 
+                    // Zamow kafle planu, gdy plan JEST JUZ STABILNY (patrz komentarz przy _S_PREFETCH_MS).
+                    // Samo zamowienie - zadnego skladania mozaiki ani odczytu pikseli. Klucz planu
+                    // pilnuje, zeby ten sam zestaw nie poszedl dwa razy; _satTile i tak odsiewa
+                    // duplikaty przez cache, ale bez tego przebiegalibysmy petle po kilkuset kaflach
+                    // w kazdej klatce ruchu.
+                    function _satPrefetch(p){
+                        var key = p.z + "|" + p.tx + "|" + p.ty + "|" + p.nx + "|" + p.ny;
+                        var now = performance.now();
+                        if (key !== _satPreKey) { _satPreKey = key; _satPreAt = now; return; }  // plan wlasnie sie zmienil
+                        if (key === _satPreDone || now - _satPreAt < _S_PREFETCH_MS) return;
+                        _satPreDone = key;
+                        for (var j = 0; j < p.ny; j++)
+                            for (var i = 0; i < p.nx; i++) _satTile(p.z, p.tx + i, p.ty + j);
+                    }
+
                     function _satBuf(step, w, h){
                         var b = _satBufs[step];
                         if (!b) { b = _satBufs[step] = { cv: document.createElement("canvas") }; b.ctx = b.cv.getContext("2d"); }
@@ -7744,6 +7779,9 @@
 
                         // step > 1 znaczy "jestesmy w ruchu" - wtedy mozaiki NIE przebudowujemy,
                         // tylko reprojektujemy te, ktora juz mamy (patrz komentarz przy _satAssemble).
+                        // Kafle jednak ZAMAWIAMY (gdy plan sie ustabilizuje), zeby siec pracowala
+                        // rownolegle z ruchem, a nie dopiero po nim.
+                        if (step > 1) { _satQuickAt = performance.now(); _satPrefetch(p); }
                         var asm = _satAssemble(p, step > 1); if (!asm) return;
 
                         // GESTOSC PROBKOWANIA. ss = ile pikseli bufora na jeden piksel CSS:
