@@ -7167,6 +7167,7 @@
                     var _S_REBUILD_MS = 90;
                     var _satBuiltAt = 0;
                     var _satRAF = 0, _satIdle = 0, _satWantQuick = false;
+                    var _satLast = null;                 // opis OSTATNIEJ narysowanej klatki (dla _satDebug)
                     var _satOrig = null;                 // zapamietany wyglad warstw amCharts (do przywrocenia)
                     var _satAttr = null;                 // element z licencja zrodla
                     window._satOn = false;
@@ -7807,6 +7808,8 @@
                         // HiDPI to skala 1:1 (bufor JEST w pikselach urzadzenia), przy ruchu - dawne
                         // powiekszenie natywnym drawImage, tylko od razu do pikseli fizycznych.
                         _satCtx.drawImage(buf.cv, 0, 0, bw, bh, 0, 0, Wd, Hd);
+                        _satLast = { step: step, ss: ss, z: asm.z, mag: Math.round(_mag * 100) / 100,
+                                     box: box, buf: bw + "x" + bh, out: Wd + "x" + Hd, at: Date.now() };
                     }
 
                     // Obrot/zoom sypia zdarzeniami gesto - sklejamy je do jednej klatki (rAF),
@@ -7823,6 +7826,39 @@
                         });
                     }
                     window._satSchedule = _satSchedule;
+
+                    // --- DIAGNOSTYKA PODKLADU (2026-07-31) -------------------------------------
+                    // Powstalo, bo "podklad jest rozmyty" ma w tym trybie CZTERY rozlaczne przyczyny,
+                    // a z samego zrzutu ekranu nie da sie ich rozroznic. Wolane z konsoli na zywej
+                    // stronie: window._satDebug(). Jak czytac wynik:
+                    //   last.step === 2      -> na ekranie zostala klatka "szybka" (co drugi piksel,
+                    //                          rozciagnieta drawImage = GLADKIE rozmycie). Pelny render
+                    //                          po 170 ms nie wszedl albo zwrocil null.
+                    //   last.mag > 1         -> mozaika jest RZADSZA od rastra i probkujemy ja
+                    //                          z powiekszeniem (przy > 1.4 widac to jako miekkie litery).
+                    //   mosaic.drawn < nx*ny -> czesc kafli nie doleciala i dziury sa zalatane
+                    //                          PRZODKIEM z cache (drawImage 2x/4x/8x = tez gladki blur).
+                    //                          Sprawdz wtedy cache.dead - kafel z bledem sieci NIE jest
+                    //                          ponawiany, wiec taka dziura zostaje na stale.
+                    //   backing !== css      -> ekran HiDPI; backing ma byc css razy dpr (sufit 1.5).
+                    // Sam odczyt niczego nie przerysowuje - mozna wolac bez obawy o zafalszowanie stanu.
+                    window._satDebug = function(){
+                        var ok = 0, dead = 0, blank = 0;
+                        _satTiles.forEach(function(r){ if (r.dead) dead++; else if (r.ok) { ok++; if (r.blank) blank++; } });
+                        return {
+                            on: !!window._satOn, src: window._satSrcKey,
+                            zoom: chart.get("zoomLevel"),
+                            dpr: window.devicePixelRatio,
+                            backing: _satCv.width + "x" + _satCv.height,
+                            css: _satCv.style.width + "x" + _satCv.style.height,
+                            last: _satLast,
+                            mosaic: _satAsm ? { z: _satAsm.z, tiles: _satAsm.nx + "x" + _satAsm.ny,
+                                                drawn: _satAsm.drawn, blanks: _satAsm.blanks,
+                                                holes: _satAsm.nx * _satAsm.ny - _satAsm.drawn,
+                                                cacheOnly: !!_satAsm.cacheOnly } : null,
+                            cache: { ok: ok, dead: dead, blank: blank, size: _satTiles.size }
+                        };
+                    };
 
                     ["rotationX", "rotationY", "zoomLevel", "translateX", "translateY"].forEach(function(k){
                         chart.on(k, function(){ _satSchedule(true); });
