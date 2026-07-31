@@ -7955,7 +7955,11 @@
                                                 drawn: _satAsm.drawn, blanks: _satAsm.blanks,
                                                 holes: _satAsm.nx * _satAsm.ny - _satAsm.drawn,
                                                 cacheOnly: !!_satAsm.cacheOnly } : null,
-                            cache: { ok: ok, dead: dead, blank: blank, size: _satTiles.size }
+                            cache: { ok: ok, dead: dead, blank: blank, size: _satTiles.size },
+                            // stan zamawiania w ruchu: key = plan obserwowany, done = plan juz zamowiony,
+                            // sinceMs = jak dlugo key jest niezmieniony (prog _S_PREFETCH_MS)
+                            prefetch: { key: _satPreKey, done: _satPreDone,
+                                        sinceMs: Math.round(performance.now() - _satPreAt) }
                         };
                     };
 
