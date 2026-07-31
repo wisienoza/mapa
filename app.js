@@ -8626,7 +8626,15 @@
                             var key = o.getAttribute("data-src");
                             o.onclick = function(e){
                                 e.stopPropagation();
-                                _dropCountryFocus();
+                                // BEZ _dropCountryFocus (2026-07-31): podklad SAT/STREET/TOPO to TLO,
+                                // a nie nakladka - zmiana warstwy nie ma powodu kasowac tego, co na tym
+                                // tle narysowales. Wczesniej kazdy klik w segment czyscil pointSeries
+                                // i lineSeries, wiec przelaczenie warstwy przy ogladaniu trasy misji
+                                // zdejmowalo z globu cala trase (a przy wybranym kraju - jego znaczniki
+                                // i panele intelu). Podswietlenie wybranego panstwa idzie przez STROKE
+                                // (highlightCountry), a nie fill, wiec przezywa fillOpacity 0.001
+                                // z trybu SAT i nadal je widac. Nakladki VISA/CLIMATE dalej gasi
+                                // _setMode nizej - te faktycznie przemalowuja panstwa.
                                 if (key === "off") { _setMode(m, false); return; }
                                 // Zrodlo USTAWIAMY PRZED wlaczeniem trybu - satSetSource przy zgaszonym
                                 // podkladzie tylko zapamietuje wybor, wiec setSatellite renderuje raz,
