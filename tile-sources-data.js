@@ -20,6 +20,16 @@
 //                 zostawia wtedy dziure, wiec NIE podnos tego ponad 19 "na zapas".
 //   attribution - tekst licencyjny. WYMAGANY prawnie przez Esri i OSM; renderer
 //                 wyswietla go w rogu ekranu, dopoki tryb jest wlaczony.
+//   tileSize    - bok kafla w pikselach (domyslnie 256). Zrodla "@2x"/retina
+//                 oddaja 512 px na TEN SAM obszar, czyli maja dwukrotnie gestszy
+//                 raster i narysowana odpowiednio wieksza kartografie. To LEPSZY
+//                 sposob na czytelne napisy niz "tier" nizej, bo dostajemy wiecej
+//                 DANYCH, a nie powiekszone piksele - ale wymaga, zeby zrodlo
+//                 mialo wariant @2x (OSM nie ma, CARTO ma).
+//                 Renderer jest generyczny: geometria kafli liczy sie przez
+//                 _satTS(), a budzet kafli jest skalowany kwadratem boku, wiec
+//                 zuzycie pamieci mozaiki NIE rosnie (4x mniej kafli, kazdy 4x
+//                 wiekszy). Zrodlo MUSI dalej oddawac ACAO=*.
 //   tier        - ILE PIKSELOW EKRANU NA JEDEN PIKSEL KAFLA (domyslnie 1).
 //                 Renderer zatrzaskuje zoom tak, zeby ta krotnosc wychodzila
 //                 DOKLADNIE, wiec tier: 2 znaczy "kazdy piksel kafla to kwadrat
@@ -63,15 +73,32 @@ var TILE_SOURCES = {
 
     // Mapa drogowa - ulice, nazwy, POI. Sensowne, gdy chcesz zobaczyc UKLAD
     // miasta, a nie jak wyglada z gory.
-    // UWAGA na kulture uzycia: tile.openstreetmap.org to infrastruktura
-    // charytatywna. Reprojekcja pobiera kilkadziesiat kafli na widok, wiec
+    //
+    // ZRODLO ZMIENIONE 2026-07-31 na CARTO Voyager @2x. Powod: kartografia
+    // standardowego OSM jest projektowana pod ~100 dpi i na szerokim monitorze
+    // ogladana 1:1 jest za drobna do czytania. Kafel "@2x" ma 512 px na TEN SAM
+    // obszar, czyli wszystko jest na nim narysowane dwa razy wieksze - i to
+    // NAPRAWDE wiekszymi danymi, a nie powiekszeniem pikseli (dlatego tier: 1).
+    // Zweryfikowane: 512x512, ACAO=* (canvas nie jest zatruty).
+    // CENA, o ktorej trzeba wiedziec: styl Voyager jest UBOZSZY od standardowego
+    // OSM - mniej ikon POI i mniej podpisow drobnych obiektow.
+    //
+    // POWROT DO OSM to podmiana trzech pol (i nic wiecej):
+    //     url: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+    //     attribution: "(c) OpenStreetMap contributors",
+    //     tileSize: 256, tier: 2
+    // (tier: 2 jest tam potrzebny wlasnie dlatego, ze OSM nie ma wariantu @2x -
+    // powieksza sie wtedy piksele, calkowita krotnoscia, zeby nie rozmyc.)
+    //
+    // KULTURA UZYCIA: basemaps.cartocdn.com to darmowy tier przeznaczony do
+    // lekkiego ruchu. Reprojekcja pobiera kilkadziesiat kafli na widok, wiec
     // renderer trzyma je w cache i nie pobiera tego samego dwa razy.
     street: {
         label: "STREET",
-        url: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+        url: "https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}@2x.png",
         maxZoom: 19,
-        attribution: "(c) OpenStreetMap contributors",
-        tier: 2,
+        attribution: "(c) OpenStreetMap contributors, (c) CARTO",
+        tileSize: 512,
         dark: false
     },
 

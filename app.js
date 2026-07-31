@@ -7461,8 +7461,13 @@
                         var _ts = _satTS();
                         // Budzet jest liczony w KAFLACH, a kafel 512 ma 4x wiecej pikseli niz 256 -
                         // bez tego przeliczenia zrodlo @2x zjadaloby 4x wiecej pamieci mozaiki przy
-                        // tym samym "limicie". Skalujemy kwadratem boku, wiec limit pamieci zostaje.
-                        var _budget = Math.max(4, Math.round(_satBudget(W, H) * 65536 / (_ts * _ts)));
+                        // tym samym "limicie". Skalujemy wiec kwadratem boku.
+                        // NARZUT 1.5 DLA DUZYCH KAFLI (zmierzone 2026-07-31): zapas +/-1 kafla z kazdej
+                        // strony kosztuje przy boku 512 dwa razy wiecej pikseli niz przy 256, wiec sam
+                        // podzial przez 4 wychodzi ZA CIASNY - w oknie 1169x984 dawal 48 kafli, a plan
+                        // potrzebowal 49 i spadal o caly poziom (zoom dojezdzal do 4568 zamiast 9136).
+                        // Limit pamieci trzyma i tak sufit w _satBudget, ktory jest przed ta korekta.
+                        var _budget = Math.max(4, Math.round(_satBudget(W, H) * 65536 / (_ts * _ts) * (_ts > 256 ? 1.5 : 1)));
                         // Dzielenie przez tier: przy tier 2 schodzimy o poziom nizej niz gestosc
                         // ekranu, bo kazdy piksel kafla ma zajac na ekranie kwadrat 2x2 (napisy
                         // dwa razy wieksze). Przy okazji 4x mniej kafli na ten sam kadr.
@@ -7621,7 +7626,8 @@
                             _satMosCv  = document.createElement("canvas");
                             _satMosCtx = _satMosCv.getContext("2d", { willReadFrequently: true });
                         }
-                        var w = p.nx * 256, h = p.ny * 256, i, j, k, rec;
+                        var TS = _satTS();                       // bok kafla tego zrodla (256 albo 512 dla @2x)
+                        var w = p.nx * TS, h = p.ny * TS, i, j, k, rec;
                         // W RUCHU nie tykamy sieci - bierzemy wylacznie to, co juz lezy w cache.
                         // Inaczej dlugie oddalanie sciagaloby komplet kafli z KAZDEGO mijanego poziomu,
                         // a zaden z nich nie zdazylby sie pokazac.
@@ -7639,14 +7645,14 @@
                                 if (!rec) continue;
                                 a.have[k] = 2; a.drawn++; if (rec.blank) a.blanks++;
                                 try {
-                                    _satMosCtx.clearRect(i * 256, j * 256, 256, 256);
-                                    _satMosCtx.drawImage(rec.img, i * 256, j * 256, 256, 256);
+                                    _satMosCtx.clearRect(i * TS, j * TS, TS, TS);
+                                    _satMosCtx.drawImage(rec.img, i * TS, j * TS, TS, TS);
                                 } catch(_e){ continue; }
                                 touched = true;
                                 try {
-                                    var td = _satMosCtx.getImageData(i * 256, j * 256, 256, 256).data;
-                                    for (var r = 0; r < 256; r++)
-                                        a.px.set(td.subarray(r * 1024, r * 1024 + 1024), ((j * 256 + r) * a.w + i * 256) * 4);
+                                    var td = _satMosCtx.getImageData(i * TS, j * TS, TS, TS).data;
+                                    for (var r = 0; r < TS; r++)
+                                        a.px.set(td.subarray(r * TS * 4, r * TS * 4 + TS * 4), ((j * TS + r) * a.w + i * TS) * 4);
                                 } catch(_sc){ console.warn("SAT: canvas zatruty (brak CORS na kaflach)", _sc); return null; }
                             }
                             a.gen = _satGen;
@@ -7665,13 +7671,13 @@
                                 if (rec) {
                                     drawn++; if (rec.blank) blanks++;
                                     have[k] = 2;
-                                    try { _satMosCtx.drawImage(rec.img, i * 256, j * 256, 256, 256); } catch(_e){}
+                                    try { _satMosCtx.drawImage(rec.img, i * TS, j * TS, TS, TS); } catch(_e){}
                                 } else {
                                     var an = _satAncestor(p.z, p.tx + i, p.ty + j);
                                     if (an) {
                                         have[k] = 1; placed++;
-                                        var sz = 256 / (1 << an.up);
-                                        try { _satMosCtx.drawImage(an.rec.img, an.sx * sz, an.sy * sz, sz, sz, i * 256, j * 256, 256, 256); } catch(_e){}
+                                        var sz = TS / (1 << an.up);
+                                        try { _satMosCtx.drawImage(an.rec.img, an.sx * sz, an.sy * sz, sz, sz, i * TS, j * TS, TS, TS); } catch(_e){}
                                     }
                                 }
                             }
@@ -7750,7 +7756,7 @@
                     function _satSnapZoom(p, g){
                         if (!window._satOn || _satSnapping) return;
                         var tier = _satTier();
-                        var mag = _S_TWOPI * g.R / (256 * (1 << p.z));
+                        var mag = _S_TWOPI * g.R / (_satTS() * (1 << p.z));
                         if (!isFinite(mag) || mag <= 0) return;
                         // Celem jest mag == tier (dla tier 1 - kafel w piksel, dla 2 - kwadrat 2x2).
                         if (Math.abs(Math.log(mag / tier) / Math.LN2) < 0.01) return;
@@ -7846,7 +7852,8 @@
                         var scl = step / ss;
                         var bw = Math.ceil(W / scl), bh = Math.ceil(H / scl);
                         var buf = _satBuf(step + "@" + ss, bw, bh), out = buf.data, A = asm.px;
-                        var Wpx = 256 * (1 << asm.z), ox = asm.tx * 256, oy = asm.ty * 256;
+                        var _ts = _satTS();
+                        var Wpx = _ts * (1 << asm.z), ox = asm.tx * _ts, oy = asm.ty * _ts;
                         var aw = asm.w, ah = asm.h;
                         var cdp = Math.cos(g.dp), sdp = Math.sin(g.dp);
                         var cx = g.cx, cy = g.cy, R = g.R, dl = g.dl;
@@ -7864,7 +7871,7 @@
                         // HiDPI ta sama mozaika trafia w gestszy raster i filtr przestaje byc
                         // potrzebny wczesniej (przy dpr 2 i mag 0.69 wychodzi 1.38 - tam juz nie ma
                         // czego usredniac, probkujemy rzadziej niz zrodlo).
-                        var _mag = _S_TWOPI * R * ss / (256 * (1 << asm.z));
+                        var _mag = _S_TWOPI * R * ss / (_ts * (1 << asm.z));
                         // KROTNOSC CALKOWITA = NEAREST, i to jest warunek konieczny calego "tier".
                         // Przy mag 2.000 kazdy piksel zrodla staje sie kwadratem 2x2 - obraz jest
                         // POWIEKSZONY, ale nadal OSTRY. Puszczenie tego przez interpolacje dwuliniowa
