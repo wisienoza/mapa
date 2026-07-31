@@ -333,7 +333,11 @@
                     return;
                 }
                 _seenPt[k] = _routePts.length;
-                _routePts.push({ geometry: { type: "Point", coordinates: [p.lon, p.lat] }, title: p.city, note: p.note });
+                // route: true -> etykieta startuje SCHOWANA, pokazuje ja najechanie na kropke, a klik
+                // przypina na stale (patrz galaz "else" w pointSeries.bullets). Przy gestych trasach
+                // (Azja Pd-Wsch: 8 przystankow w promieniu 1500 km) ramki zaslanialy sie nawzajem
+                // i mape pod soba - teraz domyslnie widac sama trase i kropki.
+                _routePts.push({ geometry: { type: "Point", coordinates: [p.lon, p.lat] }, title: p.city, note: p.note, route: true });
             });
             pointSeries.data.setAll(_routePts);
             const coordinates = mission.route.map(p => [p.lon, p.lat]);
