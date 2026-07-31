@@ -7891,7 +7891,12 @@
                     //                          rozciagnieta drawImage = GLADKIE rozmycie). Pelny render
                     //                          po 170 ms nie wszedl albo zwrocil null.
                     //   last.mag > 1         -> mozaika jest RZADSZA od rastra i probkujemy ja
-                    //                          z powiekszeniem (przy > 1.4 widac to jako miekkie litery).
+                    //                          z powiekszeniem. Powyzej 1.05 wchodzi wtedy filtr
+                    //                          dwuliniowy (last.filter), wiec zamiast schodkow sa
+                    //                          miekkie krawedzie - ale detalu to nie dokłada.
+                    //   last.filter          -> "nearest" (skala ~1:1), "box2x2" (pomniejszanie),
+                    //                          "bilinear" (powiekszanie). Nie zgadza sie z mag?
+                    //                          Sprawdz progi 0.8 / 1.05 w _satRender.
                     //   mosaic.drawn < nx*ny -> czesc kafli nie doleciala i dziury sa zalatane
                     //                          PRZODKIEM z cache (drawImage 2x/4x/8x = tez gladki blur).
                     //                          Sprawdz wtedy cache.dead - kafel z bledem sieci NIE jest
