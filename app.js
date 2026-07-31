@@ -7181,6 +7181,7 @@
                     var _S_PREFETCH_MS = 80;
                     var _satPreKey = "", _satPreAt = 0, _satPreDone = "";
                     var _satQuickAt = 0;                 // kiedy ostatnio rysowalismy klatke "szybka" = czy trwa ruch
+                    var _satSnapping = false;            // trwa dojazd do poziomu kafli (patrz _satSnapZoom)
                     var _satOrig = null;                 // zapamietany wyglad warstw amCharts (do przywrocenia)
                     var _satAttr = null;                 // element z licencja zrodla
                     window._satOn = false;
@@ -7437,20 +7438,15 @@
                         var src = _satSrc();
                         // Ortograficzna daje R px na radian w srodku tarczy; Mercator na poziomie z
                         // daje (256*2^z)/(2*PI) px na radian. Zrownanie obu: 2^z = 2*PI*R/256.
-                        // ZAOKRAGLENIE Z PRZECHYLEM W GORE (+0.3, 2026-07-31). Czyste round() schodzi
-                        // na nizszy poziom az do polowy oktawy, czyli dopuszcza ROZCIAGNIECIE mozaiki
-                        // do 1.41x - a reprojekcja nizej probkuje najblizszym sasiadem, wiec taki
-                        // upscale widac wprost na napisach OSM. Zmierzone: zoom 5.6 nad Indochinami
-                        // dawal z wzoru 5.46 -> round = 5 -> obraz rozciagany 1.37x (zgloszenie
-                        // "czemu to jest takiej marnej jakosci"). Przechyl 0.3 przelacza na wyzszy
-                        // poziom juz od ulamka 0.2, wiec najgorszy przypadek to 2^0.2 = 1.15x zamiast
-                        // 1.41x, a ponizej 0.2 mozaika jest POMNIEJSZANA (czyli ostra).
-                        // Za to placi budzet kafli: wyzszy poziom to 4x wiecej kafli na ten sam kadr
-                        // (5.46 -> z6 = 88 kafli zamiast 42), dlatego _satBudget musial urosnac razem
-                        // z tym przechylem. Petla nizej i tak sciagnie z z powrotem, gdy sie nie miesci -
-                        // przechyl i budzet dzialaja PARAMI i nie ma sensu ruszac jednego bez drugiego.
+                        // ZAOKRAGLENIE NEUTRALNE - do NAJBLIZSZEGO poziomu. Byl tu przez chwile przechyl
+                        // w gore (+0.3), zeby uniknac rozciagania mozaiki; zdjety, gdy doszlo
+                        // ZATRZASKIWANIE ZOOMU (_satSnapZoom): skoro po zatrzymaniu i tak dojezdzamy do
+                        // skali, w ktorej mag = 1, przechyl nie poprawia juz obrazu - tylko WYDLUZA
+                        // dojazd (z 1.41x na 1.75x) i zamawia wiecej kafli. Najblizszy poziom = najkrotszy
+                        // skok. Gdyby zatrzaskiwanie kiedys wylecialo, przechyl trzeba przywrocic razem
+                        // z podniesionym budzetem - inaczej wraca rozmycie z 2026-07-31.
                         var _budget = _satBudget(W, H);
-                        var z = Math.round(Math.log(_S_TWOPI * g.R / 256) / Math.LN2 + 0.3);
+                        var z = Math.round(Math.log(_S_TWOPI * g.R / 256) / Math.LN2);
                         if (!isFinite(z)) return null;
                         z = Math.max(0, Math.min(src.maxZoom, z));
                         // Sufit wykryty dla tego rejonu (patrz _satCaps): dalej zrodlo ma juz tylko
@@ -7712,6 +7708,41 @@
                             for (var i = 0; i < p.nx; i++) _satTile(p.z, p.tx + i, p.ty + j);
                     }
 
+                    // --- ZATRZASKIWANIE ZOOMU NA POZIOMACH KAFLI (2026-07-31) -----------------
+                    // Kafle rastrowe istnieja tylko w skalach bedacych potegami dwojki, a ich
+                    // kartografia (grubosc drog, WIELKOSC NAPISOW) jest zaprojektowana pod
+                    // wyswietlanie 1:1. Przy dowolnej skali posredniej trzeba wiec albo zmiekczyc
+                    // obraz (poziom nizej, napisy wieksze), albo go pomniejszyc (poziom wyzej,
+                    // napisy mniejsze) - user zglosil kolejno OBA konce tego kompromisu.
+                    // Jedyne wyjscie, ktore daje naraz ostrosc i natywna wielkosc napisow, to nie
+                    // pokazywac skal posrednich: po zatrzymaniu ruchu dojezdzamy do zoomu, przy
+                    // ktorym mag = 1.000 (kafel w piksel, zero filtrowania). Zoom robi sie przez to
+                    // SKOKOWY jak w kazdej klasycznej mapie kafelkowej - to nie jest blad, tylko
+                    // powod, dla ktorego wszystkie one tak dzialaja.
+                    // Warunki, ktore MUSZA zostac (kazdy chroni przed konkretnym zlym zachowaniem):
+                    //   _satSnapping        - dojazd sam zmienia zoomLevel, wiec bez tej flagi
+                    //                         wpadamy w petle: snap -> render -> snap -> ...
+                    //   p.atCeiling && >1   - user zoomuje GLEBIEJ, niz siega detal zrodla; dojazd
+                    //                         do mag 1 cofnalby mu widok wbrew intencji
+                    //   zakres zoomu        - cel poza [1, maxZoomLevel] = nie ruszamy
+                    //   prog 0.01 oktawy    - jestesmy praktycznie na poziomie, nie drgamy
+                    // mag liczymy w pikselach CSS (bez ss), bo zoomLevel odnosi sie do geometrii CSS.
+                    function _satSnapZoom(p, g){
+                        if (!window._satOn || _satSnapping) return;
+                        var mag = _S_TWOPI * g.R / (256 * (1 << p.z));
+                        if (!isFinite(mag) || mag <= 0) return;
+                        if (Math.abs(Math.log(mag) / Math.LN2) < 0.01) return;
+                        if (p.atCeiling && mag > 1) return;
+                        var z0 = chart.get("zoomLevel") || 1, z1 = z0 / mag;
+                        if (!isFinite(z1) || z1 < 1 || z1 > (chart.get("maxZoomLevel") || 1)) return;
+                        _satSnapping = true;
+                        chart.animate({ key: "zoomLevel", to: z1, duration: 220, easing: am5.ease.out(am5.ease.cubic) });
+                        // Zwolnienie flagi po czasie animacji z zapasem - prosciej i pewniej niz
+                        // wieszanie sie na zdarzeniu animacji, ktore przy przerwaniu (user krecil
+                        // dalej kolkiem) potrafi nie dojsc.
+                        setTimeout(function(){ _satSnapping = false; }, 320);
+                    }
+
                     function _satBuf(step, w, h){
                         var b = _satBufs[step];
                         if (!b) { b = _satBufs[step] = { cv: document.createElement("canvas") }; b.ctx = b.cv.getContext("2d"); }
@@ -7904,6 +7935,11 @@
                         _satLast = { step: step, ss: ss, z: asm.z, mag: Math.round(_mag * 100) / 100,
                                      filter: lerp ? "bilinear" : (box ? "box2x2" : "nearest"),
                                      buf: bw + "x" + bh, out: Wd + "x" + Hd, at: Date.now() };
+                        // Dojazd do poziomu kafli PO narysowaniu klatki - obraz na ekranie jest wtedy
+                        // aktualny, a sam dojazd domyka go do skali 1:1. Tylko w renderze pelnym,
+                        // czyli po zatrzymaniu ruchu: zatrzaskiwanie w trakcie kręcenia kółkiem
+                        // walczyloby z uzytkownikiem.
+                        if (step === 1) _satSnapZoom(p, g);
                     }
 
                     // Obrot/zoom sypia zdarzeniami gesto - sklejamy je do jednej klatki (rAF),
