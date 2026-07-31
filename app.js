@@ -7185,18 +7185,26 @@
                     // Winowajca to Mercator: przy szerokosci fi rozciaga pion o sec(fi), wiec ten sam
                     // kadr potrzebuje na polnocy 1.6-2.3x wiecej kafli w pionie niz na rowniku.
                     //
-                    // PODNIESIONE 72 -> 96 (2026-07-31, na zgloszenie "czemu to jest takiej marnej
-                    // jakosci"). Limit gryzl mocniej, niz wynika z tabelki wyzej: przy zoomie 5.6 nad
-                    // Indochinami (rownik!) poziom z wzoru wychodzi 5.46, a z6 potrzebuje w tym kadrze
-                    // 11x8 = 88 kafli - czyli WIECEJ niz 72, wiec planer schodzil na z5 i mozaika byla
-                    // rozciagana 1.37x najblizszym sasiadem. To widac wprost na tekstach OSM. Przy 96
-                    // te sama scena bierze z6 i jest POMNIEJSZANA 0.69x, czyli ostra.
-                    // Poprawianie samego zaokraglenia (round -> ceil/bias) NIC by tu nie dalo - waskim
-                    // gardlem byl limit kafli, nie zaokraglenie.
-                    // Koszt swiadomie przyjety: do ~2x wiecej zamowien kafli (przy OSM to cudza
-                    // infrastruktura charytatywna) i wieksza mozaika - 12x8 kafli to bufor 3072x2048 px,
-                    // czyli ~25 MB pikseli plus drugie tyle na canvas zrodlowy.
-                    var _S_MAXTILES = 96;
+                    // BUDZET SKALOWANY DO OKNA (2026-07-31). Byla tu STALA - najpierw 72, potem 96 -
+                    // i to bylo zle postawione pytanie: ile kafli potrzeba, zalezy wprost od tego, ile
+                    // pikselow mamy do wypelnienia. Stala nastrojona na 1280x720 dlawi szerokie ekrany.
+                    // ZMIERZONE na zgloszeniu usera (okno 2560x750, zoom 2.9, start aplikacji):
+                    //   poziom z wzoru 4.74 -> planer chce z5, ale z5 = 17x8 = 136 kafli > 96
+                    //   -> zejscie na z4 (10x5 = 50) -> mozaika ROZCIAGNIETA 1.67x. Tak wygladal
+                    //   podklad "od startu", i tego nie widac na 1280x720, gdzie ta sama scena miesci
+                    //   sie w budzecie. NIE STROIC TEGO NA JEDNEJ ROZDZIELCZOSCI.
+                    // Wzor: ~1 kafel na 13 tys. pikseli widoku (empirycznie: tyle wychodzi, gdy mozaika
+                    // ma miec gestosc ekranu na globie ogladanym w calosci - polkula sciska sie ku
+                    // krawedzi, wiec kafli trzeba wiecej niz na plaskiej mapie tej samej wielkosci).
+                    //   1280x720  -> 71  -> podloga 96  (zachowuje poprawke z Indochin: z6 = 88 kafli)
+                    //   2560x750  -> 148 -> miesci 136 kafli z przykladu wyzej
+                    //   3840x2160 -> 638 -> sufit 160
+                    // SUFIT 160 JEST OD PAMIECI, nie od estetyki: 160 kafli to bufor 40 MB pikseli
+                    // plus drugie tyle na canvas zrodlowy, a kazda przebudowa mozaiki czyta ten bufor
+                    // przez getImageData. Podnoszac go, zmierz najpierw czas przebudowy.
+                    function _satBudget(W, H){
+                        return Math.max(96, Math.min(160, Math.ceil(W * H / 13000)));
+                    }
 
                     // --- ZASIEG ZOOMU W TYM TRYBIE --------------------------------------------
                     // Poziom kafla wynika z promienia kuli w px: z = round(log2(2*PI*R/256)), gdzie
@@ -7404,10 +7412,11 @@
                         // "czemu to jest takiej marnej jakosci"). Przechyl 0.3 przelacza na wyzszy
                         // poziom juz od ulamka 0.2, wiec najgorszy przypadek to 2^0.2 = 1.15x zamiast
                         // 1.41x, a ponizej 0.2 mozaika jest POMNIEJSZANA (czyli ostra).
-                        // Za to placi limit kafli: wyzszy poziom to 4x wiecej kafli na ten sam kadr
-                        // (5.46 -> z6 = 88 kafli zamiast 42), dlatego _S_MAXTILES musialo pojsc na 96.
-                        // Petla nizej i tak sciagnie z z powrotem, gdy sie nie miesci - te dwie stale
-                        // dzialaja PARAMI i nie ma sensu ruszac jednej bez drugiej.
+                        // Za to placi budzet kafli: wyzszy poziom to 4x wiecej kafli na ten sam kadr
+                        // (5.46 -> z6 = 88 kafli zamiast 42), dlatego _satBudget musial urosnac razem
+                        // z tym przechylem. Petla nizej i tak sciagnie z z powrotem, gdy sie nie miesci -
+                        // przechyl i budzet dzialaja PARAMI i nie ma sensu ruszac jednego bez drugiego.
+                        var _budget = _satBudget(W, H);
                         var z = Math.round(Math.log(_S_TWOPI * g.R / 256) / Math.LN2 + 0.3);
                         if (!isFinite(z)) return null;
                         z = Math.max(0, Math.min(src.maxZoom, z));
@@ -7472,7 +7481,9 @@
                             if (ny < 1) ny = 1;
                             // Limit kafli: chroni i lacze, i pamiec (mozaika 9x8 kafli to juz 2304x2048 px
                             // = ~19 MB bufora pikseli). Za duzo -> schodzimy poziom nizej.
-                            if (nx * ny <= _S_MAXTILES || z <= 1) {
+                            // Budzet zalezy od WIELKOSCI OKNA (patrz _satBudget) - staly limit dlawil
+                            // szerokie ekrany, patrz komentarz przy tej funkcji.
+                            if (nx * ny <= _budget || z <= 1) {
                                 // atCeiling = z NIE urosnie juz od dalszego zoomu, bo doszlismy do
                                 // maxZoom zrodla albo do sufitu wykrytego dla rejonu. Tylko wtedy ma
                                 // sens hamowanie kolka (patrz _satZoomCap) - gdy z jest przycieciete
