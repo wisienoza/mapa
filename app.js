@@ -7183,12 +7183,19 @@
                     //   zoom 100 000 (maksimum)    - wszedzie natywne z19, bez straty
                     // Winowajca to Mercator: przy szerokosci fi rozciaga pion o sec(fi), wiec ten sam
                     // kadr potrzebuje na polnocy 1.6-2.3x wiecej kafli w pionie niz na rowniku.
-                    // Podniesienie stalej do ~100 usuneloby te straty, ale prog przesuwa sie wtedy na
-                    // WSZYSTKICH poziomach zoomu: wiecej ruchu sieciowego (przy OSM to cudza
-                    // infrastruktura charytatywna) i wieksza mozaika - 10x10 kafli to bufor 2560x2560 px,
-                    // czyli ~26 MB pikseli plus drugie tyle na canvas zrodlowy. Swiadomie zostaje 72:
-                    // strata dotyczy pasm posrednich, a nie tego, co widac na koncu dojazdu.
-                    var _S_MAXTILES = 72;
+                    //
+                    // PODNIESIONE 72 -> 96 (2026-07-31, na zgloszenie "czemu to jest takiej marnej
+                    // jakosci"). Limit gryzl mocniej, niz wynika z tabelki wyzej: przy zoomie 5.6 nad
+                    // Indochinami (rownik!) poziom z wzoru wychodzi 5.46, a z6 potrzebuje w tym kadrze
+                    // 11x8 = 88 kafli - czyli WIECEJ niz 72, wiec planer schodzil na z5 i mozaika byla
+                    // rozciagana 1.37x najblizszym sasiadem. To widac wprost na tekstach OSM. Przy 96
+                    // te sama scena bierze z6 i jest POMNIEJSZANA 0.69x, czyli ostra.
+                    // Poprawianie samego zaokraglenia (round -> ceil/bias) NIC by tu nie dalo - waskim
+                    // gardlem byl limit kafli, nie zaokraglenie.
+                    // Koszt swiadomie przyjety: do ~2x wiecej zamowien kafli (przy OSM to cudza
+                    // infrastruktura charytatywna) i wieksza mozaika - 12x8 kafli to bufor 3072x2048 px,
+                    // czyli ~25 MB pikseli plus drugie tyle na canvas zrodlowy.
+                    var _S_MAXTILES = 96;
 
                     // --- ZASIEG ZOOMU W TYM TRYBIE --------------------------------------------
                     // Poziom kafla wynika z promienia kuli w px: z = round(log2(2*PI*R/256)), gdzie
@@ -7388,7 +7395,19 @@
                         var src = _satSrc();
                         // Ortograficzna daje R px na radian w srodku tarczy; Mercator na poziomie z
                         // daje (256*2^z)/(2*PI) px na radian. Zrownanie obu: 2^z = 2*PI*R/256.
-                        var z = Math.round(Math.log(_S_TWOPI * g.R / 256) / Math.LN2);
+                        // ZAOKRAGLENIE Z PRZECHYLEM W GORE (+0.3, 2026-07-31). Czyste round() schodzi
+                        // na nizszy poziom az do polowy oktawy, czyli dopuszcza ROZCIAGNIECIE mozaiki
+                        // do 1.41x - a reprojekcja nizej probkuje najblizszym sasiadem, wiec taki
+                        // upscale widac wprost na napisach OSM. Zmierzone: zoom 5.6 nad Indochinami
+                        // dawal z wzoru 5.46 -> round = 5 -> obraz rozciagany 1.37x (zgloszenie
+                        // "czemu to jest takiej marnej jakosci"). Przechyl 0.3 przelacza na wyzszy
+                        // poziom juz od ulamka 0.2, wiec najgorszy przypadek to 2^0.2 = 1.15x zamiast
+                        // 1.41x, a ponizej 0.2 mozaika jest POMNIEJSZANA (czyli ostra).
+                        // Za to placi limit kafli: wyzszy poziom to 4x wiecej kafli na ten sam kadr
+                        // (5.46 -> z6 = 88 kafli zamiast 42), dlatego _S_MAXTILES musialo pojsc na 96.
+                        // Petla nizej i tak sciagnie z z powrotem, gdy sie nie miesci - te dwie stale
+                        // dzialaja PARAMI i nie ma sensu ruszac jednej bez drugiej.
+                        var z = Math.round(Math.log(_S_TWOPI * g.R / 256) / Math.LN2 + 0.3);
                         if (!isFinite(z)) return null;
                         z = Math.max(0, Math.min(src.maxZoom, z));
                         // Sufit wykryty dla tego rejonu (patrz _satCaps): dalej zrodlo ma juz tylko
