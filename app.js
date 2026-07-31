@@ -7707,6 +7707,18 @@
                         var cdp = Math.cos(g.dp), sdp = Math.sin(g.dp);
                         var cx = g.cx, cy = g.cy, R = g.R, dl = g.dl;
 
+                        // FILTR PRZY POMNIEJSZANIU (2026-07-31). Odkad poziom kafli wybiera sie
+                        // z przechylem w gore (patrz _satPlan), mozaika bywa GESTSZA od ekranu -
+                        // przy ulamku 0.2-0.5 oktawy schodzimy do ~0.6 skali. Probkowanie najblizszym
+                        // sasiadem po prostu WYRZUCA wtedy 40% pikseli zrodla, a to na kartografii OSM
+                        // widac jako poszarpane litery i rwace sie cienkie drogi. Usredniamy wiec
+                        // kwadrat 2x2 - tanie przyblizenie filtra pudelkowego, ktore te dziury zasypuje.
+                        // WLACZANE TYLKO gdy: (a) realnie pomniejszamy (mag < 0.8) i (b) to render
+                        // pelny (step === 1, czyli juz po zatrzymaniu ruchu). W ruchu liczy sie liczba
+                        // klatek, nie ostrosc - tam zostaje jedno probkowanie na piksel.
+                        var _mag = _S_TWOPI * R / (256 * (1 << asm.z));
+                        var box = (step === 1 && _mag < 0.8);
+
                         // Poza tarcza kuli nie ma czego liczyc. Zamiast przebiegac caly ekran i
                         // odrzucac piksele warunkiem, czyscimy bufor jednym memsetem i wchodzimy
                         // tylko w prostokat tarczy, a w kazdym wierszu tylko w cieciwe |X| <=
@@ -7739,7 +7751,21 @@
                                 if (axp < 0) axp += Wpx; else if (axp >= aw) axp -= Wpx;
                                 var ayp = my - oy;
                                 if (axp < 0 || axp >= aw || ayp < 0 || ayp >= ah) continue;   // bufor juz wyzerowany
-                                var ai = (((ayp | 0) * aw) + (axp | 0)) * 4;
+                                var axi = axp | 0, ayi = ayp | 0;
+                                var ai = (ayi * aw + axi) * 4;
+                                if (box) {
+                                    // Sasiad w prawo/w dol, z przycieciem do brzegu mozaiki (bez
+                                    // owijania - na skraju bufora powtarzamy ten sam piksel, roznica
+                                    // jest niewidoczna, a warunek zostaje jednym porownaniem).
+                                    var axj = (axi + 1 < aw) ? axi + 1 : axi;
+                                    var ayj = (ayi + 1 < ah) ? ayi + 1 : ayi;
+                                    var i0 = ai, i1 = (ayi * aw + axj) * 4, i2 = (ayj * aw + axi) * 4, i3 = (ayj * aw + axj) * 4;
+                                    out[o]     = (A[i0]     + A[i1]     + A[i2]     + A[i3]    ) >> 2;
+                                    out[o + 1] = (A[i0 + 1] + A[i1 + 1] + A[i2 + 1] + A[i3 + 1]) >> 2;
+                                    out[o + 2] = (A[i0 + 2] + A[i1 + 2] + A[i2 + 2] + A[i3 + 2]) >> 2;
+                                    out[o + 3] = (A[i0 + 3] + A[i1 + 3] + A[i2 + 3] + A[i3 + 3]) >> 2;
+                                    continue;
+                                }
                                 out[o] = A[ai]; out[o + 1] = A[ai + 1]; out[o + 2] = A[ai + 2]; out[o + 3] = A[ai + 3];
                             }
                         }
