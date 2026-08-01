@@ -7270,6 +7270,11 @@
                     // Wchodzi w DWA miejsca, ktore musza sie zgadzac: dobor poziomu (nizej) i cel
                     // zatrzaskiwania zoomu (_satSnapZoom). Rozjechanie ich = wieczne dojezdzanie.
                     function _satTier(){ var t = _satSrc().tier; return (t >= 1) ? t : 1; }
+                    // Ile razy wolno POWIEKSZYC ostatni poziom kafli PONAD skale docelowa
+                    // (patrz pole "maxMag" w tile-sources-data.js). 1 = sciana dokladnie tam,
+                    // gdzie obraz jest jeszcze ostry - tak ma byc dla kartografii, bo rozciaganie
+                    // zrasteryzowanych napisow nie robi ich wiekszymi, tylko zamienia w plamy.
+                    function _satMaxMag(){ var m = _satSrc().maxMag; return (m >= 1) ? m : 8; }
                     // BOK KAFLA W PIKSELACH (pole "tileSize", domyslnie 256). Zrodla "@2x"/retina
                     // oddaja 512 px na TEN SAM obszar, czyli maja dwukrotnie gestszy raster, a ich
                     // kartografia jest narysowana odpowiednio wieksza - to inny sposob na czytelne
@@ -7892,9 +7897,18 @@
                         + "  float s = X*X + Y*Y; if (s > 1.0) discard;\n"
                         + "  float Z = sqrt(1.0 - s);\n"
                         + "  float lonRel = atan(X, Z*uCdp + Y*uSdp);\n"
-                        + "  float c = uC0 + Y*uCdp + uSdp * (s / (1.0 + Z));\n"
-                        + "  c = clamp(c, -uMaxSin, uMaxSin);\n"
-                        + "  float dc = c - uC0;\n"
+                        // dc NIGDY nie powstaje jako roznica dwoch duzych liczb - to jest caly
+                        // sens tego wzoru. Skladanie c = uC0 + dc i odejmowanie z powrotem
+                        // KASUJE cyfry: przy uC0 rzedu 0.79 rozdzielczosc float32 to ~6e-8, a przy
+                        // zoomie 100 000+ dc na calej wysokosci ekranu ma zakres ~2e-6, czyli
+                        // zostaje kilkadziesiat poziomow zamiast tysiecy. Wyglada to jak poziome
+                        // smugi (wiele wierszy ekranu trafia w ten sam wiersz tekseli) - zgloszenie
+                        // "max zoom" z 2026-08-01. Clamp biegunowy dziala na KOPII, bo tam
+                        // precyzja nie ma znaczenia, a dc musi zostac niezalezna mala liczba.
+                        + "  float dc = Y*uCdp + uSdp * (s / (1.0 + Z));\n"
+                        + "  float cc = uC0 + dc;\n"
+                        + "  if (cc > uMaxSin) dc = uMaxSin - uC0;\n"
+                        + "  else if (cc < -uMaxSin) dc = -uMaxSin - uC0;\n"
                         + "  float den = (1.0 - uC0*uC0) - dc*(1.0 + uC0);\n"
                         + "  float t = 2.0 * dc / den;\n"
                         + "  float lg = (abs(t) < 0.25)\n"
@@ -8054,11 +8068,38 @@
                         // gestosci ekranu do gestosci kafli: mag = 2*PI*R / (256 * 2^z).
                         // Poza sufitem cap jest zerowany, bo tam glebszy zoom NAPRAWDE dociaga
                         // ostrzejsze kafle i blokowanie go byloby bledem.
+                        // POPRAWKA 2026-08-01: bok kafla przez _satTS(), nie 256 na sztywno (zrodlo
+                        // @2x liczyloby sie dwa razy za ciasno), a granica jest liczona od SKALI
+                        // DOCELOWEJ (mag == tier), nie od mag == 1. Bez tego przy tier 2 sciana
+                        // wypadala tam, gdzie piksel kafla ma juz 8 px na ekranie, czyli cztery razy
+                        // dalej niz punkt, w ktorym obraz jest jeszcze ostry.
+                        //
+                        // SUFIT ZOOMU MUSI SIEGAC PUNKTU OSTREGO - to jest sedno zgloszenia
+                        // "masakra nawet" (2026-08-01). Ostatni poziom OSM (z19) ogladany w skali
+                        // docelowej wypada przy zoomie ~113 600 (okno 2560x750), a _S_MAXZOOM to
+                        // 100 000. Zatrzaskiwanie probowalo tam dojechac, odbijalo sie od
+                        // maxZoomLevel i REZYGNOWALO - user zostawal na mag 1.76, czyli na skali
+                        // ulamkowej: interpolacja zamiast nearest i zero wyostrzania. Kazdy plytszy
+                        // poziom ladowal na rownych 2.00 i byl ostry, wiec psul sie DOKLADNIE
+                        // najglebszy zoom. Podnosimy wiec sufit do punktu ostrego (wartosc nie
+                        // zalezy od zoomu - mag rosnie z nim liniowo, wiec "crisp" jest stale dla
+                        // danego kadru i poziomu), a realna sciana zostaje na _satZoomCap.
                         if (p.atCeiling) {
-                            var mag = _S_TWOPI * g.R / (256 * (1 << p.z));
-                            window._satZoomCap = (mag > 0) ? (chart.get("zoomLevel") || 1) * _S_MAXMAG / mag : 0;
+                            var _tierC = _satTier();
+                            var mag = _S_TWOPI * g.R / (_satTS() * (1 << p.z));
+                            var z0c = chart.get("zoomLevel") || 1;
+                            var crisp = (mag > 0) ? z0c * _tierC / mag : 0;
+                            if (crisp > (chart.get("maxZoomLevel") || 0)) chart.set("maxZoomLevel", crisp);
+                            window._satZoomCap = crisp * _satMaxMag();
                         } else {
                             window._satZoomCap = 0;
+                            // Sufit podniesiony wyzej dotyczyl KONKRETNEGO rejonu i poziomu. Gdy
+                            // wyszlismy z niego (jest jeszcze glebszy kafel do pobrania), wracamy do
+                            // wartosci bazowej - inaczej podniesienie zrobione raz nad Warszawa
+                            // pozwalaloby zoomowac w pustke wszedzie indziej. Warunek na biezacy zoom
+                            // chroni przed szarpnieciem widoku, gdy user JEST powyzej bazy.
+                            if ((chart.get("maxZoomLevel") || 0) > _S_MAXZOOM && (chart.get("zoomLevel") || 1) <= _S_MAXZOOM)
+                                chart.set("maxZoomLevel", _S_MAXZOOM);
                         }
 
                         // step > 1 znaczy "jestesmy w ruchu" - wtedy mozaiki NIE przebudowujemy,

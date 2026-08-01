@@ -86,6 +86,7 @@ var TILE_SOURCES = {
         url: "https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
         maxZoom: 19,
         attribution: "Imagery: Esri, Maxar, Earthstar Geographics",
+        maxMag: 8,
         dark: true
     },
 
@@ -118,6 +119,7 @@ var TILE_SOURCES = {
         maxZoom: 19,
         attribution: "(c) OpenStreetMap contributors",
         tier: 2,
+        maxMag: 1,
         dark: false
     },
 
@@ -129,6 +131,7 @@ var TILE_SOURCES = {
         maxZoom: 19,
         attribution: "Topo: Esri, HERE, Garmin, USGS, NGA",
         tier: 2,
+        maxMag: 1,
         dark: false
     }
 };
