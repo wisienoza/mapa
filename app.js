@@ -7658,13 +7658,28 @@
                                     _satMosCtx.drawImage(rec.img, i * TS, j * TS, TS, TS);
                                 } catch(_e){ continue; }
                                 touched = true;
-                                if (!_gl) try {
+                                // POD GPU: DOSYLAMY POJEDYNCZY KAFEL, nie cala mozaike (poprawka
+                                // 2026-08-01, po zgloszeniu "przy SAT nie chce ladowac / ultra wolno").
+                                // Pierwsza wersja sciezki GPU podbijala licznik wersji mozaiki i
+                                // _satGLDraw przesylal CALA teksture + generowal mipmapy przy KAZDYM
+                                // dolatujacym kaflu. Przy Esri (mozaika 4864x2048 = 10 MB, 160 kafli
+                                // schodzacych sie kilkanascie sekund) to setki pelnych uploadow -
+                                // zmierzone 14.9 ms mediany klatki w fazie ladowania wobec 0.4 ms
+                                // na gotowej teksturze. Na OSM bylo mniej widoczne, bo tier 2 potrzebuje
+                                // czterokrotnie mniej kafli. texSubImage2D wgrywa 256x256 w miejsce,
+                                // ktore realnie sie zmienilo. Warunek na naturalWidth: gdyby serwer
+                                // oddal kafel innego rozmiaru niz deklaruje zrodlo, podmiana wycinka
+                                // rozjechalaby sie geometrycznie - wtedy wymuszamy pelny upload.
+                                if (_gl) {
+                                    if (rec.img.naturalWidth === TS && rec.img.naturalHeight === TS)
+                                        _satMosPatch.push({ x: i * TS, y: j * TS, img: rec.img });
+                                    else _satMosFull++;
+                                } else try {
                                     var td = _satMosCtx.getImageData(i * TS, j * TS, TS, TS).data;
                                     for (var r = 0; r < TS; r++)
                                         a.px.set(td.subarray(r * TS * 4, r * TS * 4 + TS * 4), ((j * TS + r) * a.w + i * TS) * 4);
                                 } catch(_sc){ console.warn("SAT: canvas zatruty (brak CORS na kaflach)", _sc); return null; }
                             }
-                            if (touched) _satMosRev++;          // mozaika sie zmienila -> nowa tekstura
                             a.gen = _satGen;
                             if (!reuseOnly) a.cacheOnly = false;   // po zatrzymaniu kafle sa juz zamowione
                             if (touched && _satCeiling(a.drawn, a.blanks, p)) return null;
@@ -7711,7 +7726,9 @@
                             try { px = _satMosCtx.getImageData(0, 0, w, h).data; }
                             catch(_sec){ console.warn("SAT: canvas zatruty (brak CORS na kaflach)", _sec); return null; }
                         }
-                        _satMosRev++;
+                        // Nowa TOZSAMOSC mozaiki - tu pelny upload jest nieunikniony, ale zdarza sie
+                        // raz na zmiane planu, a nie raz na kafel. Zalegle latki tracą sens.
+                        _satMosFull++; _satMosPatch.length = 0;
                         _satBuiltAt = performance.now();
                         _satAsm = { z: p.z, tx: p.tx, ty: p.ty, nx: p.nx, ny: p.ny, w: w, h: h,
                                     px: px, gen: _satGen, have: have, drawn: drawn, blanks: blanks,
@@ -7880,7 +7897,8 @@
                     // NIE MA odczytanych pikseli (px === null) i CPU nie mialby z czego rysowac.
                     // Wylacznik reczny do porownan: localStorage.setItem("satGPU","0") + reload.
                     var _satGL = null;                 // null = jeszcze nie probowano, false = niedostepne
-                    var _satMosRev = 0;                // licznik zmian mozaiki -> kiedy przeslac teksture
+                    var _satMosFull = 0;               // licznik PELNYCH przebudow mozaiki (zmiana tozsamosci)
+                    var _satMosPatch = [];             // kafle dolatujace do BIEZACEJ mozaiki: {x, y, img}
                     var _S_VS = "#version 300 es\n"
                         + "void main(){ vec2 p = vec2(float((gl_VertexID << 1) & 2), float(gl_VertexID & 2));"
                         + " gl_Position = vec4(p * 2.0 - 1.0, 0.0, 1.0); }";
@@ -7996,7 +8014,8 @@
                                 console.warn("SAT: utracony kontekst WebGL - powrot na CPU");
                                 _satGL = false; _satAsm = null; _satSchedule(false);
                             }, false);
-                            _satGL = { cv: cv, gl: gl, prog: prog, u: u, tex: tex, rev: -1, w: 0, h: 0, filt: "" };
+                            _satGL = { cv: cv, gl: gl, prog: prog, u: u, tex: tex,
+                                       full: -1, w: 0, h: 0, filt: "", mips: false };
                             return true;
                         } catch(e) {
                             console.warn("SAT: WebGL2 niedostepny, zostaje sciezka CPU", e);
@@ -8018,17 +8037,32 @@
                             gl.viewport(0, 0, Wd, Hd);
                         }
                         gl.bindTexture(gl.TEXTURE_2D, G.tex);
-                        if (G.rev !== _satMosRev || G.w !== asm.w || G.h !== asm.h) {
+                        if (G.full !== _satMosFull || G.w !== asm.w || G.h !== asm.h) {
                             gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, _satMosCv);
-                            gl.generateMipmap(gl.TEXTURE_2D);
-                            G.rev = _satMosRev; G.w = asm.w; G.h = asm.h; G.filt = "";
+                            G.full = _satMosFull; G.w = asm.w; G.h = asm.h;
+                            G.mips = false; G.filt = "";
+                            _satMosPatch.length = 0;                 // pelny upload zawiera juz wszystko
+                        } else if (_satMosPatch.length) {
+                            for (var pi = 0; pi < _satMosPatch.length; pi++) {
+                                var pt = _satMosPatch[pi];
+                                try { gl.texSubImage2D(gl.TEXTURE_2D, 0, pt.x, pt.y, gl.RGBA, gl.UNSIGNED_BYTE, pt.img); }
+                                catch(_tp){ gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, _satMosCv); break; }
+                            }
+                            _satMosPatch.length = 0;
+                            G.mips = false;
                         }
+                        // MIPMAPY LICZYMY TYLKO WTEDY, GDY BEDA UZYTE, czyli przy pomniejszaniu.
+                        // Przy powiekszaniu (mode 1/2) probkujemy poziom 0, a generateMipmap na
+                        // teksturze 10 MB przy kazdym kaflu byl polowa kosztu ladowania. UWAGA: filtr
+                        // MIN musi wtedy TEZ byc bezmipmapowy - tekstura bez pelnej piramidy i z
+                        // filtrem *_MIPMAP_* jest "niekompletna" i probkowanie oddaje czarne piksele.
                         var want = (mode === 1) ? "n" : (mode === 2 ? "cr" : "l");
+                        if (mode === 0 && !G.mips) { gl.generateMipmap(gl.TEXTURE_2D); G.mips = true; G.filt = ""; }
                         if (G.filt !== want) {
-                            var near = (mode === 1);
-                            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, near ? gl.NEAREST : gl.LINEAR);
+                            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, (mode === 1) ? gl.NEAREST : gl.LINEAR);
                             gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER,
-                                             near ? gl.NEAREST_MIPMAP_LINEAR : gl.LINEAR_MIPMAP_LINEAR);
+                                             (mode === 0) ? gl.LINEAR_MIPMAP_LINEAR
+                                                          : ((mode === 1) ? gl.NEAREST : gl.LINEAR));
                             G.filt = want;
                         }
                         var _ts = _satTS();
@@ -8385,9 +8419,13 @@
                             cache: { ok: ok, dead: dead, blank: blank, size: _satTiles.size },
                             // gpu.on === false przy dzialajacym WebGL2 znaczy, ze ktos wylaczyl
                             // sciezke recznie (localStorage satGPU=0) albo kontekst zostal utracony.
-                            // texRev/mosRev rozne = tekstura jest o jedno zlozenie do tylu (tak bywa
-                            // tylko miedzy _satAssemble a _satGLDraw w tej samej klatce).
-                            gpu: _satGL ? { on: true, texRev: _satGL.rev, mosRev: _satMosRev,
+                            // texFull != mosFull = tekstura jest o jedna PRZEBUDOWE mozaiki do tylu
+                            // (normalne tylko miedzy _satAssemble a _satGLDraw w tej samej klatce).
+                            // patch = kafle czekajace na dosylke przez texSubImage2D; rosnaca kolejka
+                            // znaczy, ze render nie nadaza za siecia. mips: czy piramida jest liczona
+                            // (tylko przy pomniejszaniu - patrz _satGLDraw).
+                            gpu: _satGL ? { on: true, texFull: _satGL.full, mosFull: _satMosFull,
+                                            patch: _satMosPatch.length, mips: !!_satGL.mips,
                                             tex: _satGL.w + "x" + _satGL.h, filter: _satGL.filt }
                                         : { on: false },
                             // stan zamawiania w ruchu: key = plan obserwowany, done = plan juz zamowiony,
