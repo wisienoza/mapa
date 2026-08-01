@@ -7353,6 +7353,51 @@
                     // Brakujace kafle po prostu zostaja przezroczyste - mozaika doszywa sie sama, gdy
                     // doleca (onload -> _satGen). crossOrigin="anonymous" jest KRYTYCZNE: bez niego
                     // canvas staje sie "tainted" i getImageData rzuca SecurityError zamiast oddac piksele.
+                    // --- KOLEJKA ZADAN: LIMIT RONOLEGLOSCI I KOLEJNOSC OD SRODKA KADRU ---------
+                    // (2026-08-01, po pytaniu "da sie przyspieszyc ladowanie jeszcze?")
+                    // ZMIERZONY STAN WYJSCIOWY (SAT, zoom 6000, Kambodza, okno 2560x750): 169 zadan
+                    // wystrzelonych naraz, maksymalna rownoleglosc 168, mediana czasu kafla 1528 ms
+                    // (p90 4486, maks 5111), pelna mozaika po 12.8 s.
+                    // DIAGNOZA: to NIE jest limit 6 polaczen z HTTP/1.1 - gdyby nim byl, rownoleglosc
+                    // wyszlaby 6. Serwery oddaja HTTP/2, ktory przyjmuje wszystkie strumienie naraz na
+                    // jednym polaczeniu i DZIELI MIEDZY NIE PASMO. Skutek jest przewrotny: skoro kazdy
+                    // kafel dostaje 1/169 pasma, to ZADEN nie konczy sie szybko i obraz stoi rozmyty,
+                    // az prawie wszystko dojdzie. Przepustowosc sumaryczna jest ta sama - zmienia sie
+                    // tylko to, KIEDY pierwszy kafel nadaje sie do pokazania.
+                    // ROZWIAZANIE: najwyzej _S_MAXPAR kafli w locie, a z kolejki bierzemy zawsze ten
+                    // NAJBLIZSZY SRODKOWI KADRU. Srodek ekranu robi sie ostry w pierwszej sekundzie,
+                    // brzegi doszywaja sie potem - a tam i tak patrzy sie najrzadziej.
+                    // WAZNE PRZY KASOWANIU KOLEJKI: wpis, ktory czeka, ma juz swoj rekord w _satTiles
+                    // (zeby nie zamawiac go dwa razy). Porzucenie go BEZ usuniecia rekordu zostawiloby
+                    // kafel na zawsze w stanie "zamowiony, nie ma obrazka" - czyli TRWALA DZIURE
+                    // w mozaice. Dlatego _satDropQ kasuje jedno i drugie.
+                    var _S_MAXPAR = 8;
+                    var _satQ = [];                    // oczekujace rekordy (jeszcze bez img.src)
+                    var _satFly = 0;                   // ile zadan trwa
+                    var _satCen = null;                // srodek biezacego planu w kaflach: {z, cx, cy}
+                    function _satDropQ(){
+                        while (_satQ.length) { var r = _satQ.pop(); _satTiles.delete(r.key); }
+                    }
+                    function _satSetCen(z, cx, cy){
+                        // Zmiana POZIOMU kafli uniewaznia wszystko, co czeka: te kafle sa z widoku,
+                        // ktorego juz nie ma. W locie zostawiamy - i tak sa oplacone.
+                        if (!_satCen || _satCen.z !== z) _satDropQ();
+                        _satCen = { z: z, cx: cx, cy: cy };
+                    }
+                    function _satPump(){
+                        while (_satFly < _S_MAXPAR && _satQ.length) {
+                            var bi = 0, bd = Infinity;
+                            for (var i = 0; i < _satQ.length; i++) {
+                                var q = _satQ[i], d;
+                                if (!_satCen || _satCen.z !== q.z) d = 1e9;       // inny poziom = na koniec
+                                else { var ddx = q.tx - _satCen.cx, ddy = q.ty - _satCen.cy; d = ddx*ddx + ddy*ddy; }
+                                if (d < bd) { bd = d; bi = i; }
+                            }
+                            var r = _satQ.splice(bi, 1)[0];
+                            _satFly++;
+                            r.img.src = r.url;
+                        }
+                    }
                     function _satTile(z, x, y){
                         var n = 1 << z;
                         if (y < 0 || y >= n) return null;                 // poza biegunami kafli nie ma
@@ -7362,7 +7407,7 @@
                         var rec = _satTiles.get(key);
                         if (rec) return rec.ok ? rec : null;
                         var img = new Image();
-                        rec = { img: img, ok: false, blank: false };
+                        rec = { img: img, ok: false, blank: false, key: key, z: z, tx: xx, ty: y };
                         _satTiles.set(key, rec);
                         if (_satTiles.size > 600) {                       // LRU: Map trzyma kolejnosc wstawiania
                             // Kafle NISKICH poziomow omijamy przy czyszczeniu. Caly swiat do z7 to
@@ -7373,6 +7418,11 @@
                             while (gone < 150 && seen < 400) {
                                 var kk = it.next(); if (kk.done) break; seen++;
                                 if (parseInt(kk.value.split("|")[1], 10) <= 7) continue;
+                                // Nie wyrzucaj kafli, ktore wlasnie leca albo czekaja w kolejce -
+                                // rekord znika, a obrazek i tak dojdzie, wiec placimy za pobranie
+                                // drugi raz, a w kolejce zostaje sierota bez wpisu w cache.
+                                var vic = _satTiles.get(kk.value);
+                                if (vic && !vic.ok && !vic.dead) continue;
                                 _satTiles.delete(kk.value); gone++;
                             }
                         }
@@ -7382,11 +7432,14 @@
                         // znaczy render PELNY, czyli 100-165 ms roboty na kazdy przychodzacy kafel.
                         // "Trwa ruch" = ostatnia klatka szybka nie starsza niz 250 ms.
                         img.onload  = function(){
+                            _satFly--; _satPump();
                             rec.ok = true; rec.blank = _satIsBlank(img); _satGen++;
                             _satSchedule(performance.now() - _satQuickAt < 250);
                         };
-                        img.onerror = function(){ rec.dead = true; };
-                        img.src = TILE_SOURCES[sk].url.replace("{z}", z).replace("{x}", xx).replace("{y}", y);
+                        img.onerror = function(){ _satFly--; _satPump(); rec.dead = true; };
+                        rec.url = TILE_SOURCES[sk].url.replace("{z}", z).replace("{x}", xx).replace("{y}", y);
+                        _satQ.push(rec);
+                        _satPump();
                         return null;
                     }
 
@@ -8132,6 +8185,8 @@
                             _satCv.style.width = W + "px";     _satCv.style.height = H + "px";
                         }
                         var p = _satPlan(g, W, H); if (!p) return;
+                        // Srodek planu = punkt odniesienia dla kolejnosci pobierania (patrz _satPump).
+                        _satSetCen(p.z, p.tx + p.nx / 2, p.ty + p.ny / 2);
 
                         // BLOKADA GLEBOKOSCI ZOOMU. Gdy poziom kafli nie moze juz urosnac (koniec
                         // zdjec w tym rejonie), dalsze przyblizanie tylko POWIEKSZA ten sam obraz.
@@ -8417,6 +8472,10 @@
                                                 holes: _satAsm.nx * _satAsm.ny - _satAsm.drawn,
                                                 cacheOnly: !!_satAsm.cacheOnly } : null,
                             cache: { ok: ok, dead: dead, blank: blank, size: _satTiles.size },
+                            // net.fly = kafle w locie (sufit _S_MAXPAR), net.q = czekajace w kolejce.
+                            // q rosnace i nie malejace = plan wciaz sie zmienia; fly stale 0 przy q > 0
+                            // znaczy, ze _satPump przestal byc wolany (blad w onload/onerror).
+                            net: { fly: _satFly, q: _satQ.length, max: _S_MAXPAR },
                             // gpu.on === false przy dzialajacym WebGL2 znaczy, ze ktos wylaczyl
                             // sciezke recznie (localStorage satGPU=0) albo kontekst zostal utracony.
                             // texFull != mosFull = tekstura jest o jedna PRZEBUDOWE mozaiki do tylu
