@@ -46,6 +46,21 @@
 //                 rozciagniety tam, gdzie zmiescilby sie z17), za to pobierasz
 //                 4x mniej kafli. Dla ZDJEC (sat) zostaw 1 - tam powiekszenie
 //                 daje rozmazana fotografie zamiast czytelniejszego napisu.
+//   maxMag      - ILE RAZY WOLNO POWIEKSZYC OSTATNI DOSTEPNY POZIOM KAFLI, liczac od
+//                 skali docelowej (czyli od mag == tier), zanim kolko myszy stanie.
+//                 Domyslnie 8. To jest odpowiedz na pytanie "co ma sie stac, gdy user
+//                 zoomuje glebiej, niz siega detal zrodla" i odpowiedz jest INNA dla
+//                 zdjec niz dla kartografii:
+//                   ZDJECIA (sat)      - powiekszanie ma sens: ksztalty sa dalej czytelne,
+//                                        samochod po prostu robi sie wiekszy. Zostaje 8.
+//                   KARTOGRAFIA (street/topo) - powiekszanie NIE MA SENSU: napisy zostaly
+//                                        zrasteryzowane w docelowym rozmiarze, wiec
+//                                        rozciaganie ich zamienia litery w plamy, a nie
+//                                        w wieksze litery. Dlatego 1 = sciana dokladnie
+//                                        w punkcie, w ktorym obraz jest jeszcze ostry.
+//                 Zgloszenie z 2026-08-01 ("masakra nawet") dotyczylo wlasnie tego:
+//                 przy zoomie 100 000 na STREET mag spadal na 1.76 (skala ulamkowa =
+//                 interpolacja + zero wyostrzania) i cala mapa byla nieczytelna.
 //   dark        - true, gdy kafle sa ciemne (zdjecia satelitarne). SterujeSILA
 //                 konturow panstw rysowanych PRZEZ amCharts NA WIERZCHU kafli:
 //                 na ciemnym zdjeciu potrzebne sa jasne obrysy, na jasnej mapie
