@@ -7622,9 +7622,13 @@
                             if (a && performance.now() - _satBuiltAt < _S_REBUILD_MS) return null;
                         }
 
+                        // Pod GPU mozaiki NIE czytamy do JS-a (teksture wysylamy wprost z canvasa),
+                        // wiec willReadFrequently byloby szkodliwe: ta flaga wypycha canvas na CPU,
+                        // a my chcemy go miec po stronie karty, zeby texImage2D byl kopia GPU->GPU.
+                        var _gl = _satGLOK();
                         if (!_satMosCv) {
                             _satMosCv  = document.createElement("canvas");
-                            _satMosCtx = _satMosCv.getContext("2d", { willReadFrequently: true });
+                            _satMosCtx = _satMosCv.getContext("2d", { willReadFrequently: !_gl });
                         }
                         var TS = _satTS();                       // bok kafla tego zrodla (256 albo 512 dla @2x)
                         var w = p.nx * TS, h = p.ny * TS, i, j, k, rec;
@@ -7649,12 +7653,13 @@
                                     _satMosCtx.drawImage(rec.img, i * TS, j * TS, TS, TS);
                                 } catch(_e){ continue; }
                                 touched = true;
-                                try {
+                                if (!_gl) try {
                                     var td = _satMosCtx.getImageData(i * TS, j * TS, TS, TS).data;
                                     for (var r = 0; r < TS; r++)
                                         a.px.set(td.subarray(r * TS * 4, r * TS * 4 + TS * 4), ((j * TS + r) * a.w + i * TS) * 4);
                                 } catch(_sc){ console.warn("SAT: canvas zatruty (brak CORS na kaflach)", _sc); return null; }
                             }
+                            if (touched) _satMosRev++;          // mozaika sie zmienila -> nowa tekstura
                             a.gen = _satGen;
                             if (!reuseOnly) a.cacheOnly = false;   // po zatrzymaniu kafle sa juz zamowione
                             if (touched && _satCeiling(a.drawn, a.blanks, p)) return null;
@@ -7693,12 +7698,18 @@
                         // Werdykt o zaslepkach PRZED odczytem pikseli - gdy zapada, cala mozaika idzie
                         // do kosza, wiec nie ma po co czytac z canvasa 19 MB.
                         if (_satCeiling(drawn, blanks, p)) return null;
-                        var id;
-                        try { id = _satMosCtx.getImageData(0, 0, w, h); }
-                        catch(_sec){ console.warn("SAT: canvas zatruty (brak CORS na kaflach)", _sec); return null; }
+                        // Odczyt pikseli TYLKO dla sciezki CPU. Pod GPU to bylo najdrozsze pojedyncze
+                        // wywolanie calego renderu (60 MB / 29.6 ms przy mozaice 5120x3072) i teraz
+                        // znika bez sladu - shader probkuje teksture zaladowana wprost z canvasa.
+                        var px = null;
+                        if (!_gl) {
+                            try { px = _satMosCtx.getImageData(0, 0, w, h).data; }
+                            catch(_sec){ console.warn("SAT: canvas zatruty (brak CORS na kaflach)", _sec); return null; }
+                        }
+                        _satMosRev++;
                         _satBuiltAt = performance.now();
                         _satAsm = { z: p.z, tx: p.tx, ty: p.ty, nx: p.nx, ny: p.ny, w: w, h: h,
-                                    px: id.data, gen: _satGen, have: have, drawn: drawn, blanks: blanks,
+                                    px: px, gen: _satGen, have: have, drawn: drawn, blanks: blanks,
                                     cacheOnly: !!reuseOnly };
                         return _satAsm;
                     }
@@ -7812,6 +7823,190 @@
                         return b;
                     }
 
+                    // --- SCIEZKA GPU: CALA REPROJEKCJA W SHADERZE (2026-08-01) -----------------
+                    // CO SIE ZMIENIA. Petla nizej (_satRender) liczy odwrotna projekcje W JS, piksel
+                    // po pikselu, na jednym watku. Zmierzone na oknie 2560x750: 100-163 ms na pelna
+                    // klatke, plus 29.6 ms na sam odczyt mozaiki przez getImageData (60 MB przy
+                    // mozaice 5120x3072). To jest DOKLADNIE ta praca, do ktorej sluzy karta graficzna:
+                    // ten sam wzor, niezalezny dla kazdego piksela, bez zadnych zaleznosci miedzy nimi.
+                    // W shaderze fragmentu robi to kilkaset rdzeni naraz.
+                    //
+                    // ZYSK JEST PODWOJNY, i ten drugi jest wazniejszy niz sam czas petli:
+                    //   1. reprojekcja: ~100 ms -> ulamek ms (zmierzony prototyp: <0.1 ms / 1280x720),
+                    //   2. ZNIKA getImageData. Mozaike wysylamy do GPU wprost z canvasa
+                    //      (texImage2D z elementu, 0.2 ms), wiec 60 MB nie wedruje juz do JS-a
+                    //      i nie ma go po co trzymac w pamieci (asm.px zostaje null).
+                    //
+                    // CZEGO TO NIE PRZYSPIESZY: samego GLOBU amCharts. Tamten canvas jest 2D
+                    // (sprawdzone: getContext("webgl2") na nim zwraca null), a geometria konturow
+                    // panstw przeliczana jest w JS na kazda klatke - patrz komentarz przy DETAIL.
+                    // Ta zmiana dotyczy WYLACZNIE warstwy kafli.
+                    //
+                    // DOKLADNOSC PRZY GLEBOKIM ZOOMIE - najwazniejsza pulapka calej zmiany.
+                    // GLSL ma tylko float32 (24 bity mantysy). Przy z19 pelna szerokosc Mercatora to
+                    // 256*2^19 = 134 mln pikseli kafla; policzenie pozycji piksela BEZWZGLEDNIE
+                    // (jak robi to petla JS w float64) dawaloby na GPU blad rzedu kilku-kilkunastu
+                    // pikseli, czyli widoczne pelzanie obrazu. Dlatego shader liczy WSZYSTKO WZGLEDEM
+                    // SRODKA WIDOKU, ktorego dokladna pozycja w mozaice jest policzona w JS (float64)
+                    // i wchodzi jako uniform uOrg:
+                    //   - dlugosc: srodek tarczy ma z definicji lonRel = 0, wiec atan2 zwraca od razu
+                    //     ODCHYLENIE od srodka (przy glebokim zoomie rzedu 1e-4 rad) - zero odejmowania
+                    //     duzych liczb,
+                    //   - szerokosc: zamiast liczyc atanh(c) i odejmowac atanh(c0), liczymy ich ROZNICE
+                    //     wprost ze wzoru atanh(c)-atanh(c0) = 0.5*log1p(2*dc/((1-c0^2)-dc*(1+c0))),
+                    //     gdzie dc = c - c0 jest male i policzone bez utraty cyfr:
+                    //     c = c0 + Y*cos(dp) + sin(dp)*(1-Z), a (1-Z) = s/(1+Z).
+                    // Mianownik tego wzoru to (1+c0)(1-c) > 0, a 1+t = (1+c)(1-c0)/mianownik > 0,
+                    // wiec log1p nigdy nie dostanie argumentu <= -1. Dla |t| < 0.25 zamiast log()
+                    // idzie szereg (5 wyrazow) - float32 gubi cyfry na "1.0 + t" dla malych t,
+                    // a to przy kx rzedu 2e7 przekladalo sie na ulamki piksela pelzania.
+                    //
+                    // FILTROWANIE. To, co petla JS robila recznie (nearest / pudelko 2x2 / dwuliniowo),
+                    // GPU ma w sprzecie: MAG_FILTER decyduje o powiekszaniu, a mipmapy o pomniejszaniu.
+                    // Zasada zostaje ta sama co w CPU: krotnosc calkowita (tier!) => NEAREST, czyli
+                    // ostre kwadraty; poza tym LINEAR. Mipmapy sa ZYSKIEM JAKOSCIOWYM, nie tylko
+                    // szybkosciowym - przy krawedzi tarczy kafle sa sciskane kilkukrotnie i petla JS
+                    // po prostu wyrzucala tam piksele (aliasing), a GPU dobiera poziom mipmapy z
+                    // pochodnych i usrednia poprawnie.
+                    //
+                    // AWARIA. Gdy WebGL2 nie wstanie albo kontekst zostanie utracony (sterownik,
+                    // uspienie), _satGL leci na false i CALA stara sciezka CPU dziala jak dotad -
+                    // dlatego jej nie usuwamy. Uniewazniamy tylko mozaike, bo ta zlozona pod GPU
+                    // NIE MA odczytanych pikseli (px === null) i CPU nie mialby z czego rysowac.
+                    // Wylacznik reczny do porownan: localStorage.setItem("satGPU","0") + reload.
+                    var _satGL = null;                 // null = jeszcze nie probowano, false = niedostepne
+                    var _satMosRev = 0;                // licznik zmian mozaiki -> kiedy przeslac teksture
+                    var _S_VS = "#version 300 es\n"
+                        + "void main(){ vec2 p = vec2(float((gl_VertexID << 1) & 2), float(gl_VertexID & 2));"
+                        + " gl_Position = vec4(p * 2.0 - 1.0, 0.0, 1.0); }";
+                    var _S_FS = "#version 300 es\n"
+                        + "precision highp float; precision highp sampler2D;\n"
+                        + "uniform vec2 uC; uniform float uR; uniform float uH;\n"
+                        + "uniform float uCdp; uniform float uSdp; uniform float uC0;\n"
+                        + "uniform float uKx; uniform float uWpx; uniform float uMaxSin;\n"
+                        + "uniform vec2 uOrg; uniform vec2 uAsm; uniform sampler2D uTex;\n"
+                        + "out vec4 fragColor;\n"
+                        + "void main(){\n"
+                        + "  float X = (gl_FragCoord.x - uC.x) / uR;\n"
+                        + "  float Y = (uC.y - (uH - gl_FragCoord.y)) / uR;\n"
+                        + "  float s = X*X + Y*Y; if (s > 1.0) discard;\n"
+                        + "  float Z = sqrt(1.0 - s);\n"
+                        + "  float lonRel = atan(X, Z*uCdp + Y*uSdp);\n"
+                        + "  float c = uC0 + Y*uCdp + uSdp * (s / (1.0 + Z));\n"
+                        + "  c = clamp(c, -uMaxSin, uMaxSin);\n"
+                        + "  float dc = c - uC0;\n"
+                        + "  float den = (1.0 - uC0*uC0) - dc*(1.0 + uC0);\n"
+                        + "  float t = 2.0 * dc / den;\n"
+                        + "  float lg = (abs(t) < 0.25)\n"
+                        + "    ? t*(1.0 - t*(0.5 - t*(0.33333333 - t*(0.25 - 0.2*t))))\n"
+                        + "    : log(1.0 + t);\n"
+                        + "  float ax = lonRel * uKx + uOrg.x;\n"
+                        + "  float ay = uOrg.y - 0.5 * lg * uKx;\n"
+                        + "  if (ax < 0.0) ax += uWpx; else if (ax >= uAsm.x) ax -= uWpx;\n"
+                        + "  if (ax < 0.0 || ax >= uAsm.x || ay < 0.0 || ay >= uAsm.y) discard;\n"
+                        + "  fragColor = texture(uTex, vec2(ax / uAsm.x, ay / uAsm.y));\n"
+                        + "}";
+                    function _satGLShader(gl, type, src){
+                        var sh = gl.createShader(type);
+                        gl.shaderSource(sh, src); gl.compileShader(sh);
+                        if (!gl.getShaderParameter(sh, gl.COMPILE_STATUS))
+                            throw new Error("shader: " + gl.getShaderInfoLog(sh));
+                        return sh;
+                    }
+                    function _satGLOK(){
+                        if (_satGL === false) return false;
+                        if (_satGL) return true;
+                        try {
+                            if (localStorage.getItem("satGPU") === "0") { _satGL = false; return false; }
+                        } catch(_ls){}
+                        try {
+                            var cv = document.createElement("canvas");
+                            var gl = cv.getContext("webgl2", { alpha: true, antialias: false, depth: false,
+                                                               stencil: false, premultipliedAlpha: true,
+                                                               preserveDrawingBuffer: true });
+                            if (!gl) { _satGL = false; return false; }
+                            var prog = gl.createProgram();
+                            gl.attachShader(prog, _satGLShader(gl, gl.VERTEX_SHADER, _S_VS));
+                            gl.attachShader(prog, _satGLShader(gl, gl.FRAGMENT_SHADER, _S_FS));
+                            gl.linkProgram(prog);
+                            if (!gl.getProgramParameter(prog, gl.LINK_STATUS))
+                                throw new Error("link: " + gl.getProgramInfoLog(prog));
+                            gl.useProgram(prog);
+                            var u = {};
+                            ["uC","uR","uH","uCdp","uSdp","uC0","uKx","uWpx","uMaxSin","uOrg","uAsm","uTex"]
+                                .forEach(function(n){ u[n] = gl.getUniformLocation(prog, n); });
+                            var tex = gl.createTexture();
+                            gl.bindTexture(gl.TEXTURE_2D, tex);
+                            gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true);
+                            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+                            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+                            gl.uniform1i(u.uTex, 0);
+                            gl.disable(gl.DEPTH_TEST);
+                            gl.disable(gl.BLEND);
+                            gl.clearColor(0, 0, 0, 0);
+                            cv.addEventListener("webglcontextlost", function(ev){
+                                ev.preventDefault();
+                                console.warn("SAT: utracony kontekst WebGL - powrot na CPU");
+                                _satGL = false; _satAsm = null; _satSchedule(false);
+                            }, false);
+                            _satGL = { cv: cv, gl: gl, prog: prog, u: u, tex: tex, rev: -1, w: 0, h: 0, filt: "" };
+                            return true;
+                        } catch(e) {
+                            console.warn("SAT: WebGL2 niedostepny, zostaje sciezka CPU", e);
+                            _satGL = false; return false;
+                        }
+                    }
+
+                    // Jedno przejscie GPU: ustaw teksture (tylko gdy mozaika sie zmienila), policz
+                    // stale w float64, wyslij uniformy, narysuj trojkat pelnoekranowy. Zwraca canvas
+                    // do przepisania na #globe-tiles albo null, gdy cos poszlo nie tak (wtedy klatka
+                    // po prostu nie jest odswiezana - na ekranie zostaje poprzednia).
+                    function _satGLDraw(asm, g, Wd, Hd, dpr, nearest){
+                        var G = _satGL, gl = G.gl;
+                        if (G.cv.width !== Wd || G.cv.height !== Hd) {
+                            G.cv.width = Wd; G.cv.height = Hd;
+                            gl.viewport(0, 0, Wd, Hd);
+                        }
+                        gl.bindTexture(gl.TEXTURE_2D, G.tex);
+                        if (G.rev !== _satMosRev || G.w !== asm.w || G.h !== asm.h) {
+                            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, _satMosCv);
+                            gl.generateMipmap(gl.TEXTURE_2D);
+                            G.rev = _satMosRev; G.w = asm.w; G.h = asm.h; G.filt = "";
+                        }
+                        var want = nearest ? "n" : "l";
+                        if (G.filt !== want) {
+                            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, nearest ? gl.NEAREST : gl.LINEAR);
+                            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER,
+                                             nearest ? gl.NEAREST_MIPMAP_LINEAR : gl.LINEAR_MIPMAP_LINEAR);
+                            G.filt = want;
+                        }
+                        var _ts = _satTS();
+                        var Wpx = _ts * (1 << asm.z);
+                        // Srodek widoku w pikselach kafla - liczony w JS, czyli w float64. To jest ten
+                        // punkt zaczepienia, wzgledem ktorego shader liczy cala reszte.
+                        var lon0 = -g.dl;
+                        lon0 -= _S_TWOPI * Math.floor((lon0 + Math.PI) * _S_INV2PI);
+                        var c0 = -Math.sin(g.dp);
+                        if (c0 > _S_MAXSIN) c0 = _S_MAXSIN; else if (c0 < -_S_MAXSIN) c0 = -_S_MAXSIN;
+                        var mx0 = (lon0 * _S_INV2PI + 0.5) * Wpx;
+                        var my0 = (0.5 - Math.log((1 + c0) / (1 - c0)) * _S_INV4PI) * Wpx;
+                        var u = G.u;
+                        gl.uniform2f(u.uC, g.cx * dpr, g.cy * dpr);
+                        gl.uniform1f(u.uR, g.R * dpr);
+                        gl.uniform1f(u.uH, Hd);
+                        gl.uniform1f(u.uCdp, Math.cos(g.dp));
+                        gl.uniform1f(u.uSdp, Math.sin(g.dp));
+                        gl.uniform1f(u.uC0, c0);
+                        gl.uniform1f(u.uKx, Wpx * _S_INV2PI);
+                        gl.uniform1f(u.uWpx, Wpx);
+                        gl.uniform1f(u.uMaxSin, _S_MAXSIN);
+                        gl.uniform2f(u.uOrg, mx0 - asm.tx * _ts, my0 - asm.ty * _ts);
+                        gl.uniform2f(u.uAsm, asm.w, asm.h);
+                        gl.clear(gl.COLOR_BUFFER_BIT);
+                        gl.drawArrays(gl.TRIANGLES, 0, 3);
+                        return G.cv;
+                    }
+
                     // --- RENDER ----------------------------------------------------------------
                     // step=1 pelna ostrosc (po zatrzymaniu), step=2 co drugi piksel (w trakcie
                     // obrotu/zoomu) - to 4x mniej odwrotnych projekcji, a upscale robi natywnie
@@ -7872,6 +8067,35 @@
                         // rownolegle z ruchem, a nie dopiero po nim.
                         if (step > 1) { _satQuickAt = performance.now(); _satPrefetch(p); }
                         var asm = _satAssemble(p, step > 1); if (!asm) return;
+
+                        // === SCIEZKA GPU ======================================================
+                        // Cala klatka to jedno przejscie shadera, wiec podzial na "step 1 / step 2"
+                        // (mniej pikseli w ruchu) przestaje mieć sens - liczymy ZAWSZE w pelnej
+                        // rozdzielczosci urzadzenia. W ruchu obraz jest przez to OSTRZEJSZY niz
+                        // dotad, a nie wolniejszy. Pozostale decyzje sa te same co w CPU:
+                        // krotnosc calkowita -> NEAREST, wyostrzanie tylko przy mag >= 2 i po
+                        // zatrzymaniu, dojazd do poziomu kafli tez tylko po zatrzymaniu.
+                        // Warunek asm.px === null czyta "mozaika zlozona pod GPU" - gdyby kontekst
+                        // padl, _satAsm jest kasowany i nastepne zlozenie ma juz piksele dla CPU.
+                        if (_satGLOK() && !asm.px) {
+                            var _tsG = _satTS();
+                            var magG = _S_TWOPI * g.R * dpr / (_tsG * (1 << asm.z));
+                            var magRG = Math.round(magG);
+                            var intG = (magRG >= 1 && Math.abs(magG - magRG) < 0.02);
+                            var glcv = _satGLDraw(asm, g, Wd, Hd, dpr, intG);
+                            _satCtx.clearRect(0, 0, Wd, Hd);
+                            var sharpG = (step === 1 && intG && magG >= 2 && _satSharpen());
+                            if (sharpG) _satCtx.filter = "url(#sat-sharpen)";
+                            _satCtx.drawImage(glcv, 0, 0);
+                            if (sharpG) _satCtx.filter = "none";
+                            _satLast = { step: step, ss: dpr, z: asm.z, mag: Math.round(magG * 100) / 100,
+                                         tier: _satTier(), sharp: !!sharpG, gpu: true,
+                                         filter: intG ? "nearest+mip" : "linear+mip",
+                                         buf: asm.w + "x" + asm.h, out: Wd + "x" + Hd, at: Date.now() };
+                            if (step === 1) _satSnapZoom(p, g);
+                            return;
+                        }
+                        if (!asm.px) return;                   // mozaika bez pikseli, a GPU nie zyje
 
                         // GESTOSC PROBKOWANIA. ss = ile pikseli bufora na jeden piksel CSS:
                         // render pelny (po zatrzymaniu) liczy w pikselach urzadzenia, ruch zostaje
@@ -8065,6 +8289,13 @@
                                                 holes: _satAsm.nx * _satAsm.ny - _satAsm.drawn,
                                                 cacheOnly: !!_satAsm.cacheOnly } : null,
                             cache: { ok: ok, dead: dead, blank: blank, size: _satTiles.size },
+                            // gpu.on === false przy dzialajacym WebGL2 znaczy, ze ktos wylaczyl
+                            // sciezke recznie (localStorage satGPU=0) albo kontekst zostal utracony.
+                            // texRev/mosRev rozne = tekstura jest o jedno zlozenie do tylu (tak bywa
+                            // tylko miedzy _satAssemble a _satGLDraw w tej samej klatce).
+                            gpu: _satGL ? { on: true, texRev: _satGL.rev, mosRev: _satMosRev,
+                                            tex: _satGL.w + "x" + _satGL.h, filter: _satGL.filt }
+                                        : { on: false },
                             // stan zamawiania w ruchu: key = plan obserwowany, done = plan juz zamowiony,
                             // sinceMs = jak dlugo key jest niezmieniony (prog _S_PREFETCH_MS)
                             prefetch: { key: _satPreKey, done: _satPreDone,
