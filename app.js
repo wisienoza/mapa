@@ -7890,7 +7890,39 @@
                         + "uniform float uCdp; uniform float uSdp; uniform float uC0;\n"
                         + "uniform float uKx; uniform float uWpx; uniform float uMaxSin;\n"
                         + "uniform vec2 uOrg; uniform vec2 uAsm; uniform sampler2D uTex;\n"
+                        + "uniform float uCR;\n"
                         + "out vec4 fragColor;\n"
+                        // --- REKONSTRUKCJA DWUSZESCIENNA (Catmull-Rom) --------------------------
+                        // Po co, skoro "krotnosc calkowita = ostro": bo kafel OSM MA JUZ ANTYALIASING
+                        // wypalony w literach, a probkowanie najblizszym sasiadem go NISZCZY - zamienia
+                        // gradient wygladzenia w twarde kwadraty 2x2, czyli w schodki (zgloszenie
+                        // 2026-08-01: "tu nie chodzi o wielkosc tylko jakis antyaliasing").
+                        // Nearest jest wlasciwy dla LINII i IKON, ale nie dla tekstu.
+                        // Dwuliniowa jest gladka, ale miekka. Catmull-Rom jest INTERPOLUJACY (w samych
+                        // tekselach oddaje ich dokladna wartosc) i ma lekkie ujemne listki, ktore
+                        // podbijaja kontrast krawedzi - stad naraz gladko i ostro. clamp na koncu tnie
+                        // przestrzelenia tych listkow, zeby nie robily obwodek na mocnych krawedziach.
+                        // Teksture czytamy z poziomu 0 (textureLod), bo przy powiekszaniu mipmapy nie
+                        // maja nic do roboty, a automatyczny dobor poziomu z pochodnych po 16 pobraniach
+                        // potrafilby wejsc na rozmyty poziom.
+                        + "vec4 texCR(vec2 pix){\n"
+                        + "  vec2 tc = pix - 0.5, fl = floor(tc), f = tc - fl;\n"
+                        + "  vec2 f2 = f*f, f3 = f2*f;\n"
+                        + "  vec2 cw0 = -0.5*f3 + f2 - 0.5*f;\n"
+                        + "  vec2 cw1 =  1.5*f3 - 2.5*f2 + 1.0;\n"
+                        + "  vec2 cw2 = -1.5*f3 + 2.0*f2 + 0.5*f;\n"
+                        + "  vec2 cw3 =  0.5*f3 - 0.5*f2;\n"
+                        + "  float wx[4]; wx[0]=cw0.x; wx[1]=cw1.x; wx[2]=cw2.x; wx[3]=cw3.x;\n"
+                        + "  float wy[4]; wy[0]=cw0.y; wy[1]=cw1.y; wy[2]=cw2.y; wy[3]=cw3.y;\n"
+                        + "  vec4 acc = vec4(0.0);\n"
+                        + "  for (int j = 0; j < 4; j++) {\n"
+                        + "    for (int i = 0; i < 4; i++) {\n"
+                        + "      vec2 p = (fl + vec2(float(i) - 1.0, float(j) - 1.0) + 0.5) / uAsm;\n"
+                        + "      acc += textureLod(uTex, p, 0.0) * (wx[i] * wy[j]);\n"
+                        + "    }\n"
+                        + "  }\n"
+                        + "  return clamp(acc, 0.0, 1.0);\n"
+                        + "}\n"
                         + "void main(){\n"
                         + "  float X = (gl_FragCoord.x - uC.x) / uR;\n"
                         + "  float Y = (uC.y - (uH - gl_FragCoord.y)) / uR;\n"
@@ -7918,7 +7950,8 @@
                         + "  float ay = uOrg.y - 0.5 * lg * uKx;\n"
                         + "  if (ax < 0.0) ax += uWpx; else if (ax >= uAsm.x) ax -= uWpx;\n"
                         + "  if (ax < 0.0 || ax >= uAsm.x || ay < 0.0 || ay >= uAsm.y) discard;\n"
-                        + "  fragColor = texture(uTex, vec2(ax / uAsm.x, ay / uAsm.y));\n"
+                        + "  fragColor = (uCR > 0.5) ? texCR(vec2(ax, ay))\n"
+                        + "                          : texture(uTex, vec2(ax / uAsm.x, ay / uAsm.y));\n"
                         + "}";
                     function _satGLShader(gl, type, src){
                         var sh = gl.createShader(type);
@@ -7947,7 +7980,7 @@
                                 throw new Error("link: " + gl.getProgramInfoLog(prog));
                             gl.useProgram(prog);
                             var u = {};
-                            ["uC","uR","uH","uCdp","uSdp","uC0","uKx","uWpx","uMaxSin","uOrg","uAsm","uTex"]
+                            ["uC","uR","uH","uCdp","uSdp","uC0","uKx","uWpx","uMaxSin","uOrg","uAsm","uTex","uCR"]
                                 .forEach(function(n){ u[n] = gl.getUniformLocation(prog, n); });
                             var tex = gl.createTexture();
                             gl.bindTexture(gl.TEXTURE_2D, tex);
@@ -7975,7 +8008,10 @@
                     // stale w float64, wyslij uniformy, narysuj trojkat pelnoekranowy. Zwraca canvas
                     // do przepisania na #globe-tiles albo null, gdy cos poszlo nie tak (wtedy klatka
                     // po prostu nie jest odswiezana - na ekranie zostaje poprzednia).
-                    function _satGLDraw(asm, g, Wd, Hd, dpr, nearest){
+                    // mode: 0 = sprzetowy LINEAR + mipmapy (pomniejszanie), 1 = NEAREST (skala 1:1,
+                    // gdzie nearest JEST poprawna rekonstrukcja i najostrzejsza), 2 = Catmull-Rom
+                    // (kazde powiekszanie - patrz komentarz przy texCR).
+                    function _satGLDraw(asm, g, Wd, Hd, dpr, mode){
                         var G = _satGL, gl = G.gl;
                         if (G.cv.width !== Wd || G.cv.height !== Hd) {
                             G.cv.width = Wd; G.cv.height = Hd;
@@ -7987,11 +8023,12 @@
                             gl.generateMipmap(gl.TEXTURE_2D);
                             G.rev = _satMosRev; G.w = asm.w; G.h = asm.h; G.filt = "";
                         }
-                        var want = nearest ? "n" : "l";
+                        var want = (mode === 1) ? "n" : (mode === 2 ? "cr" : "l");
                         if (G.filt !== want) {
-                            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, nearest ? gl.NEAREST : gl.LINEAR);
+                            var near = (mode === 1);
+                            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, near ? gl.NEAREST : gl.LINEAR);
                             gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER,
-                                             nearest ? gl.NEAREST_MIPMAP_LINEAR : gl.LINEAR_MIPMAP_LINEAR);
+                                             near ? gl.NEAREST_MIPMAP_LINEAR : gl.LINEAR_MIPMAP_LINEAR);
                             G.filt = want;
                         }
                         var _ts = _satTS();
@@ -8016,6 +8053,7 @@
                         gl.uniform1f(u.uMaxSin, _S_MAXSIN);
                         gl.uniform2f(u.uOrg, mx0 - asm.tx * _ts, my0 - asm.ty * _ts);
                         gl.uniform2f(u.uAsm, asm.w, asm.h);
+                        gl.uniform1f(u.uCR, (mode === 2) ? 1 : 0);
                         gl.clear(gl.COLOR_BUFFER_BIT);
                         gl.drawArrays(gl.TRIANGLES, 0, 3);
                         return G.cv;
@@ -8121,17 +8159,32 @@
                         if (_satGLOK() && !asm.px) {
                             var _tsG = _satTS();
                             var magG = _S_TWOPI * g.R * dpr / (_tsG * (1 << asm.z));
+                            // WYBOR REKONSTRUKCJI (przebudowany 2026-08-01 po zgloszeniu o schodkach
+                            // na literach). Dawniej decydowala KROTNOSC CALKOWITA: mag 2.000 szlo
+                            // przez nearest, "bo obraz jest wtedy powiekszony, ale nadal ostry".
+                            // To prawda dla linii i ikon i NIEPRAWDA dla tekstu: kartografia ma
+                            // antyaliasing wypalony w kaflu, a nearest zamienia go w schodki.
+                            // Teraz decyduje wylacznie to, czy POWIEKSZAMY:
+                            //   mag > 1.02  -> Catmull-Rom (gladko i ostro, patrz texCR)
+                            //   mag ~ 1.00  -> NEAREST; to jedyny przypadek, w ktorym nearest jest
+                            //                  poprawna rekonstrukcja - piksel kafla trafia w piksel
+                            //                  ekranu, wiec kazdy filtr moglby tylko rozmyc
+                            //   mag < 1.00  -> sprzetowe mipmapy (pomniejszanie)
                             var magRG = Math.round(magG);
-                            var intG = (magRG >= 1 && Math.abs(magG - magRG) < 0.02);
-                            var glcv = _satGLDraw(asm, g, Wd, Hd, dpr, intG);
+                            var oneToOne = (magRG === 1 && Math.abs(magG - 1) < 0.02);
+                            var modeG = oneToOne ? 1 : (magG > 1.02 ? 2 : 0);
+                            var glcv = _satGLDraw(asm, g, Wd, Hd, dpr, modeG);
                             _satCtx.clearRect(0, 0, Wd, Hd);
-                            var sharpG = (step === 1 && intG && magG >= 2 && _satSharpen());
+                            // WYOSTRZANIE TYLKO POD NEAREST. Catmull-Rom ma wlasne ujemne listki,
+                            // ktore juz podbijaja kontrast krawedzi - dolozenie do tego splotu 3x3
+                            // daje podwojna obwodke wokol liter zamiast ostrosci.
+                            var sharpG = (step === 1 && modeG === 1 && magG >= 2 && _satSharpen());
                             if (sharpG) _satCtx.filter = "url(#sat-sharpen)";
                             _satCtx.drawImage(glcv, 0, 0);
                             if (sharpG) _satCtx.filter = "none";
                             _satLast = { step: step, ss: dpr, z: asm.z, mag: Math.round(magG * 100) / 100,
                                          tier: _satTier(), sharp: !!sharpG, gpu: true,
-                                         filter: intG ? "nearest+mip" : "linear+mip",
+                                         filter: (modeG === 2) ? "catmull-rom" : (modeG === 1 ? "nearest" : "linear+mip"),
                                          buf: asm.w + "x" + asm.h, out: Wd + "x" + Hd, at: Date.now() };
                             if (step === 1) _satSnapZoom(p, g);
                             return;
