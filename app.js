@@ -8591,6 +8591,16 @@
                             if (_satCtx) _satCtx.clearRect(0, 0, _satCv.width, _satCv.height);
                             _satAttrib(false);
                             _satPlFlag(true);
+                            // PORZUC KOLEJKE (2026-08-01, zgloszenie "glob klatkuje nawet z layerami
+                            // wylaczonymi"). Odkad kafle sa KOLEJKOWANE (po 8 naraz), zgaszenie
+                            // podkladu w polowie ladowania zostawialo w kolejce nawet kilkadziesiat
+                            // pozycji, ktore spokojnie doladowywaly sie dalej - a KAZDY przychodzacy
+                            // PNG to dekodowanie na watku glownym, czyli szarpniecie obracanego globu.
+                            // Zmierzone przed poprawka: 13 zadan WYSLANYCH JUZ PO zgaszeniu warstwy
+                            // (przy wiekszym kadrze bylaby to setka). Wczesniej problemu nie bylo,
+                            // bo wszystkie zadania szly jednym strzalem i konczyly sie przed kliknieciem.
+                            // Kafli JUZ W LOCIE nie anulujemy - sa oplacone i wpadna do cache.
+                            _satDropQ();
                         }
                         window._satLbl = on ? _satSrc().label : "SAT";
                     };
@@ -8601,6 +8611,7 @@
                     // ale zostaje jako API - to jedyny sposob na przejscie warstw bez znajomosci kluczy.
                     window.satNextSource = function(){
                         if (_satSrcIdx >= _satSrcKeys.length - 1) { _satSrcIdx = 0; window._satSrcKey = _satSrcKeys[0]; return false; }
+                        _satDropQ();
                         _satSrcIdx++;
                         _satAsm = null;
                         window._satSrcKey = _satSrcKeys[_satSrcIdx];
@@ -8617,6 +8628,10 @@
                     window.satSetSource = function(key){
                         var i = _satSrcKeys.indexOf(key);
                         if (i < 0) return false;
+                        // To samo co przy gaszeniu: w kolejce leza kafle POPRZEDNIEGO zrodla, ktorych
+                        // nikt juz nie zobaczy (cache jest kluczowany zrodlem). Bez tego przelaczenie
+                        // SAT -> STREET w trakcie ladowania dociagalo do konca oba komplety.
+                        _satDropQ();
                         _satSrcIdx = i;
                         _satAsm = null;
                         window._satSrcKey = key;
