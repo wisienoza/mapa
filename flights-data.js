@@ -14,19 +14,25 @@ const FLIGHTS_AP = {
   "BVA": [49.4544,2.11278,"Beauvais"],
   "CIA": [41.79877,12.59533,"Rome"],
   "CRL": [50.46196,4.45956,"Charleroi"],
+  "DAD": [16.0439,108.199,"Da Nang"],
   "DBV": [42.56225,18.26554,"Dubrovnik"],
   "DMK": [13.9126,100.607,"Bangkok"],
+  "DOH": [25.27306,51.60806,"Doha"],
   "DXB": [25.24979,55.37099,"Dubai"],
   "FNC": [32.69781,-16.77461,"Funchal"],
   "FRA": [50.02671,8.55835,"Frankfurt am Main"],
   "FUK": [33.5859,130.451,"Fukuoka"],
   "GDN": [54.3776,18.4662,"Gdańsk"],
+  "HAN": [21.2212,105.807,"Hanoi (Soc Son)"],
   "HKT": [8.11326,98.3174,"Phuket"],
   "HND": [35.54968,139.78696,"Tokyo"],
+  "HUI": [16.40063,107.70309,"Huế"],
   "KBP": [50.345,30.8947,"Boryspil"],
   "KBV": [8.09559,98.98896,"Krabi"],
   "KRK": [50.0777,19.7848,"Balice"],
+  "KTI": [11.35999,104.92127,"Phnom Penh (Boeng Khyang)"],
   "KTW": [50.47601,19.0807,"Katowice"],
+  "KUL": [2.74558,101.71,"Sepang"],
   "LIS": [38.7813,-9.13592,"Lisbon"],
   "LTN": [51.8747,-0.36833,"Luton, Luton"],
   "MAD": [40.49341,-3.57225,"Madrid"],
@@ -41,6 +47,8 @@ const FLIGHTS_AP = {
   "PSA": [43.6839,10.3927,"Pisa (PI)"],
   "PVG": [31.1434,121.805,"Shanghai (Pudong)"],
   "RMO": [46.92774,28.9317,"Chişinău"],
+  "SAI": [13.36974,104.22383,"Siem Reap"],
+  "SGN": [10.8188,106.652,"Ho Chi Minh City"],
   "SKP": [41.95809,21.62258,"Ilinden"],
   "SXF": [52.36174,13.50234,"Berlin"],
   "SZZ": [53.5847,14.9022,"Szczecin(Glewice)"],
@@ -52,7 +60,7 @@ const FLIGHTS_AP = {
   "WMI": [52.4511,20.6518,"Nowy Dwór Mazowiecki"],
   "WRO": [51.10372,16.8821,"Wrocław"],
 };
-const FLIGHTS_LEGS = [["ACE","CRL"],["ATH","WMI"],["AUH","BKK"],["AUH","BRU"],["AUH","MUC"],["BCN","WAW"],["BEG","SKP"],["BGY","WAW"],["BKK","KBV"],["BRI","DBV"],["BRI","WAW"],["BRU","WAW"],["BSL","WAW"],["BUD","WAW"],["BVA","MAN"],["BVA","WMI"],["CIA","MLA"],["CRL","WAW"],["DMK","HKT"],["DXB","PEK"],["DXB","PVG"],["DXB","WAW"],["FNC","LIS"],["FNC","PDL"],["FRA","WAW"],["FUK","OKA"],["GDN","VCE"],["HND","OKA"],["HND","PEK"],["KBP","WAW"],["KRK","WAW"],["KTW","WAW"],["LIS","PDL"],["LIS","WAW"],["LTN","WAW"],["MAD","WAW"],["MAN","PSA"],["MLA","WAW"],["MUC","WAW"],["OPO","WAW"],["OTP","WAW"],["PEK","WAW"],["RMO","WMI"],["SKP","WAW"],["SXF","TFS"],["SZZ","WMI"],["TIA","VRN"],["TIA","WMI"],["VCE","WAW"],["VRN","WAW"],["WAW","WRO"],["WMI","WRO"]];
+const FLIGHTS_LEGS = [["ACE","CRL"],["ATH","WMI"],["AUH","BKK"],["AUH","BRU"],["AUH","MUC"],["BCN","WAW"],["BEG","SKP"],["BGY","WAW"],["BKK","DOH"],["BKK","KBV"],["BKK","KUL"],["BRI","DBV"],["BRI","WAW"],["BRU","WAW"],["BSL","WAW"],["BUD","WAW"],["BVA","MAN"],["BVA","WMI"],["CIA","MLA"],["CRL","WAW"],["DAD","SGN"],["DMK","HKT"],["DOH","HAN"],["DOH","WAW"],["DXB","PEK"],["DXB","PVG"],["DXB","WAW"],["FNC","LIS"],["FNC","PDL"],["FRA","WAW"],["FUK","OKA"],["GDN","VCE"],["HAN","HUI"],["HND","OKA"],["HND","PEK"],["KBP","WAW"],["KRK","WAW"],["KTI","SGN"],["KTW","WAW"],["KUL","SAI"],["LIS","PDL"],["LIS","WAW"],["LTN","WAW"],["MAD","WAW"],["MAN","PSA"],["MLA","WAW"],["MUC","WAW"],["OPO","WAW"],["OTP","WAW"],["PEK","WAW"],["RMO","WMI"],["SKP","WAW"],["SXF","TFS"],["SZZ","WMI"],["TIA","VRN"],["TIA","WMI"],["VCE","WAW"],["VRN","WAW"],["WAW","WRO"],["WMI","WRO"]];
 const FLIGHTS_LOG = [
 ["2011-03-25","WAW","KTW",50,"LOT","Bombardier Dash 8-400","LOT","DH8D"],
 ["2012-04-23","KRK","WAW",50,"LOT","Embraer ERJ-175","LOT","E175"],
@@ -133,6 +141,15 @@ const FLIGHTS_LOG = [
 ["2026-04-09","WMI","RMO",110,"Wizz Air","Airbus A321neo","WZZ","A21N"],
 ["2026-04-11","RMO","WMI",105,"Wizz Air","Airbus A321neo","WZZ","A21N"],
 ["2026-06-21","WAW","FRA",110,"Lufthansa","Airbus A321","DLH","A321"],
-["2026-06-26","FRA","WAW",100,"Lufthansa","Airbus A320neo","DLH","A20N"]
+["2026-06-26","FRA","WAW",100,"Lufthansa","Airbus A320neo","DLH","A20N"],
+["2026-10-23","WAW","DOH",270,"Qatar Airways","Boeing 787-8","QTR","B788"],
+["2026-10-24","DOH","BKK",415,"Qatar Airways","Airbus A380-800","QTR","A388"],
+["2026-10-27","BKK","KUL",130,"MyTravel Airways","Boeing 737 MAX 8","MYT","B38M"],
+["2026-10-30","KUL","SAI",120,"","Airbus A320","","A320"],
+["2026-11-02","KTI","SGN",70,"Cambodia Angkor Air","ATR 72-600","KHV","AT76"],
+["2026-11-05","SGN","DAD",80,"VietJet Air","Airbus A321","VJC","A321"],
+["2026-11-09","HUI","HAN",80,"VietJet Air","Airbus A321","VJC","A321"],
+["2026-11-13","HAN","DOH",450,"Qatar Airways","Boeing 787-9","QTR","B789"],
+["2026-11-14","DOH","WAW",385,"Qatar Airways","Boeing 787-9","QTR","B789"]
 ];
-const FLIGHTS_META = { total: 80, airports: 51, routes: 52 };
+const FLIGHTS_META = { total: 89, airports: 59, routes: 60 };
